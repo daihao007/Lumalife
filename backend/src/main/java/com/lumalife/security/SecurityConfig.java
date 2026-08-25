@@ -32,6 +32,8 @@ public class SecurityConfig {
           "/api/v1/assistant/ask", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
         .requestMatchers("/api/v1/admin/**").hasRole(UserRole.PLATFORM_ADMIN.name())
         .requestMatchers("/api/v1/merchant-admin/**").hasRole(UserRole.MERCHANT_ADMIN.name())
+        .requestMatchers("/api/v1/cart/**", "/api/v1/orders/**", "/api/v1/payments", "/api/v1/user/**",
+          "/api/v1/reviews", "/api/v1/conversations/**").hasRole(UserRole.USER.name())
         .requestMatchers("/api/v1/**").authenticated()
         .anyRequest().permitAll())
       .exceptionHandling(exceptions -> exceptions
