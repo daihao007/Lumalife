@@ -3,6 +3,7 @@ import { canAccess, defaultView, parseRoute, routeHash } from "./routing";
 
 describe("core role routing", () => {
   it("maps stable hashes to core pages", () => {
+    expect(parseRoute("")).toEqual({ view: "home" });
     expect(parseRoute("#/orders")).toEqual({ view: "orders" });
     expect(parseRoute("#/merchant/products")).toEqual({ view: "merchant-products" });
     expect(parseRoute("#/merchants/12")).toEqual({ view: "detail", merchantId: 12 });

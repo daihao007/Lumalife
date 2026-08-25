@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BarChart3, CreditCard, Heart, HeartPulse, HomeIcon, MessageCircle, Package, PackageCheck, ShoppingBag, ShoppingCart, Store, UserRound } from "lucide-react";
 import { api } from "./api";
 import type { Address, CartLine, Category, Merchant, Order, Product, Role, User } from "./types";
@@ -40,6 +40,7 @@ export default function App() {
   const [message, setMessage] = useState("欢迎来到 LumaLife");
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const detailRequestId = useRef(0);
 
   useEffect(() => {
     api<Category[]>("/api/v1/categories").then(setCategories);
@@ -59,8 +60,14 @@ export default function App() {
     if (!authReady) return;
 
     async function applyLocation() {
+      if (!window.location.hash) {
+        setRoute(defaultView(user?.role ?? null), undefined, true);
+        return;
+      }
+
       const route = parseRoute(window.location.hash);
       if (!route || !canAccess(route.view, user?.role ?? null)) {
+        detailRequestId.current += 1;
         setMessage(route ? accessDeniedMessage(user?.role ?? null) : "页面地址无效，已返回工作台");
         setRoute(user ? defaultView(user.role) : route ? "login" : "home", undefined, true);
         return;
@@ -68,12 +75,21 @@ export default function App() {
 
       setView(route.view);
       if (route.view === "detail" && route.merchantId && activeMerchant?.merchant?.id !== route.merchantId) {
+        const requestedMerchantId = route.merchantId;
+        const requestId = ++detailRequestId.current;
         try {
-          setActiveMerchant(await api(`/api/v1/merchants/${route.merchantId}`));
+          const detail = await api(`/api/v1/merchants/${requestedMerchantId}`);
+          const currentRoute = parseRoute(window.location.hash);
+          if (requestId === detailRequestId.current && currentRoute?.view === "detail" && currentRoute.merchantId === requestedMerchantId) {
+            setActiveMerchant(detail);
+          }
         } catch (error) {
+          if (requestId !== detailRequestId.current) return;
           setMessage(error instanceof Error ? error.message : "商家详情加载失败");
           setRoute("home", undefined, true);
         }
+      } else if (route.view !== "detail") {
+        detailRequestId.current += 1;
       }
     }
 
@@ -108,6 +124,7 @@ export default function App() {
   }, [message]);
 
   function setRoute(nextView: AppView, merchantId?: number, replace = false) {
+    if (nextView !== "detail") detailRequestId.current += 1;
     const nextHash = routeHash(nextView, merchantId);
     if (window.location.hash === nextHash) {
       setView(nextView);
@@ -208,7 +225,9 @@ export default function App() {
   }
 
   async function openMerchant(id: number) {
+    const requestId = ++detailRequestId.current;
     const detail = await api(`/api/v1/merchants/${id}`);
+    if (requestId !== detailRequestId.current) return;
     setActiveMerchant(detail);
     navigate("detail", id);
   }
