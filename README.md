@@ -78,11 +78,17 @@ LumaLife/
   scripts/      初始化与演示辅助脚本
 ```
 
+## 持续集成
+
+[![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
+
+向 `main` 提交 PR 时会自动执行后端测试、前端构建和 Docker 镜像构建验证；代码进入 `main` 且全部检查通过后，流水线会把带提交版本标签的前后端镜像发布到 GHCR。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)。
+
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
 - 后端 Controller 已按认证、商家目录、购物车、订单、商家后台、管理员看板、AI 客服拆出 Service 门面，当前仍委托内存版 `DemoStore`。
-- 自动化测试包含后端业务规则测试和 Web 层权限集成测试，当前基线为 40 个用例；最新执行证据与缺口矩阵见 `docs/15_测试基线与缺口矩阵_2026-08-25.md`。
+- 自动化测试包含后端业务规则测试和 Web 层权限集成测试，当前基线为 40 个用例；详见 [测试报告](docs/07_测试报告.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
 - 数据库持久化已形成迁移计划，见 `docs/11_数据库持久化迁移计划.md`，建议后续从 `AuthService` 开始逐步替换内存实现。
 
 ## 说明
