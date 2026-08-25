@@ -1,0 +1,13 @@
+export type Role = "USER" | "MERCHANT_ADMIN" | "PLATFORM_ADMIN";
+export type User = { id: number; phone: string; nickname: string; avatarUrl?: string; role: Role; merchantId?: number };
+export type Merchant = { id: number; name: string; categoryName: string; cover: string; avgScore: number; avgPrice: number; monthlySales: number; distanceKm: number; status: string; address: string; reason: string };
+export type Product = { id: number; merchantId: number; name: string; description: string; priceCent: number; stock: number; listed: boolean };
+export type Deal = { id: number; merchantId: number; title: string; description: string; priceCent: number; stock: number; active: boolean };
+export type Order = { id: number; merchantId: number; merchantName?: string; type: "DELIVERY" | "GROUP_BUY"; status: string; totalCent: number; couponCode?: string; reviewed: boolean; addressSnapshot?: string; statusTimeline?: Record<string, string>; lines: { itemId?: number; name: string; quantity: number; priceCent: number }[] };
+export type Review = { id: number; orderId: number; merchantId: number; userName: string; score: number; tasteScore: number; serviceScore: number; content: string; createdAt: string };
+export type Category = { id: number; name: string; icon: string };
+export type Address = { id: number; userId: number; contactName: string; phone: string; detail: string; defaultAddress: boolean };
+export type CartLine = { productId: number; merchantId: number; merchantName: string; name: string; priceCent: number; quantity: number; subtotalCent: number };
+export type CartGroup = { merchantId: number; merchantName: string; items: CartLine[]; subtotalCent: number };
+export type ChatMessage = { id: number; userId: number; merchantId: number; senderRole: "USER" | "MERCHANT" | "MERCHANT_AI"; senderName: string; content: string; createdAt: string };
+export type ConversationSummary = { userId: number; userName: string; merchantId: number; merchantName: string; title: string; lastMessage: string; updatedAt: string };

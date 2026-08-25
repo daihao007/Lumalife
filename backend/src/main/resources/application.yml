@@ -1,0 +1,17 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: lumalife-backend
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+agnes:
+  endpoint: https://apihub.agnes-ai.com/v1/chat/completions
+  model: agnes-2.0-flash
+  api-key: ${AGNES_API_KEY:}
