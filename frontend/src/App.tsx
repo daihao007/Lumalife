@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BarChart3, CreditCard, Heart, HeartPulse, HomeIcon, MessageCircle, Package, PackageCheck, ShoppingBag, ShoppingCart, Store, UserRound } from "lucide-react";
 import { api } from "./api";
 import type { Address, CartLine, Category, Merchant, Order, Product, Role, User } from "./types";
@@ -8,7 +8,6 @@ import Detail from "./pages/Detail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile";
-import MerchantDesk from "./pages/MerchantDesk";
 import MerchantOrders from "./pages/MerchantOrders";
 import MerchantProducts from "./pages/MerchantProducts";
 import MerchantSupport from "./pages/MerchantSupport";
@@ -16,12 +15,14 @@ import MerchantShop from "./pages/MerchantShop";
 import Admin from "./pages/Admin";
 import Assistant from "./pages/Assistant";
 import Favorites from "./pages/Favorites";
+import { accessDeniedMessage, canAccess, defaultView, parseRoute, routeHash, type AppView } from "./routing";
 
 type MerchantProfilePayload = { user: User; merchant: Merchant };
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [view, setView] = useState("home");
+  const [authReady, setAuthReady] = useState(false);
+  const [view, setView] = useState<AppView>("home");
   const [keyword, setKeyword] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [sort, setSort] = useState("recommend");
@@ -32,7 +33,6 @@ export default function App() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [activeMerchant, setActiveMerchant] = useState<any>(null);
   const [assistantMerchantId, setAssistantMerchantId] = useState<number | null>(null);
-  const [merchantSupportRequest, setMerchantSupportRequest] = useState(0);
   const [orders, setOrders] = useState<Order[]>([]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -40,19 +40,67 @@ export default function App() {
   const [message, setMessage] = useState("欢迎来到 LumaLife");
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const detailRequestId = useRef(0);
 
   useEffect(() => {
     api<Category[]>("/api/v1/categories").then(setCategories);
     loadMerchants();
     const token = localStorage.getItem("lumalife-token");
-    if (token) api<User>("/api/v1/auth/me").then(setUser).catch(() => localStorage.removeItem("lumalife-token"));
+    if (!token) {
+      setAuthReady(true);
+      return;
+    }
+    api<User>("/api/v1/auth/me")
+      .then(setUser)
+      .catch(() => localStorage.removeItem("lumalife-token"))
+      .finally(() => setAuthReady(true));
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role === "MERCHANT_ADMIN" && ["home", "cart", "orders", "profile", "detail", "assistant", "merchant"].includes(view)) setView("merchant-orders");
-    if (user.role === "PLATFORM_ADMIN" && ["home", "cart", "orders", "profile", "detail", "merchant", "merchant-orders", "merchant-products", "merchant-support", "merchant-shop", "assistant"].includes(view)) setView("admin");
-  }, [user, view]);
+    if (!authReady) return;
+
+    async function applyLocation() {
+      if (!window.location.hash) {
+        setRoute(defaultView(user?.role ?? null), undefined, true);
+        return;
+      }
+
+      const route = parseRoute(window.location.hash);
+      if (!route || !canAccess(route.view, user?.role ?? null)) {
+        detailRequestId.current += 1;
+        setMessage(route ? accessDeniedMessage(user?.role ?? null) : "页面地址无效，已返回工作台");
+        setRoute(user ? defaultView(user.role) : route ? "login" : "home", undefined, true);
+        return;
+      }
+
+      setView(route.view);
+      if (route.view === "detail" && route.merchantId && activeMerchant?.merchant?.id !== route.merchantId) {
+        const requestedMerchantId = route.merchantId;
+        const requestId = ++detailRequestId.current;
+        try {
+          const detail = await api(`/api/v1/merchants/${requestedMerchantId}`);
+          const currentRoute = parseRoute(window.location.hash);
+          if (requestId === detailRequestId.current && currentRoute?.view === "detail" && currentRoute.merchantId === requestedMerchantId) {
+            setActiveMerchant(detail);
+          }
+        } catch (error) {
+          if (requestId !== detailRequestId.current) return;
+          setMessage(error instanceof Error ? error.message : "商家详情加载失败");
+          setRoute("home", undefined, true);
+        }
+      } else if (route.view !== "detail") {
+        detailRequestId.current += 1;
+      }
+    }
+
+    applyLocation();
+    window.addEventListener("hashchange", applyLocation);
+    window.addEventListener("popstate", applyLocation);
+    return () => {
+      window.removeEventListener("hashchange", applyLocation);
+      window.removeEventListener("popstate", applyLocation);
+    };
+  }, [authReady, user?.role]);
 
   // 用户登录/登出后重新加载商家列表（个性化推荐需要用户身份）
   useEffect(() => {
@@ -65,7 +113,7 @@ export default function App() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (user && (view === "orders" || view === "merchant" || view === "merchant-orders")) loadOrders();
+    if (user && (view === "orders" || view === "merchant-orders")) loadOrders();
   }, [user?.id, view]);
 
   useEffect(() => {
@@ -74,6 +122,27 @@ export default function App() {
     const timer = window.setTimeout(() => setNoticeVisible(false), 2200);
     return () => window.clearTimeout(timer);
   }, [message]);
+
+  function setRoute(nextView: AppView, merchantId?: number, replace = false) {
+    if (nextView !== "detail") detailRequestId.current += 1;
+    const nextHash = routeHash(nextView, merchantId);
+    if (window.location.hash === nextHash) {
+      setView(nextView);
+      return;
+    }
+    const updateHistory = replace ? window.history.replaceState : window.history.pushState;
+    updateHistory.call(window.history, null, "", nextHash);
+    setView(nextView);
+  }
+
+  function navigate(nextView: AppView, merchantId?: number) {
+    if (!canAccess(nextView, user?.role ?? null)) {
+      setMessage(accessDeniedMessage(user?.role ?? null));
+      setRoute(user ? defaultView(user.role) : "login");
+      return;
+    }
+    setRoute(nextView, merchantId);
+  }
 
   async function loadMerchants(nextKeyword = keyword, categoryId: number | null = activeCategoryId, nextSort = sort, nextMinPrice = minPrice, nextMaxPrice = maxPrice, nextMinScore = minScore) {
     const params = new URLSearchParams({ keyword: nextKeyword, page: "1", size: "20", sort: nextSort });
@@ -136,7 +205,7 @@ export default function App() {
       localStorage.setItem("lumalife-token", data.token);
       setUser(data.user);
       setMessage(`${data.user.nickname} 登录成功`);
-      setView(data.user.role === "PLATFORM_ADMIN" ? "admin" : data.user.role === "MERCHANT_ADMIN" ? "merchant-orders" : "home");
+      setRoute(defaultView(data.user.role));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "登录失败");
     }
@@ -149,26 +218,23 @@ export default function App() {
       localStorage.setItem("lumalife-token", data.token);
       setUser(data.user);
       setMessage(`${data.user.nickname} 注册并登录成功`);
-      setView(data.user.role === "MERCHANT_ADMIN" ? "merchant-orders" : "profile");
+      setRoute(data.user.role === "MERCHANT_ADMIN" ? "merchant-orders" : "profile");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "注册失败");
     }
   }
 
   async function openMerchant(id: number) {
+    const requestId = ++detailRequestId.current;
     const detail = await api(`/api/v1/merchants/${id}`);
+    if (requestId !== detailRequestId.current) return;
     setActiveMerchant(detail);
-    setView("detail");
+    navigate("detail", id);
   }
 
   function contactMerchant(merchantId: number) {
     setAssistantMerchantId(merchantId);
-    setView("assistant");
-  }
-
-  function openMerchantSupport() {
-    loadOrders();
-    setView("merchant-support");
+    navigate("assistant");
   }
 
   async function syncMerchantProfile(profile: MerchantProfilePayload) {
@@ -193,7 +259,7 @@ export default function App() {
     const result = await api<Order[]>("/api/v1/orders/delivery", { method: "POST", body: JSON.stringify({ addressId: selectedAddressId }) });
     await loadOrders();
     await loadCart();
-    setView("orders");
+    navigate("orders");
     setMessage(result.length === 1 ? `订单 #${result[0].id} 已创建，待模拟支付` : `已按商家拆分创建 ${result.length} 个待支付订单`);
   }
 
@@ -206,7 +272,7 @@ export default function App() {
   async function pay(orderId: number) {
     const paid = await api<Order>("/api/v1/payments", { method: "POST", body: JSON.stringify({ orderId, clientRequestId: crypto.randomUUID() }) });
     await loadOrders();
-    setView("orders");
+    navigate("orders");
     setMessage("模拟支付成功");
     return paid;
   }
@@ -250,7 +316,11 @@ export default function App() {
   }
 
   async function toggleFavorite(merchantId: number) {
-    if (!user) { setView("login"); return; }
+    if (!user) {
+      setMessage("请先登录后再收藏商家");
+      setRoute("login");
+      return;
+    }
     if (favoriteIds.includes(merchantId)) {
       await api(`/api/v1/user/favorites/${merchantId}/delete`, { method: "POST" });
       setFavoriteIds(ids => ids.filter(id => id !== merchantId));
@@ -265,7 +335,7 @@ export default function App() {
   async function logout() {
     localStorage.removeItem("lumalife-token");
     setUser(null);
-    setView("home");
+    setRoute("home");
     setFavoriteIds([]);
     await clearMerchantFilter();
     setMessage("已退出登录");
@@ -275,17 +345,17 @@ export default function App() {
     <main>
       <aside>
         <div className="brand"><HeartPulse size={26} /> <span>LumaLife</span></div>
-        {(!user || user.role === "USER") && <button onClick={() => setView("home")}><Store /> 发现</button>}
-        {(!user || user.role === "USER") && <button onClick={() => { loadCart(); setView("cart"); }}><ShoppingCart /> 购物车</button>}
-        {user?.role === "USER" && <button onClick={() => { loadOrders(); setView("orders"); }}><CreditCard /> 订单</button>}
-        {user?.role === "USER" && <button onClick={() => { loadFavorites(); setView("favorites"); }}><Heart /> 收藏</button>}
-        {user?.role === "USER" && <button onClick={() => setView("profile")}><HomeIcon /> 地址</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => { loadOrders(); setView("merchant-orders"); }}><PackageCheck /> 订单</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => setView("merchant-products")}><ShoppingBag /> 商品</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => setView("merchant-support")}><MessageCircle /> 客服</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => setView("merchant-shop")}><Store /> 店铺</button>}
-        {user?.role === "PLATFORM_ADMIN" && <button onClick={() => setView("admin")}><BarChart3 /> 看板</button>}
-        {(!user || user.role === "USER") && <button onClick={() => { setAssistantMerchantId(null); setView("assistant"); }}><MessageCircle /> 客服</button>}
+        {(!user || user.role === "USER") && <button onClick={() => navigate("home")}><Store /> 发现</button>}
+        {(!user || user.role === "USER") && <button onClick={() => { loadCart(); navigate("cart"); }}><ShoppingCart /> 购物车</button>}
+        {user?.role === "USER" && <button onClick={() => { loadOrders(); navigate("orders"); }}><CreditCard /> 订单</button>}
+        {user?.role === "USER" && <button onClick={() => { loadFavorites(); navigate("favorites"); }}><Heart /> 收藏</button>}
+        {user?.role === "USER" && <button onClick={() => navigate("profile")}><HomeIcon /> 地址</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => { loadOrders(); navigate("merchant-orders"); }}><PackageCheck /> 订单</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => navigate("merchant-products")}><ShoppingBag /> 商品</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => navigate("merchant-support")}><MessageCircle /> 客服</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => navigate("merchant-shop")}><Store /> 店铺</button>}
+        {user?.role === "PLATFORM_ADMIN" && <button onClick={() => navigate("admin")}><BarChart3 /> 看板</button>}
+        {(!user || user.role === "USER") && <button onClick={() => { setAssistantMerchantId(null); navigate("assistant"); }}><MessageCircle /> 客服</button>}
         <div className="account">
           {user ? <>
             <div className="account-user">
@@ -293,7 +363,7 @@ export default function App() {
               <span title={accountDisplayName}>{accountDisplayName}</span>
             </div>
             <button onClick={logout}>退出</button>
-          </> : <button onClick={() => setView("login")}>登录</button>}
+          </> : <button onClick={() => navigate("login")}>登录</button>}
         </div>
       </aside>
 
@@ -308,11 +378,10 @@ export default function App() {
         {view === "login" && <Login onLogin={login} onRegister={register} />}
         {view === "home" && <Home categories={categories} merchants={merchants} keyword={keyword} setKeyword={setKeyword} activeCategoryId={activeCategoryId} sort={sort} setSort={changeSort} minPrice={minPrice} setMinPrice={setMinPrice} maxPrice={maxPrice} setMaxPrice={setMaxPrice} minScore={minScore} setMinScore={changeMinScore} applyDiscoverFilters={applyDiscoverFilters} searchMerchants={searchMerchants} filterByCategory={filterByCategory} clearMerchantFilter={clearMerchantFilter} openMerchant={openMerchant} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} />}
         {view === "favorites" && <Favorites merchants={merchants} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} openMerchant={openMerchant} loadFavorites={loadFavorites} />}
-        {view === "detail" && activeMerchant && <Detail detail={activeMerchant} addCart={addCart} openCart={() => { loadCart(); setView("cart"); }} buyDeal={buyDeal} backHome={() => setView("home")} contactMerchant={contactMerchant} />}
+        {view === "detail" && activeMerchant && <Detail detail={activeMerchant} addCart={addCart} openCart={() => { loadCart(); navigate("cart"); }} buyDeal={buyDeal} backHome={() => navigate("home")} contactMerchant={contactMerchant} />}
         {view === "cart" && <Cart cart={cart} addresses={addresses} selectedAddressId={selectedAddressId} setSelectedAddressId={setSelectedAddressId} reload={loadCart} createDeliveryOrder={createDeliveryOrder} setMessage={setMessage} />}
         {view === "orders" && <Orders user={user} orders={orders} reload={loadOrders} pay={pay} cancelOrder={cancelOrder} receiveOrder={receiveOrder} setMessage={setMessage} />}
         {view === "profile" && user && <Profile user={user} setUser={setUser} setMessage={setMessage} />}
-        {view === "merchant" && user && <MerchantDesk user={user} onProfileUpdated={syncMerchantProfile} orders={orders} reload={loadOrders} setMessage={setMessage} supportRequest={merchantSupportRequest} />}
         {view === "merchant-orders" && user && <MerchantOrders user={user} orders={orders} reload={loadOrders} setMessage={setMessage} />}
         {view === "merchant-products" && user && <MerchantProducts user={user} setMessage={setMessage} />}
         {view === "merchant-support" && user && <MerchantSupport user={user} setMessage={setMessage} />}
