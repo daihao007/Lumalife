@@ -434,4 +434,31 @@ class DemoStoreTest {
     int after = store.merchantDeals(admin).stream().filter(d -> d.id() == 1).findFirst().orElseThrow().stock();
     Assertions.assertEquals(before - 3, after);
   }
+
+  @Test
+  void paidGroupOrderGeneratesTwelveDigitCouponCodeAndCanBeVerifiedOnce() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User admin = store.userByPhone("13800000002");
+
+    Order order = store.createGroupOrder(user, 1, 1);
+    Order paid = store.pay(user, order.id, "req-coupon-code");
+
+    Assertions.assertNotNull(paid.couponCode);
+    Assertions.assertTrue(paid.couponCode.matches("\\d{12}"));
+    Assertions.assertEquals(OrderStatus.USED, store.verifyCoupon(admin, paid.couponCode).status);
+    Assertions.assertThrows(BusinessException.class, () -> store.verifyCoupon(admin, paid.couponCode));
+  }
+
+  @Test
+  void merchantCannotVerifyCouponFromAnotherStore() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User otherAdmin = store.userByPhone("13800000003");
+
+    Order order = store.createGroupOrder(user, 1, 1);
+    Order paid = store.pay(user, order.id, "req-coupon-cross-store");
+
+    Assertions.assertThrows(BusinessException.class, () -> store.verifyCoupon(otherAdmin, paid.couponCode));
+  }
 }

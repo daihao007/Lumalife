@@ -166,6 +166,161 @@ class ApiSecurityIntegrationTest {
       .andExpect(jsonPath("$.data.answer").isNotEmpty());
   }
 
+  @Test
+  void userOnlyApisRejectMerchantAndPlatformAdminTokens() throws Exception {
+    String merchantToken = login("13800000002", "abc123456");
+    String platformToken = login("13800000000", "admin123456");
+
+    mvc.perform(get("/api/v1/cart/detail")
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isForbidden());
+
+    mvc.perform(post("/api/v1/orders/group-buy")
+        .header("Authorization", bearer(platformToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"dealId\":1,\"quantity\":1}"))
+      .andExpect(status().isForbidden());
+
+    mvc.perform(get("/api/v1/user/addresses")
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void userDeliveryOrderApiCoversCartPaymentMerchantWorkflowAndReview() throws Exception {
+    String userToken = login("13800000001", "abc123456");
+    String merchantToken = login("13800000002", "abc123456");
+
+    mvc.perform(post("/api/v1/cart/items")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"productId\":1001,\"quantity\":1}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[0].productId").value(1001))
+      .andExpect(jsonPath("$.data[0].quantity").value(1));
+
+    mvc.perform(get("/api/v1/cart/detail")
+        .header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[0].merchantName").isNotEmpty())
+      .andExpect(jsonPath("$.data[0].subtotalCent").isNumber());
+
+    JsonNode createdOrders = data(postJson("/api/v1/orders/delivery", userToken, "{\"addressId\":101}"));
+    long orderId = createdOrders.get(0).path("id").asLong();
+    Assertions.assertTrue(orderId > 0);
+    Assertions.assertEquals("PENDING_PAYMENT", createdOrders.get(0).path("status").asText());
+
+    JsonNode paid = data(postJson("/api/v1/payments", userToken,
+      "{\"orderId\":%d,\"clientRequestId\":\"api-delivery-%d\"}".formatted(orderId, System.nanoTime())));
+    Assertions.assertEquals("PAID", paid.path("status").asText());
+
+    transition(merchantToken, orderId, "ACCEPTED")
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.status").value("ACCEPTED"));
+    transition(merchantToken, orderId, "DELIVERING")
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.status").value("DELIVERING"));
+    transition(merchantToken, orderId, "COMPLETED")
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.status").value("COMPLETED"));
+
+    mvc.perform(post("/api/v1/orders/%d/receive".formatted(orderId))
+        .header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.status").value("RECEIVED"));
+
+    mvc.perform(post("/api/v1/reviews")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("""
+          {"orderId":%d,"score":5,"tasteScore":5,"serviceScore":5,"content":"接口闭环体验很好"}
+          """.formatted(orderId)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.orderId").value(orderId))
+      .andExpect(jsonPath("$.data.content").value("接口闭环体验很好"));
+
+    mvc.perform(get("/api/v1/merchant-admin/reviews")
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.orderId == %d)]".formatted(orderId)).isNotEmpty());
+  }
+
+  @Test
+  void groupBuyApiGeneratesCouponAndMerchantVerifiesOnlyOnceForOwnStore() throws Exception {
+    String userToken = login("13800000001", "abc123456");
+    String ownerMerchantToken = login("13800000002", "abc123456");
+    String otherMerchantToken = login("13800000003", "abc123456");
+
+    JsonNode paid = paidGroupOrder(userToken, 1, "api-group-owner-" + System.nanoTime());
+    long orderId = paid.path("id").asLong();
+    String couponCode = paid.path("couponCode").asText();
+    Assertions.assertEquals(12, couponCode.length());
+
+    mvc.perform(post("/api/v1/merchant-admin/coupons/verify")
+        .header("Authorization", bearer(ownerMerchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"code\":\"%s\"}".formatted(couponCode)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.id").value(orderId))
+      .andExpect(jsonPath("$.data.status").value("USED"));
+
+    mvc.perform(post("/api/v1/merchant-admin/coupons/verify")
+        .header("Authorization", bearer(ownerMerchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"code\":\"%s\"}".formatted(couponCode)))
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value(40900));
+
+    JsonNode otherPaid = paidGroupOrder(userToken, 1, "api-group-other-" + System.nanoTime());
+    String otherCouponCode = otherPaid.path("couponCode").asText();
+    mvc.perform(post("/api/v1/merchant-admin/coupons/verify")
+        .header("Authorization", bearer(otherMerchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"code\":\"%s\"}".formatted(otherCouponCode)))
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.code").value(40300));
+  }
+
+  @Test
+  void merchantAdminCanMaintainProductAndGroupDealThroughApi() throws Exception {
+    String merchantToken = login("13800000003", "abc123456");
+    String productName = "api-product-" + System.nanoTime();
+    String dealTitle = "api-deal-" + System.nanoTime();
+
+    JsonNode product = data(postJson("/api/v1/merchant-admin/products", merchantToken, """
+      {"name":"%s","description":"api product","priceCent":1880,"stock":8,"listed":true}
+      """.formatted(productName)));
+    long productId = product.path("id").asLong();
+    Assertions.assertEquals(productName, product.path("name").asText());
+    Assertions.assertTrue(product.path("listed").asBoolean());
+
+    mvc.perform(post("/api/v1/merchant-admin/products/%d/toggle".formatted(productId))
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.id").value(productId))
+      .andExpect(jsonPath("$.data.listed").value(false));
+
+    mvc.perform(post("/api/v1/merchant-admin/products")
+        .header("Authorization", bearer(merchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"bad\",\"description\":\"bad\",\"priceCent\":0,\"stock\":1,\"listed\":true}"))
+      .andExpect(status().isBadRequest())
+      .andExpect(jsonPath("$.code").value(40000));
+
+    JsonNode deal = data(postJson("/api/v1/merchant-admin/group-deals", merchantToken, """
+      {"title":"%s","description":"api deal","priceCent":4990,"stock":6,"active":true}
+      """.formatted(dealTitle)));
+    long dealId = deal.path("id").asLong();
+    Assertions.assertEquals(dealTitle, deal.path("title").asText());
+    Assertions.assertTrue(deal.path("active").asBoolean());
+
+    mvc.perform(post("/api/v1/merchant-admin/group-deals/%d/toggle".formatted(dealId))
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.id").value(dealId))
+      .andExpect(jsonPath("$.data.active").value(false));
+  }
+
   private String login(String phone, String password) throws Exception {
     String body = """
       {"phone":"%s","password":"%s"}
@@ -207,6 +362,36 @@ class ApiSecurityIntegrationTest {
       .getResponse()
       .getContentAsString();
     return objectMapper.readTree(response).path("data").path("records");
+  }
+
+  private org.springframework.test.web.servlet.ResultActions transition(String token, long orderId, String next) throws Exception {
+    return mvc.perform(post("/api/v1/merchant-admin/orders/%d/transition".formatted(orderId))
+      .header("Authorization", bearer(token))
+      .contentType(MediaType.APPLICATION_JSON)
+      .content("{\"next\":\"%s\"}".formatted(next)));
+  }
+
+  private String postJson(String path, String token, String body) throws Exception {
+    return mvc.perform(post(path)
+        .header("Authorization", bearer(token))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(body))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.code").value(200))
+      .andReturn()
+      .getResponse()
+      .getContentAsString();
+  }
+
+  private JsonNode data(String response) throws Exception {
+    return objectMapper.readTree(response).path("data");
+  }
+
+  private JsonNode paidGroupOrder(String userToken, long dealId, String clientRequestId) throws Exception {
+    JsonNode order = data(postJson("/api/v1/orders/group-buy", userToken,
+      "{\"dealId\":%d,\"quantity\":1}".formatted(dealId)));
+    return data(postJson("/api/v1/payments", userToken,
+      "{\"orderId\":%d,\"clientRequestId\":\"%s\"}".formatted(order.path("id").asLong(), clientRequestId)));
   }
 
   private String bearer(String token) {
