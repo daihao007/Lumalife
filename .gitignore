@@ -1,0 +1,52 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+
+# Environment variables and local-only configuration
+.env
+.env.*
+!.env.example
+**/application-local.yml
+**/application-*.local.yml
+
+# Java / Maven build output
+target/
+
+# Node / Vite build output and dependencies
+node_modules/
+dist/
+.vite/
+
+# Test, coverage, and tool caches
+coverage/
+.nyc_output/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+test-results/
+playwright-report/
+
+# Runtime state and local application data
+/backend/data/
+
+# Logs, temporary files, and local process notes
+*.log
+logs/
+/log/
+/suggestions/
+*.tmp
+*.temp
+*.pid
+*.trace
+*~
