@@ -26,6 +26,7 @@ target/
 node_modules/
 dist/
 .vite/
+.npm-cache/
 
 # Test, coverage, and tool caches
 coverage/
