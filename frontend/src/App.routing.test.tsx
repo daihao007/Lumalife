@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { User } from "./types";
@@ -10,7 +10,7 @@ const apiMock = vi.hoisted(() => vi.fn());
 vi.mock("./api", () => ({ api: apiMock }));
 vi.mock("./pages/Login", () => ({ default: () => <div>login-page</div> }));
 vi.mock("./pages/Home", () => ({ default: () => <div>home-page</div> }));
-vi.mock("./pages/Detail", () => ({ default: ({ detail }: { detail: { merchant: { id: number } } }) => <div>detail-{detail.merchant.id}</div> }));
+vi.mock("./pages/Detail", () => ({ default: ({ detail, addCart, buyDeal }: { detail: { merchant: { id: number } }; addCart: (id: number) => Promise<void>; buyDeal: (id: number) => Promise<void> }) => <div>detail-{detail.merchant.id}<button onClick={() => addCart(11)}>mock-add-cart</button><button onClick={() => buyDeal(21)}>mock-buy-deal</button></div> }));
 vi.mock("./pages/Cart", () => ({ default: () => <div>cart-page</div> }));
 vi.mock("./pages/Orders", () => ({ default: () => <div>orders-page</div> }));
 vi.mock("./pages/Profile", () => ({ default: () => <div>profile-page</div> }));
@@ -116,5 +116,22 @@ describe("App route wiring", () => {
     await act(async () => resolveFirst({ merchant: { id: 1 } }));
     expect(screen.getByText("detail-2")).toBeTruthy();
     expect(screen.queryByText("detail-1")).toBeNull();
+  });
+
+  it("redirects guest purchase actions to login without calling protected APIs", async () => {
+    window.history.replaceState(null, "", "#/merchants/1");
+    apiMock.mockImplementation((path: string) => {
+      if (path === "/api/v1/categories") return Promise.resolve([]);
+      if (path.startsWith("/api/v1/merchants?")) return Promise.resolve({ records: [] });
+      if (path === "/api/v1/merchants/1") return Promise.resolve({ merchant: { id: 1 } });
+      return Promise.resolve([]);
+    });
+    render(<App />);
+
+    fireEvent.click(await screen.findByText("mock-add-cart"));
+
+    await waitFor(() => expect(window.location.hash).toBe("#/login"));
+    expect(screen.getByText("请先登录后再加购商品")).toBeTruthy();
+    expect(apiMock).not.toHaveBeenCalledWith("/api/v1/cart/items", expect.anything());
   });
 });

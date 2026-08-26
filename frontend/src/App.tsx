@@ -250,6 +250,11 @@ export default function App() {
     : user?.nickname;
 
   async function addCart(productId: number) {
+    if (!user) {
+      setMessage("请先登录后再加购商品");
+      navigate("login");
+      return;
+    }
     await api("/api/v1/cart/items", { method: "POST", body: JSON.stringify({ productId, quantity: 1 }) });
     await loadCart();
     const product = activeMerchant?.products?.find((item: Product) => item.id === productId);
@@ -265,6 +270,11 @@ export default function App() {
   }
 
   async function buyDeal(dealId: number) {
+    if (!user) {
+      setMessage("请先登录后再购买团购套餐");
+      navigate("login");
+      return;
+    }
     const order = await api<Order>("/api/v1/orders/group-buy", { method: "POST", body: JSON.stringify({ dealId, quantity: 1 }) });
     const paid = await pay(order.id);
     setMessage(`团购支付成功，券码 ${paid.couponCode}`);
@@ -381,7 +391,7 @@ export default function App() {
         {view === "login" && <Login onLogin={login} onRegister={register} />}
         {view === "home" && <Home categories={categories} merchants={merchants} keyword={keyword} setKeyword={setKeyword} activeCategoryId={activeCategoryId} sort={sort} setSort={changeSort} minPrice={minPrice} setMinPrice={setMinPrice} maxPrice={maxPrice} setMaxPrice={setMaxPrice} minScore={minScore} setMinScore={changeMinScore} applyDiscoverFilters={applyDiscoverFilters} searchMerchants={searchMerchants} filterByCategory={filterByCategory} clearMerchantFilter={clearMerchantFilter} openMerchant={openMerchant} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} />}
         {view === "favorites" && <Favorites merchants={merchants} favoriteIds={favoriteIds} toggleFavorite={toggleFavorite} openMerchant={openMerchant} loadFavorites={loadFavorites} />}
-        {view === "detail" && activeMerchant && <Detail detail={activeMerchant} addCart={addCart} openCart={() => { loadCart(); navigate("cart"); }} buyDeal={buyDeal} backHome={() => navigate("home")} contactMerchant={contactMerchant} />}
+        {view === "detail" && activeMerchant && <Detail detail={activeMerchant} addCart={addCart} openCart={() => { loadCart(); navigate("cart"); }} buyDeal={buyDeal} backHome={() => navigate("home")} contactMerchant={contactMerchant} setMessage={setMessage} />}
         {view === "cart" && <Cart cart={cart} addresses={addresses} selectedAddressId={selectedAddressId} setSelectedAddressId={setSelectedAddressId} reload={loadCart} createDeliveryOrder={createDeliveryOrder} setMessage={setMessage} />}
         {view === "orders" && <Orders user={user} orders={orders} reload={loadOrders} pay={pay} cancelOrder={cancelOrder} receiveOrder={receiveOrder} setMessage={setMessage} />}
         {view === "profile" && user && <Profile user={user} setUser={setUser} setMessage={setMessage} />}
