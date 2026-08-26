@@ -23,6 +23,7 @@ import com.lumalife.service.CatalogService;
 import com.lumalife.service.FavoriteService;
 import com.lumalife.service.MerchantAdminService;
 import com.lumalife.service.OrderWorkflowService;
+import com.lumalife.service.OrderAdminService;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -43,12 +44,14 @@ public class ApiControllers {
   private final CartService cartService;
   private final OrderWorkflowService orderWorkflowService;
   private final MerchantAdminService merchantAdminService;
+  private final OrderAdminService orderAdminService;
   private final AdminDashboardService adminDashboardService;
   private final AssistantService assistantService;
   private final FavoriteService favoriteService;
 
   public ApiControllers(AuthService authService, CatalogService catalogService, CartService cartService,
                         OrderWorkflowService orderWorkflowService, MerchantAdminService merchantAdminService,
+                        OrderAdminService orderAdminService,
                         AdminDashboardService adminDashboardService, AssistantService assistantService,
                         FavoriteService favoriteService) {
     this.authService = authService;
@@ -56,6 +59,7 @@ public class ApiControllers {
     this.cartService = cartService;
     this.orderWorkflowService = orderWorkflowService;
     this.merchantAdminService = merchantAdminService;
+    this.orderAdminService = orderAdminService;
     this.adminDashboardService = adminDashboardService;
     this.favoriteService = favoriteService;
     this.assistantService = assistantService;
@@ -73,7 +77,7 @@ public class ApiControllers {
 
   @PostMapping("/auth/register/merchant")
   ApiResponse<Map<String, Object>> registerMerchant(@RequestBody RegisterRequest request) {
-    return ApiResponse.success(authService.register(request.phone(), request.password(), request.nickname(), UserRole.MERCHANT_ADMIN));
+    return ApiResponse.success(authService.registerMerchant(request.phone(), request.password(), request.nickname()));
   }
 
   @GetMapping("/auth/me")
@@ -262,7 +266,7 @@ public class ApiControllers {
 
   @GetMapping("/merchant-admin/orders")
   ApiResponse<List<Order>> merchantOrders(Principal principal) {
-    return ApiResponse.success(merchantAdminService.merchantOrders(current(principal)));
+    return ApiResponse.success(orderAdminService.merchantOrders(current(principal)));
   }
 
   @GetMapping("/merchant-admin/profile")
@@ -282,7 +286,7 @@ public class ApiControllers {
 
   @GetMapping("/merchant-admin/reviews")
   ApiResponse<List<Review>> merchantReviews(Principal principal) {
-    return ApiResponse.success(merchantAdminService.merchantReviews(current(principal)));
+    return ApiResponse.success(orderAdminService.merchantReviews(current(principal)));
   }
 
   @GetMapping("/merchant-admin/products")
@@ -329,12 +333,12 @@ public class ApiControllers {
 
   @PostMapping("/merchant-admin/orders/{id}/transition")
   ApiResponse<Order> transition(Principal principal, @PathVariable long id, @RequestBody TransitionRequest request) {
-    return ApiResponse.success(merchantAdminService.transition(current(principal), id, request.next()));
+    return ApiResponse.success(orderAdminService.transition(current(principal), id, request.next()));
   }
 
   @PostMapping("/merchant-admin/coupons/verify")
   ApiResponse<Order> verify(Principal principal, @RequestBody VerifyRequest request) {
-    return ApiResponse.success(merchantAdminService.verifyCoupon(current(principal), request.code()));
+    return ApiResponse.success(orderAdminService.verifyCoupon(current(principal), request.code()));
   }
 
   @GetMapping("/merchant-admin/conversations")
