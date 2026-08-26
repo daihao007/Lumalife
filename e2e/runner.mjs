@@ -13,6 +13,7 @@ const results = [];
 const execFileAsync = promisify(execFile);
 let backendProcess;
 let sequence = 0;
+let environmentFailure;
 
 class E2EFailure extends Error {
   constructor(message, details = {}) {
@@ -323,6 +324,7 @@ function startBackendProcess() {
   const chunks = [];
   backendProcess.stdout.on("data", (chunk) => chunks.push(chunk.toString()));
   backendProcess.stderr.on("data", (chunk) => chunks.push(chunk.toString()));
+  backendProcess.on("error", (error) => chunks.push(`${error.name}: ${error.message}\n`));
   backendProcess.__logs = chunks;
 }
 
@@ -368,10 +370,17 @@ function xmlEscape(value) {
 async function writeReports() {
   await mkdir(reportDir, { recursive: true });
   const completedAt = new Date().toISOString();
+  const environment = environmentFailure
+    ? {
+        status: "failed",
+        error: environmentFailure
+      }
+    : { status: "passed" };
   const report = {
     suite: "LumaLife CR-04~CR-06 API E2E",
     baseUrl,
     completedAt,
+    environment,
     total: results.length,
     passed: results.filter((item) => item.status === "passed").length,
     failed: results.filter((item) => item.status === "failed").length,
@@ -382,9 +391,13 @@ async function writeReports() {
     if (item.status === "passed") return `    <testcase name="${xmlEscape(item.name)}" time="${(item.durationMs / 1000).toFixed(3)}" />`;
     return `    <testcase name="${xmlEscape(item.name)}" time="${(item.durationMs / 1000).toFixed(3)}"><failure message="${xmlEscape(item.error.message)}">${xmlEscape(JSON.stringify(item.error.details))}</failure></testcase>`;
   }).join("\n");
+  const environmentError = environmentFailure
+    ? `    <error message="${xmlEscape(environmentFailure.message)}">${xmlEscape(JSON.stringify(environmentFailure.details || {}))}</error>`
+    : "";
   await writeFile(path.join(reportDir, "e2e-report.xml"), [
     `<?xml version="1.0" encoding="UTF-8"?>`,
-    `<testsuite name="${xmlEscape(report.suite)}" tests="${report.total}" failures="${report.failed}">`,
+    `<testsuite name="${xmlEscape(report.suite)}" tests="${report.total}" failures="${report.failed}" errors="${environmentFailure ? 1 : 0}">`,
+    environmentError,
     cases,
     "</testsuite>",
     ""
@@ -394,7 +407,8 @@ async function writeReports() {
     "",
     `- 被测地址：\`${baseUrl}\``,
     `- 完成时间：\`${completedAt}\``,
-    `- 结果：**${report.passed}/${report.total} 通过**，失败 ${report.failed} 项。`,
+    `- 环境启动：**${environment.status === "passed" ? "通过" : "失败"}**`,
+    `- 结果：${environmentFailure ? "**环境启动失败，未执行业务场景**" : `**${report.passed}/${report.total} 通过**，失败 ${report.failed} 项。`}`,
     "",
     "## 场景",
     "",
@@ -402,6 +416,7 @@ async function writeReports() {
     "| --- | --- | ---: |",
     ...results.map((item) => `| ${item.name} | ${item.status === "passed" ? "通过" : "失败"} | ${item.durationMs} ms |`),
     "",
+    ...(environmentFailure ? ["## 启动诊断", "", `- ${environmentFailure.message}`, `- 详情：\`${JSON.stringify(environmentFailure.details || {})}\``, ""] : []),
     "失败详情见 `e2e-report.json` 和 `e2e-report.xml`。",
     ""
   ];
@@ -410,21 +425,30 @@ async function writeReports() {
 }
 
 async function main() {
-  const healthy = await waitForHealth(1500);
-  if (!healthy) {
-    assert(startBackend, "backend is not healthy and E2E_START_BACKEND=0");
-    startBackendProcess();
-    assert(await waitForHealth(timeoutMs), "backend did not become healthy", {
-      backendLogs: backendProcess?.__logs?.join("").slice(-4000)
-    });
+  try {
+    if (!startBackend) {
+      assert(await waitForHealth(timeoutMs), "backend is not healthy and E2E_START_BACKEND=0");
+    } else {
+      startBackendProcess();
+      assert(await waitForHealth(timeoutMs), "backend did not become healthy", {
+        backendLogs: backendProcess?.__logs?.join("").slice(-4000)
+      });
+    }
+  } catch (error) {
+    environmentFailure = {
+      message: error.message,
+      details: error.details || {}
+    };
   }
 
-  await runScenario("CR-04 团购购买、券码核销与异常边界", cr04GroupBuyAndCouponLifecycle);
-  await runScenario("CR-05 完成订单评价、评分校验与重复评价限制", cr05ReviewLifecycle);
-  await runScenario("CR-06 商家履约、商品/套餐校验与角色边界", cr06MerchantFulfillmentAndBoundaries);
+  if (!environmentFailure) {
+    await runScenario("CR-04 团购购买、券码核销与异常边界", cr04GroupBuyAndCouponLifecycle);
+    await runScenario("CR-05 完成订单评价、评分校验与重复评价限制", cr05ReviewLifecycle);
+    await runScenario("CR-06 商家履约、商品/套餐校验与角色边界", cr06MerchantFulfillmentAndBoundaries);
+  }
   const report = await writeReports();
-  console.log(`E2E ${report.passed}/${report.total} passed; report: ${path.relative(rootDir, reportDir)}`);
-  if (report.failed > 0) process.exitCode = 1;
+  console.log(`E2E ${report.passed}/${report.total} passed; environment: ${report.environment.status}; report: ${path.relative(rootDir, reportDir)}`);
+  if (environmentFailure || report.failed > 0) process.exitCode = 1;
 }
 
 try {
