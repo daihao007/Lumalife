@@ -140,6 +140,11 @@ section, .panel, .order { background: rgba(255,250,240,.86); border: 1px solid v
 .empty-state p { max-width: 520px; margin: 0; color: var(--muted); }
 code { padding: 7px 9px; border-radius: 6px; background: #16211d; color: #fff; width: max-content; }
 /* ===== Admin Dashboard ===== */
+.admin-health { display: flex; align-items: center; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 13px 16px; margin-bottom: 12px; }
+.admin-health > span:not(.health-indicator) { display: flex; align-items: baseline; gap: 7px; }
+.admin-health small { color: var(--muted); }
+.health-indicator { width: 10px; height: 10px; border-radius: 999px; background: var(--coral); box-shadow: 0 0 0 4px rgba(223, 91, 69, .14); }
+.health-indicator.up { background: var(--teal); box-shadow: 0 0 0 4px rgba(15, 118, 110, .14); }
 .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .kpi-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: grid; gap: 4px; }
 .kpi-card b { font-size: 28px; }
