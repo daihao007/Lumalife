@@ -42,6 +42,7 @@ export default function App() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const detailRequestId = useRef(0);
   const paymentRequestIds = useRef<Record<number, string>>({});
+  const groupDealOrderIds = useRef<Record<number, number>>({});
 
   useEffect(() => {
     api<Category[]>("/api/v1/categories").then(setCategories);
@@ -275,9 +276,34 @@ export default function App() {
       navigate("login");
       return;
     }
-    const order = await api<Order>("/api/v1/orders/group-buy", { method: "POST", body: JSON.stringify({ dealId, quantity: 1 }) });
-    const paid = await pay(order.id);
-    setMessage(`团购支付成功，券码 ${paid.couponCode}`);
+    let orderId = groupDealOrderIds.current[dealId];
+    if (!orderId) {
+      const order = await api<Order>("/api/v1/orders/group-buy", { method: "POST", body: JSON.stringify({ dealId, quantity: 1 }) });
+      orderId = order.id;
+      groupDealOrderIds.current[dealId] = orderId;
+    }
+
+    try {
+      const paid = await pay(orderId);
+      delete groupDealOrderIds.current[dealId];
+      setMessage(`团购支付成功，券码 ${paid.couponCode}`);
+    } catch (paymentError) {
+      try {
+        const currentOrders = await fetchOrders();
+        const currentOrder = currentOrders.find(order => order.id === orderId);
+        if (currentOrder && (currentOrder.status === "PAID" || currentOrder.status === "USED")) {
+          delete groupDealOrderIds.current[dealId];
+          delete paymentRequestIds.current[orderId];
+          navigate("orders");
+          setMessage(`团购支付已确认，券码 ${currentOrder.couponCode || "请在订单页查看"}`);
+          return;
+        }
+      } catch {
+        // 保留原订单号和支付幂等键；下一次点击只重试这笔订单。
+      }
+      const reason = paymentError instanceof Error ? paymentError.message : "支付请求失败";
+      throw new Error(`团购订单 #${orderId} 已创建，支付结果未确认；请重试原订单支付（${reason}）`);
+    }
   }
 
   async function pay(orderId: number) {
@@ -302,10 +328,15 @@ export default function App() {
     setMessage("已确认收货");
   }
 
-  async function loadOrders() {
-    if (!user) return;
+  async function fetchOrders() {
+    if (!user) return [];
     const data = await api<Order[]>(user.role === "MERCHANT_ADMIN" ? "/api/v1/merchant-admin/orders" : "/api/v1/orders");
     setOrders(data);
+    return data;
+  }
+
+  async function loadOrders() {
+    await fetchOrders();
   }
 
   async function loadCart() {
@@ -347,6 +378,8 @@ export default function App() {
 
   async function logout() {
     localStorage.removeItem("lumalife-token");
+    paymentRequestIds.current = {};
+    groupDealOrderIds.current = {};
     setUser(null);
     setRoute("home");
     setFavoriteIds([]);

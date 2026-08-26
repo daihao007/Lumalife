@@ -35,7 +35,7 @@ const metrics = {
   orderTypeDistribution: { DELIVERY: 1 },
   revenueTrend: [], merchantRanking: [],
   deliveryMetrics: { completionRate: 1, avgAcceptMinutes: 2, avgDeliveryMinutes: 18 },
-  activeOrders: [], health: {}, userAccounts: [], merchantAccounts: [], logs: []
+  activeOrders: [], health: { status: "UP", pendingOrders: 1 }, userAccounts: [], merchantAccounts: [], logs: []
 };
 
 beforeEach(() => apiMock.mockReset());
@@ -74,6 +74,8 @@ describe("D04 core flow integration", () => {
 
     expect(await screen.findByText("今日订单")).toBeTruthy();
     expect(screen.getByText("¥28.00")).toBeTruthy();
+    expect(screen.getByTestId("admin-health").textContent).toContain("UP");
+    expect(screen.getByTestId("admin-health").textContent).toContain("待处理订单1");
     expect(apiMock).toHaveBeenCalledTimes(2);
   });
 });

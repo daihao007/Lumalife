@@ -61,6 +61,12 @@ export default function Admin() {
   const typeData = Object.entries(orderTypeDistribution || {}).map(([k, v]) => ({ name: k === "DELIVERY" ? "外卖" : "团购", value: v as number }));
 
   return <div className="admin">
+    <div className="admin-health" data-testid="admin-health">
+      <span className={`health-indicator ${health?.status === "UP" ? "up" : "down"}`} aria-hidden="true" />
+      <span><b>系统健康</b><small>{health?.status || "UNKNOWN"}</small></span>
+      <span><b>待处理订单</b><small>{health?.pendingOrders ?? (activeOrders || []).length}</small></span>
+    </div>
+
     {/* ===== KPI 卡片 ===== */}
     <div className="kpis">
       <KpiCard value={overview.users} label="用户" />
