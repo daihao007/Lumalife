@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor User as 用户
+    participant Detail as detailPage:Detail
+    participant Workflow as workflow:OrderWorkflowService
+    participant Deal as deal:GroupDeal
+    participant Order as order:Order
+    participant Coupon as couponIndex
+    participant Store as store:DemoStore
+    User->>Detail: 选择套餐和数量
+    Detail->>Workflow: createGroupOrder(user,dealId,quantity)
+    Workflow->>Deal: 校验 active、quantity、stock
+    Workflow->>Order: 创建 GROUP_BUY/PENDING_PAYMENT
+    Workflow->>Store: 保存订单
+    User->>Detail: 支付订单
+    Detail->>Workflow: pay(user,orderId,clientRequestId)
+    Workflow->>Store: 检查 clientRequestId
+    Workflow->>Deal: stock -= quantity
+    Workflow->>Order: status=PAID
+    Workflow->>Coupon: 生成并索引 12 位券码
+    Coupon-->>Order: couponCode
+    Order-->>Detail: PAID + couponCode
+    alt 重复支付
+        Store-->>Workflow: 返回原支付结果，不重复扣库存/生成券码
+    end

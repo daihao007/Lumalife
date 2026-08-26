@@ -1,0 +1,33 @@
+sequenceDiagram
+    actor Merchant as 商家管理员
+    actor User as 普通用户
+    participant MerchantUI as MerchantOrders
+    participant UserUI as Orders
+    participant API as frontend/src/api.ts
+    participant Sec as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Admin as MerchantAdminService
+    participant Order as OrderWorkflowService
+    participant Store as DemoStore
+    Merchant->>MerchantUI: 查看本店待履约订单
+    MerchantUI->>API: GET /merchant-admin/orders
+    API->>Sec: 携带商家 Token
+    Sec->>Ctrl: 校验 MERCHANT_ADMIN
+    Ctrl->>Admin: merchantOrders(current)
+    Admin->>Store: 读取本店订单
+    Store-->>MerchantUI: 返回订单与时间线
+    Merchant->>MerchantUI: 接单/配送/完成
+    MerchantUI->>API: POST /merchant-admin/orders/{id}/transition
+    API->>Ctrl: 提交目标状态
+    Ctrl->>Admin: transition(current,id,next)
+    Admin->>Store: 校验归属与相邻状态并写入时间线
+    User->>UserUI: 确认收货并评价
+    UserUI->>API: POST /orders/{id}/receive；POST /reviews
+    API->>Sec: 携带用户 Token
+    Sec->>Ctrl: 校验 USER
+    Ctrl->>Order: receive/review(current,...)
+    Order->>Store: 校验订单归属并保存 RECEIVED/Review
+    Store-->>UserUI: 返回收货和评价结果
+    alt 越权、非法状态或重复评价
+        Ctrl-->>MerchantUI: 返回 403/409，状态不变
+    end

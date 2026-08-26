@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor Admin as 平台管理员
+    participant UI as Admin
+    participant API as frontend/src/api.ts
+    participant Sec as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Dashboard as AdminDashboardService
+    participant Store as DemoStore
+    participant Actuator as Actuator
+    Admin->>UI: 打开运营看板
+    UI->>API: GET /admin/metrics
+    API->>Sec: 携带管理员 Token
+    Sec->>Ctrl: 校验 PLATFORM_ADMIN
+    Ctrl->>Dashboard: metrics()
+    Dashboard->>Store: 聚合用户、商家、订单、评价和日志
+    Store-->>Dashboard: metrics DTO
+    Dashboard-->>UI: KPI、分布、趋势、排行和日志
+    UI->>API: GET /actuator/health
+    API->>Actuator: 查询健康状态
+    Actuator-->>UI: UP 或异常状态
+    alt 角色不符或 Token 无效
+        Sec-->>UI: 403/401
+    else 空数据或健康异常
+        Dashboard-->>UI: 零值/空态；显示可理解错误
+    end

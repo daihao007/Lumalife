@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor Merchant as 商家管理员
+    actor User as 普通用户
+    participant Products as merchantProducts:MerchantProducts
+    participant Admin as merchantAdmin:MerchantAdminService
+    participant MerchantObj as merchant:Merchant
+    participant Product as product:Product
+    participant Deal as deal:GroupDeal
+    participant Store as store:DemoStore
+    participant Detail as detailPage:Detail
+    Merchant->>Products: 新增/编辑/上下架商品或套餐
+    Products->>Admin: saveProduct/saveDeal/toggle/delete
+    Admin->>MerchantObj: 校验当前商家归属
+    Admin->>Product: 校验价格、库存、listed
+    Admin->>Deal: 校验价格、库存、active
+    Admin->>Store: 保存或删除对象
+    User->>Detail: 打开商家详情
+    Detail->>Store: merchantDetail(merchantId)
+    Store-->>Detail: 仅返回 listed 商品和 active 套餐
+    alt 跨商家或字段非法
+        Admin-->>Products: 403/400，历史数据不变
+    end

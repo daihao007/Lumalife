@@ -1,0 +1,15 @@
+flowchart LR
+    User[普通用户]
+    Merchant[商家管理员]
+    AI[AI 客服/本地回退]
+    subgraph Platform[LumaLife 平台 / UC08]
+        Ask((发起咨询))
+        Conversation((维护商家会话))
+        Reply((商家回复或 AI 辅助答复))
+        Boundary[(参与者、商家与消息校验)]
+    end
+    User --> Ask --> Boundary --> Conversation
+    Merchant --> Conversation --> Reply
+    AI --> Reply
+    Reply --> User
+    Boundary -->|拒绝越权/空消息| User
