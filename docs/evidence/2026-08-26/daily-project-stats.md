@@ -1,10 +1,10 @@
 # 2026-08-26 日报统计
 
-> 来源：GitHub Project「Lumalife」的日报统计视图及当日仓库/Issue 证据。Issue #21 的本地交付已完成；项目视图中的状态需在已登录会话中同步。
+> 来源：GitHub Project「Lumalife」的日报统计视图及当日仓库/Issue 证据。Issue #21 已在项目视图标记为 Done，实际完成时间为 2026-08-26 09:42。
 
 | 序号 | 任务 | 负责人 | 当前状态 | 今日交付/证据 | 关联 PR |
 | ---: | --- | --- | --- | --- | --- |
-| 6 | [#21 统一需求与测试编号并完成用例说明第一版](https://github.com/daihao007/Lumalife/issues/21) | daihao007 | Done（本地交付） | `REQ01~REQ09`、`UC01~UC09`、`TC-UCxx-nn` 已统一；9 个用例均补齐参与者、触发、前置、主流程、异常和结果；46 个自动化测试与 15 个手工流程已映射 | 待创建/关联 |
+| 6 | [#21 统一需求与测试编号并完成用例说明第一版](https://github.com/daihao007/Lumalife/issues/21) | daihao007 | Done | `REQ01~REQ09`、`UC01~UC09`、`TC-UCxx-nn` 已统一；9 个用例均补齐参与者、触发、前置、主流程、异常和结果；46 个自动化测试与 15 个手工流程已映射；本地 `mvn test` 46/46、`npm test` 11/11、`npm run build` 通过 | [PR #75](https://github.com/daihao007/Lumalife/pull/75)；commit `c7cd092` |
 | 7 | [#22 完成核心角色页面与路由验收清单](https://github.com/daihao007/Lumalife/issues/22) | Chrmysle | Done | GitHub Issue 状态为 closed（completed） | 以 Issue 记录为准 |
 | 8 | [#23 完成三服务接口、数据归属与契约草案](https://github.com/daihao007/Lumalife/issues/23) | yuwu-code | Open | GitHub Issue 状态为 open | — |
 | 9 | [#24 补齐 CR-01～CR-03 单元与 API 测试](https://github.com/daihao007/Lumalife/issues/24) | ZQHtech | Open | GitHub Issue 状态为 open | — |
