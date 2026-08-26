@@ -1,1 +1,3 @@
--- 当前演示版使用内存 seed 数据。数据库持久化后在此补充 INSERT 脚本。
+-- Compatibility entry point for the MySQL command-line client.
+-- Run from the repository root with: mysql ... < scripts/seed-demo-data.sql
+SOURCE database/seeds/demo-data.sql;
