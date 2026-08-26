@@ -355,6 +355,27 @@ class DemoStoreTest {
   }
 
   @Test
+  void paymentDoesNotPartiallyDeductDeliveryStockWhenLaterLineFails() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User admin = store.userByPhone("13800000002");
+    int firstBefore = store.merchantProducts(admin).stream().filter(p -> p.id() == 1001).findFirst().orElseThrow().stock();
+
+    store.addCart(user.id(), 1001, 1);
+    store.addCart(user.id(), 1002, 1);
+    Order order = store.createDeliveryOrder(user, null);
+    store.saveProduct(admin, 1002L, "毛血旺小锅", "课程演示热门搜索菜", 4280, 0, true);
+
+    Assertions.assertThrows(BusinessException.class, () -> store.pay(user, order.id, "req-stock-rollback"));
+    Assertions.assertEquals(firstBefore, store.merchantProducts(admin).stream()
+      .filter(p -> p.id() == 1001).findFirst().orElseThrow().stock());
+    Assertions.assertEquals(0, store.merchantProducts(admin).stream()
+      .filter(p -> p.id() == 1002).findFirst().orElseThrow().stock());
+    Assertions.assertEquals(OrderStatus.PENDING_PAYMENT, order.status);
+    Assertions.assertFalse(order.stockDeducted);
+  }
+
+  @Test
   void orderListRepairsUnknownMerchantName() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
