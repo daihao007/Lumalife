@@ -612,7 +612,9 @@ public class DemoStore {
 
   public Order createGroupOrder(User user, long dealId, int quantity) {
     GroupDeal deal = deals.get(dealId);
-    if (deal == null || !deal.active() || deal.stock() < quantity) throw new BusinessException(40900, "套餐不可购买");
+    if (quantity <= 0 || deal == null || !deal.active() || deal.stock() < quantity) {
+      throw new BusinessException(40900, "套餐不可购买");
+    }
     Order order = new Order();
     order.id = ids.incrementAndGet();
     order.userId = user.id();
