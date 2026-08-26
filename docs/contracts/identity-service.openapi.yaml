@@ -1,0 +1,326 @@
+openapi: 3.1.0
+info:
+  title: LumaLife Identity Service API
+  version: 0.1.0-draft
+  description: Issue #23 contract candidate. External v1 paths remain gateway-compatible.
+x-contract-status: draft-2026-08-26
+x-service-owner: identity-service
+servers:
+  - url: /api/v1
+    description: Gateway external compatibility route
+tags:
+  - name: external-auth
+  - name: external-address
+  - name: internal
+paths:
+  /auth/login:
+    post:
+      tags: [external-auth]
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoginRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/AuthResultResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /auth/register:
+    post:
+      tags: [external-auth]
+      operationId: registerUser
+      description: Creates USER only. Supplying a privileged role is rejected.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/AuthResultResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /auth/register/merchant:
+    post:
+      tags: [external-auth]
+      operationId: registerMerchant
+      description: Compatibility route; target implementation must enforce invitation or approval policy.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MerchantRegisterRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/AuthResultResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /auth/me:
+    get:
+      tags: [external-auth]
+      operationId: getCurrentUser
+      responses:
+        '200': {$ref: '#/components/responses/UserResponse'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /user/profile:
+    post:
+      tags: [external-auth]
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProfileRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/UserResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /user/addresses:
+    get:
+      tags: [external-address]
+      operationId: listAddresses
+      x-required-role: USER
+      responses:
+        '200':
+          description: Address list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/SuccessEnvelope'}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: {$ref: '#/components/schemas/Address'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    post:
+      tags: [external-address]
+      operationId: saveAddress
+      x-required-role: USER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AddressRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/AddressResponse'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /user/addresses/{id}/default:
+    post:
+      tags: [external-address]
+      operationId: setDefaultAddress
+      x-required-role: USER
+      parameters:
+        - {$ref: '#/components/parameters/AddressId'}
+      responses:
+        '200': {$ref: '#/components/responses/AddressResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /user/addresses/{id}/delete:
+    post:
+      tags: [external-address]
+      operationId: deleteAddress
+      x-required-role: USER
+      parameters:
+        - {$ref: '#/components/parameters/AddressId'}
+      responses:
+        '200': {$ref: '#/components/responses/NullResponse'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /tokens/introspect:
+    post:
+      tags: [internal]
+      operationId: introspectToken
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: Token claims
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenClaims'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+  /users/{userId}/addresses/{addressId}:
+    get:
+      tags: [internal]
+      operationId: getOwnedAddress
+      description: Returns an address only when it belongs to userId; consumers persist an immutable snapshot.
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {name: userId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: addressId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {$ref: '#/components/parameters/RequestId'}
+      responses:
+        '200':
+          description: Address snapshot source
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Address'}
+        '404': {$ref: '#/components/responses/NotFound'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+    serviceAuth: {type: mutualTLS}
+  parameters:
+    AddressId: {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [phone, password]
+      properties:
+        phone: {type: string, minLength: 1, maxLength: 32}
+        password: {type: string, minLength: 6, maxLength: 128, format: password}
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [phone, password, nickname]
+      properties:
+        phone: {type: string, minLength: 1, maxLength: 32}
+        password: {type: string, minLength: 6, maxLength: 128, format: password}
+        nickname: {type: string, minLength: 1, maxLength: 64}
+    MerchantRegisterRequest:
+      allOf:
+        - {$ref: '#/components/schemas/RegisterRequest'}
+        - type: object
+          properties:
+            invitationCode: {type: string, maxLength: 128}
+    ProfileRequest:
+      type: object
+      additionalProperties: false
+      required: [nickname]
+      properties:
+        nickname: {type: string, minLength: 1, maxLength: 64}
+        avatarUrl: {type: [string, 'null'], format: uri, maxLength: 2048}
+    AddressRequest:
+      type: object
+      additionalProperties: false
+      required: [contactName, phone, detail, defaultAddress]
+      properties:
+        id: {type: [integer, 'null'], format: int64, minimum: 1}
+        contactName: {type: string, minLength: 1, maxLength: 64}
+        phone: {type: string, minLength: 1, maxLength: 32}
+        detail: {type: string, minLength: 1, maxLength: 255}
+        defaultAddress: {type: boolean}
+    UserView:
+      type: object
+      additionalProperties: false
+      required: [id, phone, nickname, role]
+      properties:
+        id: {type: integer, format: int64}
+        phone: {type: string}
+        nickname: {type: string}
+        avatarUrl: {type: [string, 'null']}
+        role: {type: string, enum: [USER, MERCHANT_ADMIN, PLATFORM_ADMIN]}
+        merchantId: {type: [integer, 'null'], format: int64}
+    Address:
+      type: object
+      additionalProperties: false
+      required: [id, userId, contactName, phone, detail, defaultAddress]
+      properties:
+        id: {type: integer, format: int64}
+        userId: {type: integer, format: int64}
+        contactName: {type: string}
+        phone: {type: string}
+        detail: {type: string}
+        defaultAddress: {type: boolean}
+    AuthResult:
+      type: object
+      required: [token, user]
+      properties:
+        token: {type: string}
+        refreshToken: {type: string}
+        expiresIn: {type: integer, minimum: 1}
+        user: {$ref: '#/components/schemas/UserView'}
+    TokenClaims:
+      type: object
+      required: [active]
+      properties:
+        active: {type: boolean}
+        sub: {type: string}
+        userId: {type: integer, format: int64}
+        role: {type: string}
+        merchantId: {type: [integer, 'null'], format: int64}
+        exp: {type: integer, format: int64}
+    SuccessEnvelope:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: {const: 200}
+        message: {const: success}
+        data: {}
+    ErrorEnvelope:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: {type: integer, enum: [40000, 40100, 40300, 40400, 40900, 42900, 50000, 50200, 50300, 50400]}
+        message: {type: string}
+        data: {type: 'null'}
+        requestId: {type: string}
+        reason: {type: string}
+        details: {type: array, items: {type: object}}
+  responses:
+    AuthResultResponse:
+      description: Authentication succeeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - {$ref: '#/components/schemas/SuccessEnvelope'}
+              - type: object
+                properties: {data: {$ref: '#/components/schemas/AuthResult'}}
+    UserResponse:
+      description: User view
+      content:
+        application/json:
+          schema:
+            allOf:
+              - {$ref: '#/components/schemas/SuccessEnvelope'}
+              - type: object
+                properties: {data: {$ref: '#/components/schemas/UserView'}}
+    AddressResponse:
+      description: Address
+      content:
+        application/json:
+          schema:
+            allOf:
+              - {$ref: '#/components/schemas/SuccessEnvelope'}
+              - type: object
+                properties: {data: {$ref: '#/components/schemas/Address'}}
+    NullResponse:
+      description: Successful command without result
+      content:
+        application/json:
+          schema:
+            allOf:
+              - {$ref: '#/components/schemas/SuccessEnvelope'}
+              - type: object
+                properties: {data: {type: 'null'}}
+    BadRequest: {description: Invalid request, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Unauthorized: {description: Authentication failed, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Forbidden: {description: Role or ownership denied, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    NotFound: {description: Resource not found, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    Conflict: {description: Business conflict, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+security:
+  - bearerAuth: []
