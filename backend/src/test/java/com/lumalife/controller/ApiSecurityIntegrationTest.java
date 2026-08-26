@@ -330,6 +330,19 @@ class ApiSecurityIntegrationTest {
   }
 
   @Test
+  void publicRegistrationCannotChoosePrivilegedRole() throws Exception {
+    String phone = "role-injection-" + System.nanoTime();
+
+    mvc.perform(post("/api/v1/auth/register")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"phone\":\"%s\",\"password\":\"abc123456\",\"nickname\":\"普通用户\",\"role\":\"MERCHANT_ADMIN\"}".formatted(phone)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.code").value(200))
+      .andExpect(jsonPath("$.data.user.role").value("USER"))
+      .andExpect(jsonPath("$.data.user.merchantId").doesNotExist());
+  }
+
+  @Test
   void merchantCanUpdateNicknameAndPublicStoreName() throws Exception {
     String token = login("13800000004", "abc123456");
     mvc.perform(post("/api/v1/merchant-admin/profile")

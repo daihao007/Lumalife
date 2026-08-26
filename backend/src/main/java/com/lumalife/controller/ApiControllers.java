@@ -68,7 +68,7 @@ public class ApiControllers {
 
   @PostMapping("/auth/register")
   ApiResponse<Map<String, Object>> register(@RequestBody RegisterRequest request) {
-    return ApiResponse.success(authService.register(request.phone(), request.password(), request.nickname(), request.role()));
+    return ApiResponse.success(authService.register(request.phone(), request.password(), request.nickname(), UserRole.USER));
   }
 
   @PostMapping("/auth/register/merchant")
