@@ -256,6 +256,11 @@ class ApiSecurityIntegrationTest {
     String couponCode = paid.path("couponCode").asText();
     Assertions.assertEquals(12, couponCode.length());
 
+    transition(ownerMerchantToken, orderId, "ACCEPTED")
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value(40900))
+      .andExpect(jsonPath("$.message").value("团购订单只能通过券码核销"));
+
     mvc.perform(post("/api/v1/merchant-admin/coupons/verify")
         .header("Authorization", bearer(ownerMerchantToken))
         .contentType(MediaType.APPLICATION_JSON)

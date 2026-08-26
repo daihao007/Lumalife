@@ -451,6 +451,23 @@ class DemoStoreTest {
   }
 
   @Test
+  void groupOrderCannotEnterDeliveryFulfillmentStates() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User admin = store.userByPhone("13800000002");
+
+    Order order = store.createGroupOrder(user, 1, 1);
+    Order paid = store.pay(user, order.id, "req-group-transition");
+
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.transition(admin, paid.id, OrderStatus.ACCEPTED));
+    Assertions.assertEquals(40900, error.code());
+    Assertions.assertEquals("团购订单只能通过券码核销", error.getMessage());
+    Assertions.assertEquals(OrderStatus.PAID, paid.status);
+    Assertions.assertEquals(OrderStatus.USED, store.verifyCoupon(admin, paid.couponCode).status);
+  }
+
+  @Test
   void merchantCannotVerifyCouponFromAnotherStore() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
