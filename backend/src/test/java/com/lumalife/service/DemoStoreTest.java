@@ -38,6 +38,32 @@ class DemoStoreTest {
   }
 
   @Test
+  void registeredUserCanUpdateProfileWithoutChangingRole() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    store.register("13900000001", "abc123456", "资料测试用户");
+    User registered = store.userByPhone("13900000001");
+
+    java.util.Map<String, Object> updated = store.updateProfile(registered, "资料更新用户", "avatar.png");
+
+    Assertions.assertEquals("资料更新用户", updated.get("nickname"));
+    Assertions.assertEquals("avatar.png", updated.get("avatarUrl"));
+    Assertions.assertEquals(com.lumalife.domain.Enums.UserRole.USER, updated.get("role"));
+    Assertions.assertNull(updated.get("merchantId"));
+  }
+
+  @Test
+  void merchantDetailContainsVisibleProductsAndGroupDeals() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+
+    Map<String, Object> detail = store.merchantDetail(1);
+
+    Assertions.assertEquals(1L, ((Merchant) detail.get("merchant")).id());
+    Assertions.assertTrue(((List<?>) detail.get("products")).stream().anyMatch(product -> ((com.lumalife.domain.Models.Product) product).id() == 1001));
+    Assertions.assertTrue(((List<?>) detail.get("groupDeals")).stream().anyMatch(deal -> ((com.lumalife.domain.Models.GroupDeal) deal).id() == 1));
+    Assertions.assertNotNull(detail.get("reviews"));
+  }
+
+  @Test
   void illegalMerchantStateTransitionIsRejected() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
@@ -90,6 +116,17 @@ class DemoStoreTest {
     Order paid = store.createDeliveryOrder(user, null);
     store.pay(user, paid.id, "req-cancel");
     Assertions.assertThrows(BusinessException.class, () -> store.cancel(user, paid.id));
+  }
+
+  @Test
+  void cancelledOrderCannotBePaid() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    store.addCart(user.id(), 1002, 1);
+    Order order = store.createDeliveryOrder(user, null);
+    store.cancel(user, order.id);
+
+    Assertions.assertThrows(BusinessException.class, () -> store.pay(user, order.id, "req-cancelled"));
   }
 
   @Test
