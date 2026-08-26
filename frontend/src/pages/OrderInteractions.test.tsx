@@ -99,6 +99,16 @@ describe("user ordering interactions", () => {
 });
 
 describe("merchant fulfillment interactions", () => {
+  it("does not expose delivery transitions for group-buy orders", () => {
+    apiMock.mockResolvedValue([]);
+    const groupOrder: Order = { ...pendingOrder, type: "GROUP_BUY", status: "PAID", couponCode: "123456789012" };
+
+    render(<MerchantOrders user={{ id: 2 }} orders={[groupOrder]} reload={vi.fn()} setMessage={vi.fn()} />);
+
+    expect(screen.queryByTestId("transition-order-101")).toBeNull();
+    expect(screen.queryByText("接单")).toBeNull();
+  });
+
   it("completes a delivering order and prevents duplicate transitions", async () => {
     const request = deferred<unknown>();
     apiMock.mockImplementation((path = "") => {

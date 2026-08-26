@@ -70,7 +70,7 @@ export default function MerchantOrders({ user, orders, reload, setMessage }: { u
         return <div className="fulfillment-order" key={o.id}>
           <div className="line">
             <span>#{o.id} {statusLabel(o.status)}<small>{money(o.totalCent)} · {o.lines.map(l => `${l.name} x${l.quantity}`).join("，")}</small></span>
-            {["PAID", "ACCEPTED", "DELIVERING"].includes(o.status) && <button data-testid={`transition-order-${o.id}`} disabled={pendingAction !== null} onClick={() => next(o)}>{pendingAction === `transition-${o.id}` ? "处理中…" : o.status === "PAID" ? "接单" : o.status === "ACCEPTED" ? "开始配送" : "完成订单"}</button>}
+            {o.type === "DELIVERY" && ["PAID", "ACCEPTED", "DELIVERING"].includes(o.status) && <button data-testid={`transition-order-${o.id}`} disabled={pendingAction !== null} onClick={() => next(o)}>{pendingAction === `transition-${o.id}` ? "处理中…" : o.status === "PAID" ? "接单" : o.status === "ACCEPTED" ? "开始配送" : "完成订单"}</button>}
           </div>
           <div className={orderReviews.length ? "merchant-review filled" : "merchant-review"}>
             {orderReviews.length ? orderReviews.map(review => <div key={review.id}>

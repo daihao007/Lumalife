@@ -692,6 +692,7 @@ public class DemoStore {
   public Order transition(User admin, long orderId, OrderStatus next) {
     Order order = orders.get(orderId);
     if (order == null || order.merchantId != admin.merchantId()) throw new BusinessException(40300, "无权处理该订单");
+    if (order.type != OrderType.DELIVERY) throw new BusinessException(40900, "团购订单只能通过券码核销");
     boolean ok = (order.status == OrderStatus.PAID && next == OrderStatus.ACCEPTED)
       || (order.status == OrderStatus.ACCEPTED && next == OrderStatus.DELIVERING)
       || (order.status == OrderStatus.DELIVERING && next == OrderStatus.COMPLETED);
