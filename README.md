@@ -73,6 +73,7 @@ npm run dev
 LumaLife/
   backend/      Spring Boot API 服务
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
+  e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
   docs/         需求、设计、接口、部署、测试与用户手册
   .ai/          AI 使用说明、prompts 与项目 skills
   scripts/      初始化与演示辅助脚本
@@ -88,10 +89,9 @@ LumaLife/
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
 - 后端 Controller 已按认证、商家目录、购物车、订单、商家后台、管理员看板、AI 客服拆出 Service 门面，当前仍委托内存版 `DemoStore`。
-- 自动化测试包含后端业务规则测试和 Web 层权限集成测试：`monolith-start` 旧标签为 40 个，当前候选基线实测 57 个（评审快照曾为 46 个）；详见 [测试报告](docs/07_测试报告.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
+- 自动化测试包含后端业务规则测试、Web 层权限集成测试和独立真实 HTTP 黑盒 E2E；当前候选基线实测 66 个后端测试（41 个业务规则测试 + 25 个接口集成测试），E2E 覆盖 CR-04～CR-06 三条跨角色闭环；详见 [测试报告](docs/07_测试报告.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
 - 数据库持久化已形成迁移计划，见 `docs/11_数据库持久化迁移计划.md`，建议后续从 `AuthService` 开始逐步替换内存实现。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
-- 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。
 
 ## 说明
 

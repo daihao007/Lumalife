@@ -330,6 +330,19 @@ class ApiSecurityIntegrationTest {
   }
 
   @Test
+  void publicRegistrationCannotChoosePrivilegedRole() throws Exception {
+    String phone = "role-injection-" + System.nanoTime();
+
+    mvc.perform(post("/api/v1/auth/register")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"phone\":\"%s\",\"password\":\"abc123456\",\"nickname\":\"普通用户\",\"role\":\"MERCHANT_ADMIN\"}".formatted(phone)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.code").value(200))
+      .andExpect(jsonPath("$.data.user.role").value("USER"))
+      .andExpect(jsonPath("$.data.user.merchantId").doesNotExist());
+  }
+
+  @Test
   void merchantCanUpdateNicknameAndPublicStoreName() throws Exception {
     String token = login("13800000004", "abc123456");
     mvc.perform(post("/api/v1/merchant-admin/profile")
@@ -555,6 +568,114 @@ class ApiSecurityIntegrationTest {
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.data.id").value(dealId))
       .andExpect(jsonPath("$.data.active").value(false));
+  }
+
+  @Test
+  void groupBuyApiRejectsInvalidQuantityAndUnknownCoupon() throws Exception {
+    String userToken = login("13800000001", "abc123456");
+    String merchantToken = login("13800000002", "abc123456");
+
+    mvc.perform(post("/api/v1/orders/group-buy")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"dealId\":1,\"quantity\":0}"))
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value(40900));
+
+    mvc.perform(post("/api/v1/merchant-admin/coupons/verify")
+        .header("Authorization", bearer(merchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"code\":\"000000000000\"}"))
+      .andExpect(status().isNotFound())
+      .andExpect(jsonPath("$.code").value(40400));
+  }
+
+  @Test
+  void reviewApiRejectsInvalidScoreAndDuplicateSubmission() throws Exception {
+    String userToken = login("13800000001", "abc123456");
+    String merchantToken = login("13800000002", "abc123456");
+
+    mvc.perform(post("/api/v1/cart/items")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"productId\":1002,\"quantity\":1}"))
+      .andExpect(status().isOk());
+    String orderResponse = mvc.perform(post("/api/v1/orders/delivery")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"addressId\":101}"))
+      .andExpect(status().isOk())
+      .andReturn()
+      .getResponse()
+      .getContentAsString();
+    long orderId = objectMapper.readTree(orderResponse).path("data").get(0).path("id").asLong();
+    mvc.perform(post("/api/v1/payments")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"orderId\":%d,\"clientRequestId\":\"api-review-%d\"}".formatted(orderId, orderId)))
+      .andExpect(status().isOk());
+    transition(merchantToken, orderId, "ACCEPTED").andExpect(status().isOk());
+    transition(merchantToken, orderId, "DELIVERING").andExpect(status().isOk());
+    transition(merchantToken, orderId, "COMPLETED").andExpect(status().isOk());
+    mvc.perform(post("/api/v1/orders/{id}/receive", orderId)
+        .header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk());
+
+    mvc.perform(post("/api/v1/reviews")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"orderId\":%d,\"score\":6,\"tasteScore\":5,\"serviceScore\":5,\"content\":\"非法评分\"}".formatted(orderId)))
+      .andExpect(status().isBadRequest())
+      .andExpect(jsonPath("$.code").value(40000));
+    String reviewBody = "{\"orderId\":%d,\"score\":5,\"tasteScore\":5,\"serviceScore\":4,\"content\":\"API 评价\"}".formatted(orderId);
+    mvc.perform(post("/api/v1/reviews")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(reviewBody))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.orderId").value(orderId));
+    mvc.perform(post("/api/v1/reviews")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(reviewBody))
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value(40900));
+  }
+
+  @Test
+  void merchantApiRejectsCrossStoreOrderAndGroupDealMutation() throws Exception {
+    String userToken = login("13800000001", "abc123456");
+    String merchantToken = login("13800000002", "abc123456");
+
+    mvc.perform(post("/api/v1/cart/items")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"productId\":1004,\"quantity\":1}"))
+      .andExpect(status().isOk());
+    String orderResponse = mvc.perform(post("/api/v1/orders/delivery")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"addressId\":101}"))
+      .andExpect(status().isOk())
+      .andReturn()
+      .getResponse()
+      .getContentAsString();
+    long orderId = objectMapper.readTree(orderResponse).path("data").get(0).path("id").asLong();
+    mvc.perform(post("/api/v1/payments")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"orderId\":%d,\"clientRequestId\":\"api-cross-store-%d\"}".formatted(orderId, orderId)))
+      .andExpect(status().isOk());
+
+    transition(merchantToken, orderId, "ACCEPTED")
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.code").value(40300));
+    mvc.perform(post("/api/v1/merchant-admin/group-deals")
+        .header("Authorization", bearer(merchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"id\":2,\"title\":\"越权套餐\",\"description\":\"不应修改\",\"priceCent\":4990,\"stock\":1,\"active\":true}"))
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.code").value(40300));
   }
 
   private String login(String phone, String password) throws Exception {
