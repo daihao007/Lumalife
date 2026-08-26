@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor User as 普通用户
+    participant UI as Detail / Cart / Orders
+    participant API as frontend/src/api.ts
+    participant Security as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Cart as CartService
+    participant Order as OrderWorkflowService
+    participant Store as DemoStore
+    User->>UI: 加购、调整数量并选择地址
+    UI->>API: /cart/items、/cart/detail
+    API->>Security: 带 Bearer Token 的用户请求
+    Security->>Ctrl: 认证通过后转发请求
+    Ctrl->>Cart: addCart / updateCartItem / cartDetail
+    Cart->>Store: 读写 CartItem、Product
+    User->>UI: 提交外卖订单
+    UI->>API: POST /orders/delivery
+    API->>Security: 带 Bearer Token 的下单请求
+    Security->>Ctrl: 认证通过后转发请求，携带 addressId
+    Ctrl->>Order: createDeliveryOrders(User,addressId)
+    Order->>Store: 校验商品、库存、地址并保存 Order
+    User->>UI: 提交支付或取消
+    UI->>API: POST /payments 或 /orders/{id}/cancel
+    API->>Security: 带 Bearer Token 的支付/取消请求
+    Security->>Ctrl: 认证通过后转发请求，携带 orderId + clientRequestId
+    Ctrl->>Order: pay / cancel
+    Order->>Store: 幂等支付、库存扣减、状态时间线
+    Store-->>UI: PAID / CANCELLED / 原支付结果
