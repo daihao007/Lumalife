@@ -41,6 +41,7 @@ export default function App() {
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const detailRequestId = useRef(0);
+  const paymentRequestIds = useRef<Record<number, string>>({});
 
   useEffect(() => {
     api<Category[]>("/api/v1/categories").then(setCategories);
@@ -270,8 +271,10 @@ export default function App() {
   }
 
   async function pay(orderId: number) {
-    const paid = await api<Order>("/api/v1/payments", { method: "POST", body: JSON.stringify({ orderId, clientRequestId: crypto.randomUUID() }) });
+    const clientRequestId = paymentRequestIds.current[orderId] ||= crypto.randomUUID();
+    const paid = await api<Order>("/api/v1/payments", { method: "POST", body: JSON.stringify({ orderId, clientRequestId }) });
     await loadOrders();
+    delete paymentRequestIds.current[orderId];
     navigate("orders");
     setMessage("模拟支付成功");
     return paid;
