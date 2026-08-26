@@ -2,12 +2,14 @@ package com.lumalife.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,6 +21,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 @SpringBootTest(properties = "lumalife.state-file=")
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ApiSecurityIntegrationTest {
   @Autowired
   private MockMvc mvc;
@@ -67,6 +70,11 @@ class ApiSecurityIntegrationTest {
         .header("Authorization", bearer(token))
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"nickname\":\"API 更新用户\",\"avatarUrl\":\"https://example.com/avatar.png\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.nickname").value("API 更新用户"))
+      .andExpect(jsonPath("$.data.avatarUrl").value("https://example.com/avatar.png"));
+
+    mvc.perform(get("/api/v1/auth/me").header("Authorization", bearer(token)))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.data.nickname").value("API 更新用户"))
       .andExpect(jsonPath("$.data.avatarUrl").value("https://example.com/avatar.png"));
@@ -139,6 +147,8 @@ class ApiSecurityIntegrationTest {
   void userCanCompleteCartOrderAndIdempotentPaymentThroughApi() throws Exception {
     String token = registerUser("下单 API 用户").path("token").asText();
     long addressId = createAddress(token, "下单测试路 8 号");
+    String merchantToken = login("13800000002", "abc123456");
+    int stockBeforePayment = merchantProductStock(merchantToken, 1001);
 
     mvc.perform(post("/api/v1/cart/items")
         .header("Authorization", bearer(token))
@@ -179,13 +189,24 @@ class ApiSecurityIntegrationTest {
       .getResponse()
       .getContentAsString();
 
-    mvc.perform(post("/api/v1/payments")
+    String secondPayment = mvc.perform(post("/api/v1/payments")
         .header("Authorization", bearer(token))
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"orderId\":%d,\"clientRequestId\":\"api-payment-%d\"}".formatted(orderId, orderId)))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.data.id").value(objectMapper.readTree(firstPayment).path("data").path("id").asLong()))
-      .andExpect(jsonPath("$.data.status").value("PAID"));
+      .andExpect(jsonPath("$.data.status").value("PAID"))
+      .andReturn()
+      .getResponse()
+      .getContentAsString();
+
+    JsonNode firstPaymentData = objectMapper.readTree(firstPayment).path("data");
+    JsonNode secondPaymentData = objectMapper.readTree(secondPayment).path("data");
+    Assertions.assertEquals(firstPaymentData.path("statusTimeline").path("PAID").asText(),
+      secondPaymentData.path("statusTimeline").path("PAID").asText());
+    Assertions.assertEquals(2, firstPaymentData.path("statusTimeline").size());
+    Assertions.assertEquals(2, secondPaymentData.path("statusTimeline").size());
+    Assertions.assertEquals(stockBeforePayment - 1, merchantProductStock(merchantToken, 1001));
 
     mvc.perform(get("/api/v1/orders").header("Authorization", bearer(token)))
       .andExpect(status().isOk())
@@ -238,6 +259,33 @@ class ApiSecurityIntegrationTest {
   }
 
   @Test
+  void anonymousUserCannotAccessCurrentUserEndpoint() throws Exception {
+    mvc.perform(get("/api/v1/auth/me"))
+      .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void nonUserRolesCannotAccessUserScopedApis() throws Exception {
+    List<String> privilegedTokens = List.of(
+      bearer(login("13800000002", "abc123456")),
+      bearer(login("13800000000", "admin123456")));
+
+    for (String token : privilegedTokens) {
+      mvc.perform(get("/api/v1/user/addresses").header("Authorization", token))
+        .andExpect(status().isForbidden());
+      mvc.perform(get("/api/v1/cart").header("Authorization", token))
+        .andExpect(status().isForbidden());
+      mvc.perform(get("/api/v1/orders").header("Authorization", token))
+        .andExpect(status().isForbidden());
+      mvc.perform(post("/api/v1/payments")
+          .header("Authorization", token)
+          .contentType(MediaType.APPLICATION_JSON)
+          .content("{\"orderId\":1,\"clientRequestId\":\"privileged-payment\"}"))
+        .andExpect(status().isForbidden());
+    }
+  }
+
+  @Test
   void normalUserCannotAccessMerchantAdminApis() throws Exception {
     mvc.perform(get("/api/v1/merchant-admin/orders")
         .header("Authorization", bearer(login("13800000001", "abc123456"))))
@@ -258,7 +306,7 @@ class ApiSecurityIntegrationTest {
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.code").value(200))
       .andExpect(jsonPath("$.data.health.status").value("UP"))
-      .andExpect(jsonPath("$.data.overview.users").value(greaterThanOrEqualTo(1)))
+      .andExpect(jsonPath("$.data.overview.users").value(1))
       .andExpect(jsonPath("$.data.userAccounts[0].username").value("13800000001"))
       .andExpect(jsonPath("$.data.userAccounts[0].nickname").value("林夏"))
       .andExpect(jsonPath("$.data.merchantAccounts[0].username").value("13800000002"))
@@ -409,6 +457,20 @@ class ApiSecurityIntegrationTest {
       .getResponse()
       .getContentAsString();
     return objectMapper.readTree(response).path("data").path("id").asLong();
+  }
+
+  private int merchantProductStock(String token, long productId) throws Exception {
+    String response = mvc.perform(get("/api/v1/merchant-admin/products")
+        .header("Authorization", bearer(token)))
+      .andExpect(status().isOk())
+      .andReturn()
+      .getResponse()
+      .getContentAsString();
+    JsonNode products = objectMapper.readTree(response).path("data");
+    for (JsonNode product : products) {
+      if (product.path("id").asLong() == productId) return product.path("stock").asInt();
+    }
+    throw new AssertionError("Product " + productId + " was not returned for merchant");
   }
 
   private JsonNode getMerchantRecords(String path) throws Exception {
