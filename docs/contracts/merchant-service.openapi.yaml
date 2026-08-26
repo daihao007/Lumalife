@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: LumaLife Merchant Service API
+  version: 0.1.0-draft
+  description: Catalog, merchant administration, inventory, favorites and customer conversations.
+x-contract-status: draft-2026-08-26
+x-service-owner: merchant-service
+servers:
+  - {url: /api/v1, description: Gateway external compatibility route}
+paths:
+  /categories:
+    get:
+      operationId: listCategories
+      security: []
+      responses:
+        '200':
+          description: Categories
+          content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/Category'}}}}]}}}
+  /merchants:
+    get:
+      operationId: searchMerchants
+      security: []
+      parameters:
+        - {name: keyword, in: query, schema: {type: string}}
+        - {name: categoryId, in: query, schema: {type: integer, format: int64}}
+        - {name: sort, in: query, schema: {type: string, default: recommend}}
+        - {name: minPrice, in: query, schema: {type: integer, minimum: 0}}
+        - {name: maxPrice, in: query, schema: {type: integer, minimum: 0}}
+        - {name: minScore, in: query, schema: {type: number, minimum: 0, maximum: 5}}
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        '200': {$ref: '#/components/responses/MerchantPageResponse'}
+        '400': {$ref: '#/components/responses/Error'}
+  /merchants/{id}:
+    get:
+      operationId: getMerchantDetail
+      security: []
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses:
+        '200': {$ref: '#/components/responses/MerchantDetailResponse'}
+        '404': {$ref: '#/components/responses/Error'}
+  /user/favorites:
+    get:
+      operationId: listFavorites
+      x-required-role: USER
+      responses: {'200': {$ref: '#/components/responses/MerchantListResponse'}, '401': {$ref: '#/components/responses/Error'}, '403': {$ref: '#/components/responses/Error'}}
+    post:
+      operationId: addFavorite
+      x-required-role: USER
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/FavoriteRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/NullResponse'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /user/favorites/{merchantId}/delete:
+    post:
+      operationId: removeFavorite
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/MerchantId'}]
+      responses: {'200': {$ref: '#/components/responses/NullResponse'}, '404': {$ref: '#/components/responses/Error'}}
+  /conversations:
+    get:
+      operationId: listUserConversations
+      x-required-role: USER
+      responses: {'200': {$ref: '#/components/responses/ConversationSummaryListResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /conversations/{merchantId}:
+    get:
+      operationId: getUserConversation
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/MerchantId'}]
+      responses: {'200': {$ref: '#/components/responses/MessageListResponse'}, '404': {$ref: '#/components/responses/Error'}}
+  /conversations/{merchantId}/messages:
+    post:
+      operationId: sendUserMessage
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/MerchantId'}]
+      requestBody: {$ref: '#/components/requestBodies/Message'}
+      responses: {'200': {$ref: '#/components/responses/MessageListResponse'}, '400': {$ref: '#/components/responses/Error'}, '404': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/profile:
+    get:
+      operationId: getMerchantProfile
+      x-required-role: MERCHANT_ADMIN
+      responses: {'200': {$ref: '#/components/responses/MerchantProfileResponse'}, '403': {$ref: '#/components/responses/Error'}}
+    post:
+      operationId: updateMerchantProfileCompat
+      x-required-role: MERCHANT_ADMIN
+      requestBody: {$ref: '#/components/requestBodies/MerchantProfile'}
+      responses: {'200': {$ref: '#/components/responses/MerchantProfileResponse'}, '400': {$ref: '#/components/responses/Error'}}
+    put:
+      operationId: replaceMerchantProfileCompat
+      x-required-role: MERCHANT_ADMIN
+      requestBody: {$ref: '#/components/requestBodies/MerchantProfile'}
+      responses: {'200': {$ref: '#/components/responses/MerchantProfileResponse'}, '400': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/products:
+    get:
+      operationId: listMerchantProducts
+      x-required-role: MERCHANT_ADMIN
+      responses: {'200': {$ref: '#/components/responses/ProductListResponse'}, '403': {$ref: '#/components/responses/Error'}}
+    post:
+      operationId: saveProduct
+      x-required-role: MERCHANT_ADMIN
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ProductRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/ProductResponse'}, '400': {$ref: '#/components/responses/Error'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/products/{id}/toggle:
+    post:
+      operationId: toggleProduct
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses: {'200': {$ref: '#/components/responses/ProductResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/products/{id}/delete:
+    post:
+      operationId: deleteProduct
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses: {'200': {$ref: '#/components/responses/NullResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/group-deals:
+    get:
+      operationId: listMerchantGroupDeals
+      x-required-role: MERCHANT_ADMIN
+      responses: {'200': {$ref: '#/components/responses/DealListResponse'}, '403': {$ref: '#/components/responses/Error'}}
+    post:
+      operationId: saveGroupDeal
+      x-required-role: MERCHANT_ADMIN
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/DealRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/DealResponse'}, '400': {$ref: '#/components/responses/Error'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/group-deals/{id}/toggle:
+    post:
+      operationId: toggleGroupDeal
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses: {'200': {$ref: '#/components/responses/DealResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/group-deals/{id}/delete:
+    post:
+      operationId: deleteGroupDeal
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses: {'200': {$ref: '#/components/responses/NullResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/conversations:
+    get:
+      operationId: listMerchantConversations
+      x-required-role: MERCHANT_ADMIN
+      responses: {'200': {$ref: '#/components/responses/ConversationSummaryListResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/conversations/{userId}:
+    get:
+      operationId: getMerchantConversation
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/UserId'}]
+      responses: {'200': {$ref: '#/components/responses/MessageListResponse'}, '404': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/conversations/{userId}/messages:
+    post:
+      operationId: sendMerchantMessage
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/UserId'}]
+      requestBody: {$ref: '#/components/requestBodies/Message'}
+      responses: {'200': {$ref: '#/components/responses/MessageListResponse'}, '400': {$ref: '#/components/responses/Error'}, '404': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/assistant/ask:
+    post:
+      operationId: askMerchantAssistant
+      x-required-role: MERCHANT_ADMIN
+      requestBody: {$ref: '#/components/requestBodies/Ask'}
+      responses: {'200': {$ref: '#/components/responses/AnswerResponse'}, '400': {$ref: '#/components/responses/Error'}}
+  /assistant/ask:
+    post:
+      operationId: askPublicAssistant
+      security: []
+      requestBody: {$ref: '#/components/requestBodies/Ask'}
+      responses: {'200': {$ref: '#/components/responses/AnswerResponse'}, '400': {$ref: '#/components/responses/Error'}}
+  /catalog/items:batch-get:
+    post:
+      operationId: batchGetCatalogItems
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters: [{$ref: '#/components/parameters/RequestId'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/BatchGetRequest'}}}
+      responses:
+        '200': {description: Ordered item results, content: {application/json: {schema: {$ref: '#/components/schemas/BatchGetResponse'}}}}
+        '400': {$ref: '#/components/responses/Error'}
+  /inventory/reservations:
+    post:
+      operationId: reserveInventory
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ReservationRequest'}}}
+      responses:
+        '200': {description: Existing identical reservation, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
+        '201': {description: Reservation created, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
+        '409': {$ref: '#/components/responses/Error'}
+  /inventory/reservations/{orderId}:release:
+    post:
+      operationId: releaseInventory
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/OrderId'}
+        - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200': {description: Released or already released, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
+        '409': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+    serviceAuth: {type: mutualTLS}
+  parameters:
+    Id: {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    MerchantId: {name: merchantId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    UserId: {name: userId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    OrderId: {name: orderId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+    IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+  requestBodies:
+    Message: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [content], properties: {content: {type: string, minLength: 1, maxLength: 2000}}}}}}
+    Ask: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [question], properties: {question: {type: string, minLength: 1, maxLength: 2000}}}}}}
+    MerchantProfile: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [nickname], properties: {nickname: {type: string, minLength: 1, maxLength: 64}}}}}}
+  schemas:
+    SuccessEnvelope: {type: object, required: [code, message, data], properties: {code: {const: 200}, message: {const: success}, data: {}}}
+    ErrorEnvelope: {type: object, required: [code, message, data], properties: {code: {type: integer}, message: {type: string}, data: {type: 'null'}, requestId: {type: string}, reason: {type: string}, details: {type: array, items: {type: object}}}}
+    Category: {type: object, required: [id, name, icon], properties: {id: {type: integer, format: int64}, name: {type: string}, icon: {type: string}}}
+    Merchant:
+      type: object
+      required: [id, name, categoryId, categoryName, avgScore, avgPrice, monthlySales, distanceKm, status]
+      properties:
+        id: {type: integer, format: int64}
+        name: {type: string}
+        categoryId: {type: integer, format: int64}
+        categoryName: {type: string}
+        cover: {type: string}
+        avgScore: {type: number}
+        avgPrice: {type: integer, description: Current monolith uses display-unit integer; v2 should use avgPriceCent.}
+        monthlySales: {type: integer}
+        distanceKm: {type: number}
+        status: {type: string}
+        address: {type: string}
+        reason: {type: [string, 'null']}
+    Product: {type: object, required: [id, merchantId, name, description, priceCent, stock, listed], properties: {id: {type: integer, format: int64}, merchantId: {type: integer, format: int64}, name: {type: string}, description: {type: string}, priceCent: {type: integer, format: int64, minimum: 0}, stock: {type: integer, minimum: 0}, listed: {type: boolean}}}
+    GroupDeal: {type: object, required: [id, merchantId, title, description, priceCent, stock, active], properties: {id: {type: integer, format: int64}, merchantId: {type: integer, format: int64}, title: {type: string}, description: {type: string}, priceCent: {type: integer, format: int64, minimum: 0}, stock: {type: integer, minimum: 0}, active: {type: boolean}}}
+    MerchantDetail: {type: object, required: [merchant, products, groupDeals, reviews], properties: {merchant: {$ref: '#/components/schemas/Merchant'}, products: {type: array, items: {$ref: '#/components/schemas/Product'}}, groupDeals: {type: array, items: {$ref: '#/components/schemas/GroupDeal'}}, reviews: {type: array, items: {type: object}}, partial: {type: boolean, default: false}}}
+    ChatMessage: {type: object, required: [id, userId, merchantId, senderRole, senderName, content, createdAt], properties: {id: {type: integer, format: int64}, userId: {type: integer, format: int64}, merchantId: {type: integer, format: int64}, senderRole: {type: string, enum: [USER, MERCHANT, MERCHANT_AI]}, senderName: {type: string}, content: {type: string}, createdAt: {type: string, format: date-time}}}
+    ConversationSummary: {type: object, additionalProperties: true, required: [userId, merchantId], properties: {userId: {type: integer, format: int64}, merchantId: {type: integer, format: int64}, lastMessage: {type: string}, updatedAt: {type: string, format: date-time}}}
+    FavoriteRequest: {type: object, additionalProperties: false, required: [merchantId], properties: {merchantId: {type: integer, format: int64, minimum: 1}}}
+    ProductRequest: {type: object, additionalProperties: false, required: [name, description, priceCent, stock, listed], properties: {id: {type: [integer, 'null'], format: int64}, name: {type: string, minLength: 1, maxLength: 128}, description: {type: string, maxLength: 2000}, priceCent: {type: integer, format: int64, minimum: 1}, stock: {type: integer, minimum: 0}, listed: {type: boolean}}}
+    DealRequest: {type: object, additionalProperties: false, required: [title, description, priceCent, stock, active], properties: {id: {type: [integer, 'null'], format: int64}, title: {type: string, minLength: 1, maxLength: 128}, description: {type: string, maxLength: 2000}, priceCent: {type: integer, format: int64, minimum: 1}, stock: {type: integer, minimum: 0}, active: {type: boolean}}}
+    CatalogItemRequest: {type: object, additionalProperties: false, required: [itemType, itemId, quantity], properties: {itemType: {type: string, enum: [PRODUCT, GROUP_DEAL]}, itemId: {type: integer, format: int64, minimum: 1}, quantity: {type: integer, minimum: 1}}}
+    BatchGetRequest: {type: object, additionalProperties: false, required: [items], properties: {items: {type: array, minItems: 1, maxItems: 100, items: {$ref: '#/components/schemas/CatalogItemRequest'}}}}
+    CatalogItemResult: {type: object, required: [itemType, itemId, status], properties: {itemType: {type: string, enum: [PRODUCT, GROUP_DEAL]}, itemId: {type: integer, format: int64}, status: {type: string, enum: [AVAILABLE, NOT_FOUND, NOT_SALEABLE]}, merchantId: {type: integer, format: int64}, name: {type: string}, priceCent: {type: integer, format: int64}, availableStock: {type: integer}, stockVersion: {type: integer, format: int64}}}
+    BatchGetResponse: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/CatalogItemResult'}}}}
+    ReservationRequest: {type: object, additionalProperties: false, required: [orderId, expiresAt, items], properties: {orderId: {type: integer, format: int64, minimum: 1}, expiresAt: {type: string, format: date-time}, items: {type: array, minItems: 1, items: {allOf: [{$ref: '#/components/schemas/CatalogItemRequest'}, {type: object, required: [expectedVersion], properties: {expectedVersion: {type: integer, format: int64, minimum: 0}}}]}}}}
+    Reservation: {type: object, required: [orderId, status, expiresAt, items], properties: {orderId: {type: integer, format: int64}, status: {type: string, enum: [RESERVED, CONFIRMED, RELEASED, CHECK_REQUIRED]}, expiresAt: {type: string, format: date-time}, items: {type: array, items: {$ref: '#/components/schemas/CatalogItemRequest'}}}}
+  responses:
+    Error: {description: Error envelope, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    NullResponse: {description: Success, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: 'null'}}}]}}}}
+    MerchantPageResponse: {description: Merchant page, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: object, required: [records, page, size, total, pages], properties: {records: {type: array, items: {$ref: '#/components/schemas/Merchant'}}, page: {type: integer}, size: {type: integer}, total: {type: integer, format: int64}, pages: {type: integer, format: int64}}}}}]}}}}
+    MerchantListResponse: {description: Merchants, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/Merchant'}}}}]}}}}
+    MerchantDetailResponse: {description: Detail, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {$ref: '#/components/schemas/MerchantDetail'}}}]}}}}
+    MerchantProfileResponse: {description: Profile, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: object, additionalProperties: true}}}]}}}}
+    ProductResponse: {description: Product, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {$ref: '#/components/schemas/Product'}}}]}}}}
+    ProductListResponse: {description: Products, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/Product'}}}}]}}}}
+    DealResponse: {description: Deal, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {$ref: '#/components/schemas/GroupDeal'}}}]}}}}
+    DealListResponse: {description: Deals, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/GroupDeal'}}}}]}}}}
+    MessageListResponse: {description: Messages, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/ChatMessage'}}}}]}}}}
+    ConversationSummaryListResponse: {description: Conversation summaries, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/ConversationSummary'}}}}]}}}}
+    AnswerResponse: {description: Assistant answer, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: object, required: [answer], properties: {answer: {type: string}}}}}]}}}}
+security:
+  - bearerAuth: []

@@ -38,6 +38,32 @@ class DemoStoreTest {
   }
 
   @Test
+  void registeredUserCanUpdateProfileWithoutChangingRole() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    store.register("13900000001", "abc123456", "资料测试用户");
+    User registered = store.userByPhone("13900000001");
+
+    java.util.Map<String, Object> updated = store.updateProfile(registered, "资料更新用户", "avatar.png");
+
+    Assertions.assertEquals("资料更新用户", updated.get("nickname"));
+    Assertions.assertEquals("avatar.png", updated.get("avatarUrl"));
+    Assertions.assertEquals(com.lumalife.domain.Enums.UserRole.USER, updated.get("role"));
+    Assertions.assertNull(updated.get("merchantId"));
+  }
+
+  @Test
+  void merchantDetailContainsVisibleProductsAndGroupDeals() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+
+    Map<String, Object> detail = store.merchantDetail(1);
+
+    Assertions.assertEquals(1L, ((Merchant) detail.get("merchant")).id());
+    Assertions.assertTrue(((List<?>) detail.get("products")).stream().anyMatch(product -> ((com.lumalife.domain.Models.Product) product).id() == 1001));
+    Assertions.assertTrue(((List<?>) detail.get("groupDeals")).stream().anyMatch(deal -> ((com.lumalife.domain.Models.GroupDeal) deal).id() == 1));
+    Assertions.assertNotNull(detail.get("reviews"));
+  }
+
+  @Test
   void illegalMerchantStateTransitionIsRejected() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
@@ -90,6 +116,17 @@ class DemoStoreTest {
     Order paid = store.createDeliveryOrder(user, null);
     store.pay(user, paid.id, "req-cancel");
     Assertions.assertThrows(BusinessException.class, () -> store.cancel(user, paid.id));
+  }
+
+  @Test
+  void cancelledOrderCannotBePaid() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    store.addCart(user.id(), 1002, 1);
+    Order order = store.createDeliveryOrder(user, null);
+    store.cancel(user, order.id);
+
+    Assertions.assertThrows(BusinessException.class, () -> store.pay(user, order.id, "req-cancelled"));
   }
 
   @Test
@@ -355,6 +392,27 @@ class DemoStoreTest {
   }
 
   @Test
+  void paymentDoesNotPartiallyDeductDeliveryStockWhenLaterLineFails() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User admin = store.userByPhone("13800000002");
+    int firstBefore = store.merchantProducts(admin).stream().filter(p -> p.id() == 1001).findFirst().orElseThrow().stock();
+
+    store.addCart(user.id(), 1001, 1);
+    store.addCart(user.id(), 1002, 1);
+    Order order = store.createDeliveryOrder(user, null);
+    store.saveProduct(admin, 1002L, "毛血旺小锅", "课程演示热门搜索菜", 4280, 0, true);
+
+    Assertions.assertThrows(BusinessException.class, () -> store.pay(user, order.id, "req-stock-rollback"));
+    Assertions.assertEquals(firstBefore, store.merchantProducts(admin).stream()
+      .filter(p -> p.id() == 1001).findFirst().orElseThrow().stock());
+    Assertions.assertEquals(0, store.merchantProducts(admin).stream()
+      .filter(p -> p.id() == 1002).findFirst().orElseThrow().stock());
+    Assertions.assertEquals(OrderStatus.PENDING_PAYMENT, order.status);
+    Assertions.assertFalse(order.stockDeducted);
+  }
+
+  @Test
   void orderListRepairsUnknownMerchantName() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
@@ -451,6 +509,46 @@ class DemoStoreTest {
   }
 
   @Test
+  void groupOrderRejectsNonPositiveQuantity() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.createGroupOrder(user, 1, 0));
+    Assertions.assertEquals(40900, error.code());
+    Assertions.assertEquals("套餐不可购买", error.getMessage());
+    Assertions.assertTrue(store.userOrders(user).isEmpty());
+  }
+
+  @Test
+  void merchantCannotModifyAnotherMerchantGroupDeal() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User admin = store.userByPhone("13800000002");
+
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.saveDeal(admin, 2L, "越权套餐", "不应修改", 4990, 1, true));
+    Assertions.assertEquals(40300, error.code());
+    Assertions.assertEquals("无权维护该套餐", error.getMessage());
+  }
+
+  @Test
+  void groupOrderCannotEnterDeliveryFulfillmentStates() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User admin = store.userByPhone("13800000002");
+
+    Order order = store.createGroupOrder(user, 1, 1);
+    Order paid = store.pay(user, order.id, "req-group-transition");
+
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.transition(admin, paid.id, OrderStatus.ACCEPTED));
+    Assertions.assertEquals(40900, error.code());
+    Assertions.assertEquals("团购订单只能通过券码核销", error.getMessage());
+    Assertions.assertEquals(OrderStatus.PAID, paid.status);
+    Assertions.assertEquals(OrderStatus.USED, store.verifyCoupon(admin, paid.couponCode).status);
+  }
+
+  @Test
   void merchantCannotVerifyCouponFromAnotherStore() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
@@ -460,5 +558,41 @@ class DemoStoreTest {
     Order paid = store.pay(user, order.id, "req-coupon-cross-store");
 
     Assertions.assertThrows(BusinessException.class, () -> store.verifyCoupon(otherAdmin, paid.couponCode));
+  }
+
+  @Test
+  void merchantCannotTransitionAnotherMerchantOrder() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User wrongAdmin = store.userByPhone("13800000002");
+
+    store.addCart(user.id(), 1004, 1);
+    Order order = store.createDeliveryOrder(user, null);
+    store.pay(user, order.id, "req-cross-store-transition");
+
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.transition(wrongAdmin, order.id, OrderStatus.ACCEPTED));
+    Assertions.assertEquals(40300, error.code());
+    Assertions.assertEquals(OrderStatus.PAID, order.status);
+  }
+
+  @Test
+  void reviewRejectsDuplicateSubmission() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    User admin = store.userByPhone("13800000002");
+
+    store.addCart(user.id(), 1001, 1);
+    Order order = store.createDeliveryOrder(user, null);
+    store.pay(user, order.id, "req-review-duplicate");
+    store.transition(admin, order.id, OrderStatus.ACCEPTED);
+    store.transition(admin, order.id, OrderStatus.DELIVERING);
+    store.transition(admin, order.id, OrderStatus.COMPLETED);
+    store.review(user, order.id, 5, 5, 5, "首次评价");
+
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.review(user, order.id, 4, 4, 4, "重复评价"));
+    Assertions.assertEquals(40900, error.code());
+    Assertions.assertEquals("同一订单不可重复评价", error.getMessage());
   }
 }

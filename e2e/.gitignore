@@ -1,0 +1,4 @@
+reports/*.json
+reports/*.xml
+reports/*.md
+backend.log

@@ -28,11 +28,12 @@ public class SecurityConfig {
   SecurityFilterChain filterChain(HttpSecurity http, DemoStore store) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
       .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/api/v1/auth/me").authenticated()
         .requestMatchers("/api/v1/auth/**", "/api/v1/merchants/**", "/api/v1/categories", "/api/v1/reviews/merchant/**",
           "/api/v1/assistant/ask", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
         .requestMatchers("/api/v1/admin/**").hasRole(UserRole.PLATFORM_ADMIN.name())
         .requestMatchers("/api/v1/merchant-admin/**").hasRole(UserRole.MERCHANT_ADMIN.name())
-        .requestMatchers("/api/v1/cart/**", "/api/v1/orders/**", "/api/v1/payments", "/api/v1/user/**",
+        .requestMatchers("/api/v1/user/**", "/api/v1/cart/**", "/api/v1/orders/**", "/api/v1/payments",
           "/api/v1/reviews", "/api/v1/conversations/**").hasRole(UserRole.USER.name())
         .requestMatchers("/api/v1/**").authenticated()
         .anyRequest().permitAll())

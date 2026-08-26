@@ -1,0 +1,227 @@
+openapi: 3.1.0
+info:
+  title: LumaLife Order Service API
+  version: 0.1.0-draft
+  description: Cart, order, payment, coupon, review and operations projection contracts.
+x-contract-status: draft-2026-08-26
+x-service-owner: order-service
+servers:
+  - {url: /api/v1, description: Gateway external compatibility route}
+paths:
+  /cart:
+    get:
+      operationId: getCart
+      x-required-role: USER
+      responses: {'200': {$ref: '#/components/responses/CartResponse'}, '401': {$ref: '#/components/responses/Error'}, '403': {$ref: '#/components/responses/Error'}}
+  /cart/detail:
+    get:
+      operationId: getCartDetail
+      x-required-role: USER
+      responses: {'200': {$ref: '#/components/responses/CartDetailResponse'}, '401': {$ref: '#/components/responses/Error'}, '403': {$ref: '#/components/responses/Error'}}
+  /cart/items:
+    post:
+      operationId: addCartItem
+      x-required-role: USER
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CartRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/CartResponse'}, '400': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /cart/items/{productId}:
+    post:
+      operationId: updateCartItem
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/ProductId'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/CartQuantityRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/CartResponse'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /cart/items/{productId}/delete:
+    post:
+      operationId: deleteCartItem
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/ProductId'}]
+      responses: {'200': {$ref: '#/components/responses/CartResponse'}, '404': {$ref: '#/components/responses/Error'}}
+  /cart/clear:
+    post:
+      operationId: clearCart
+      x-required-role: USER
+      responses: {'200': {$ref: '#/components/responses/NullResponse'}}
+  /orders/delivery:
+    post:
+      operationId: createDeliveryOrders
+      description: Creates one order per merchant represented in the cart.
+      x-required-role: USER
+      requestBody:
+        required: false
+        content: {application/json: {schema: {$ref: '#/components/schemas/DeliveryOrderRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/OrderListResponse'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}, '503': {$ref: '#/components/responses/Error'}, '504': {$ref: '#/components/responses/Error'}}
+  /orders/group-buy:
+    post:
+      operationId: createGroupBuyOrder
+      x-required-role: USER
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/GroupOrderRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/OrderResponse'}, '409': {$ref: '#/components/responses/Error'}, '503': {$ref: '#/components/responses/Error'}}
+  /payments:
+    post:
+      operationId: payOrder
+      description: Idempotent by (authenticated userId, orderId, clientRequestId).
+      x-required-role: USER
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/PaymentRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/OrderResponse'}, '400': {$ref: '#/components/responses/Error'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}, '503': {$ref: '#/components/responses/Error'}, '504': {$ref: '#/components/responses/Error'}}
+  /orders/{id}/cancel:
+    post:
+      operationId: cancelOrder
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses: {'200': {$ref: '#/components/responses/OrderResponse'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /orders/{id}/receive:
+    post:
+      operationId: receiveOrder
+      x-required-role: USER
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      responses: {'200': {$ref: '#/components/responses/OrderResponse'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /orders:
+    get:
+      operationId: listUserOrders
+      x-required-role: USER
+      responses: {'200': {$ref: '#/components/responses/OrderListResponse'}}
+  /reviews:
+    post:
+      operationId: createReview
+      x-required-role: USER
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/ReviewRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/ReviewResponse'}, '400': {$ref: '#/components/responses/Error'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/orders:
+    get:
+      operationId: listMerchantOrders
+      x-required-role: MERCHANT_ADMIN
+      responses: {'200': {$ref: '#/components/responses/OrderListResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/reviews:
+    get:
+      operationId: listMerchantReviews
+      x-required-role: MERCHANT_ADMIN
+      responses: {'200': {$ref: '#/components/responses/ReviewListResponse'}, '403': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/orders/{id}/transition:
+    post:
+      operationId: transitionMerchantOrder
+      x-required-role: MERCHANT_ADMIN
+      parameters: [{$ref: '#/components/parameters/Id'}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/TransitionRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/OrderResponse'}, '403': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /merchant-admin/coupons/verify:
+    post:
+      operationId: verifyCoupon
+      x-required-role: MERCHANT_ADMIN
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/VerifyRequest'}}}
+      responses: {'200': {$ref: '#/components/responses/OrderResponse'}, '403': {$ref: '#/components/responses/Error'}, '404': {$ref: '#/components/responses/Error'}, '409': {$ref: '#/components/responses/Error'}}
+  /admin/metrics:
+    get:
+      operationId: getAdminMetrics
+      x-required-role: PLATFORM_ADMIN
+      responses:
+        '200':
+          description: Eventually consistent metrics with observation timestamp
+          content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {$ref: '#/components/schemas/AdminMetrics'}}}]}}}
+        '403': {$ref: '#/components/responses/Error'}
+  /merchants/{merchantId}/reviews:
+    get:
+      operationId: getMerchantReviewProjectionSource
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/MerchantId'}
+        - {$ref: '#/components/parameters/RequestId'}
+      responses:
+        '200': {description: Review page or bootstrap list, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Review'}}}}}
+        '404': {$ref: '#/components/responses/Error'}
+  /orders/{orderId}/payment-state:
+    get:
+      operationId: getPaymentStateForReservationReconciliation
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/OrderId'}
+        - {$ref: '#/components/parameters/RequestId'}
+      responses:
+        '200':
+          description: Minimal reconciliation state
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [orderId, paymentState]
+                properties:
+                  orderId: {type: integer, format: int64}
+                  paymentState: {type: string, enum: [PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED]}
+        '404': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+    serviceAuth: {type: mutualTLS}
+  parameters:
+    Id: {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    ProductId: {name: productId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    MerchantId: {name: merchantId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    OrderId: {name: orderId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+  schemas:
+    SuccessEnvelope: {type: object, required: [code, message, data], properties: {code: {const: 200}, message: {const: success}, data: {}}}
+    ErrorEnvelope: {type: object, required: [code, message, data], properties: {code: {type: integer}, message: {type: string}, data: {type: 'null'}, requestId: {type: string}, reason: {type: string}, details: {type: array, items: {type: object}}}}
+    CartItem: {type: object, additionalProperties: false, required: [productId, quantity], properties: {productId: {type: integer, format: int64}, quantity: {type: integer, minimum: 1}, validity: {type: string, enum: [VALID, PRODUCT_CHANGED, PRODUCT_DELETED, NOT_SALEABLE]}}}
+    CartLine: {type: object, required: [productId, merchantId, merchantName, name, priceCent, quantity, subtotalCent], properties: {productId: {type: integer, format: int64}, merchantId: {type: integer, format: int64}, merchantName: {type: string}, name: {type: string}, priceCent: {type: integer, format: int64}, quantity: {type: integer}, subtotalCent: {type: integer, format: int64}, validity: {type: string}}}
+    OrderLine: {type: object, required: [itemId, name, quantity, priceCent], properties: {itemId: {type: [integer, 'null'], format: int64}, name: {type: string}, quantity: {type: integer, minimum: 1}, priceCent: {type: integer, format: int64, minimum: 0}}}
+    Order:
+      type: object
+      required: [id, userId, merchantId, merchantName, type, status, totalCent, reviewed, createdAt, lines, statusTimeline]
+      properties:
+        id: {type: integer, format: int64}
+        userId: {type: integer, format: int64}
+        merchantId: {type: integer, format: int64}
+        merchantName: {type: string, description: Immutable name snapshot}
+        type: {type: string, enum: [DELIVERY, GROUP_BUY]}
+        status: {type: string, enum: [PENDING_PAYMENT, PAID, ACCEPTED, DELIVERING, RECEIVED, COMPLETED, USED, EXPIRED, CANCELLED]}
+        totalCent: {type: integer, format: int64, minimum: 0}
+        clientRequestId: {type: [string, 'null']}
+        couponCode: {type: [string, 'null']}
+        addressId: {type: [integer, 'null'], format: int64}
+        addressSnapshot: {type: [string, 'null']}
+        reviewed: {type: boolean}
+        stockDeducted: {type: boolean, deprecated: true, description: Monolith compatibility field; not a distributed idempotency guarantee.}
+        createdAt: {type: string, format: date-time}
+        lines: {type: array, items: {$ref: '#/components/schemas/OrderLine'}}
+        statusTimeline: {type: object, additionalProperties: {type: string, format: date-time}}
+        version: {type: integer, format: int64, minimum: 0}
+    Review: {type: object, required: [id, orderId, merchantId, userName, score, tasteScore, serviceScore, content, createdAt], properties: {id: {type: integer, format: int64}, orderId: {type: integer, format: int64}, merchantId: {type: integer, format: int64}, userName: {type: string}, score: {type: integer, minimum: 1, maximum: 5}, tasteScore: {type: integer, minimum: 1, maximum: 5}, serviceScore: {type: integer, minimum: 1, maximum: 5}, content: {type: string}, createdAt: {type: string, format: date-time}}}
+    CartRequest: {type: object, additionalProperties: false, required: [productId, quantity], properties: {productId: {type: integer, format: int64, minimum: 1}, quantity: {type: integer, minimum: 1}}}
+    CartQuantityRequest: {type: object, additionalProperties: false, required: [quantity], properties: {quantity: {type: integer, description: Current v1 removes the line when quantity <= 0.}}}
+    DeliveryOrderRequest: {type: [object, 'null'], additionalProperties: false, properties: {addressId: {type: [integer, 'null'], format: int64, minimum: 1}}}
+    GroupOrderRequest: {type: object, additionalProperties: false, required: [dealId, quantity], properties: {dealId: {type: integer, format: int64, minimum: 1}, quantity: {type: integer, minimum: 1}}}
+    PaymentRequest: {type: object, additionalProperties: false, required: [orderId, clientRequestId], properties: {orderId: {type: integer, format: int64, minimum: 1}, clientRequestId: {type: string, minLength: 8, maxLength: 128}}}
+    TransitionRequest: {type: object, additionalProperties: false, required: [next], properties: {next: {type: string, enum: [ACCEPTED, DELIVERING, COMPLETED]}}}
+    VerifyRequest: {type: object, additionalProperties: false, required: [code], properties: {code: {type: string, minLength: 1, maxLength: 128}}}
+    ReviewRequest: {type: object, additionalProperties: false, required: [orderId, score, tasteScore, serviceScore, content], properties: {orderId: {type: integer, format: int64, minimum: 1}, score: {type: integer, minimum: 1, maximum: 5}, tasteScore: {type: integer, minimum: 1, maximum: 5}, serviceScore: {type: integer, minimum: 1, maximum: 5}, content: {type: string, minLength: 1, maxLength: 2000}}}
+    AdminMetrics: {type: object, additionalProperties: true, properties: {observedAt: {type: string, format: date-time}, projectionLagSeconds: {type: integer, minimum: 0}, partial: {type: boolean}}}
+  responses:
+    Error: {description: Error envelope, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorEnvelope'}}}}
+    NullResponse: {description: Success, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: 'null'}}}]}}}}
+    CartResponse: {description: Cart, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/CartItem'}}}}]}}}}
+    CartDetailResponse: {description: Cart detail, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/CartLine'}}}}]}}}}
+    OrderResponse: {description: Order, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {$ref: '#/components/schemas/Order'}}}]}}}}
+    OrderListResponse: {description: Orders, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/Order'}}}}]}}}}
+    ReviewResponse: {description: Review, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {$ref: '#/components/schemas/Review'}}}]}}}}
+    ReviewListResponse: {description: Reviews, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/SuccessEnvelope'}, {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/Review'}}}}]}}}}
+security:
+  - bearerAuth: []

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CreditCard } from "lucide-react";
 import { api } from "../api";
 import type { Order } from "../types";
@@ -10,11 +10,27 @@ export default function Orders({ user, orders, reload, pay, cancelOrder, receive
   const [reviewingId, setReviewingId] = useState<number | null>(null);
   const emptyReviewForm = { score: "", tasteScore: "", serviceScore: "", content: "" };
   const [reviewForm, setReviewForm] = useState(emptyReviewForm);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const actionLock = useRef(false);
   const canReview = (order: Order) => order.status === "RECEIVED" || order.status === "COMPLETED" || order.status === "USED";
 
   function startReview(id: number) {
     setReviewingId(id);
     setReviewForm(emptyReviewForm);
+  }
+
+  async function runAction(key: string, action: () => Promise<void>) {
+    if (actionLock.current) return;
+    actionLock.current = true;
+    setPendingAction(key);
+    try {
+      await action();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "订单操作失败，请重试");
+    } finally {
+      actionLock.current = false;
+      setPendingAction(null);
+    }
   }
 
   async function submitReview(id: number) {
@@ -33,10 +49,12 @@ export default function Orders({ user, orders, reload, pay, cancelOrder, receive
       setMessage("请填写 1 到 5 分的评分信息");
       return;
     }
-    await api("/api/v1/reviews", { method: "POST", body: JSON.stringify(payload) });
-    setMessage("评价提交成功");
-    setReviewingId(null);
-    await reload();
+    await runAction(`review-${id}`, async () => {
+      await api("/api/v1/reviews", { method: "POST", body: JSON.stringify(payload) });
+      setMessage("评价提交成功");
+      setReviewingId(null);
+      await reload();
+    });
   }
   if (!orders.length) return <div className="panel empty-state"><CreditCard /><h2>暂无订单</h2><p>创建外卖或团购订单后，会在这里显示支付、取消、券码和履约状态。</p></div>;
   return <div className="list">{orders.map((o: Order) => <article className="order" key={o.id}>
@@ -50,11 +68,11 @@ export default function Orders({ user, orders, reload, pay, cancelOrder, receive
       {o.addressSnapshot && <p><b>配送地址</b><span>{o.addressSnapshot}</span></p>}
       {o.lines.map((line, index) => <p key={`${line.name}-${index}`}><b>{line.name} x{line.quantity}</b><span>{money(line.priceCent)} / 份 · 小计 {money(line.priceCent * line.quantity)}</span></p>)}
     </div>}
-    {user?.role === "USER" && o.status === "PENDING_PAYMENT" && <div className="actions"><button className="primary" onClick={() => pay(o.id)}>支付</button><button onClick={() => cancelOrder(o.id)}>取消</button></div>}
-    {user?.role === "USER" && o.type === "DELIVERY" && ["DELIVERING", "COMPLETED"].includes(o.status) && <div className="actions"><button className="primary" onClick={() => receiveOrder(o.id)}>确认收货</button></div>}
+    {user?.role === "USER" && o.status === "PENDING_PAYMENT" && <div className="actions"><button className="primary" data-testid={`pay-order-${o.id}`} disabled={pendingAction !== null} onClick={() => runAction(`pay-${o.id}`, () => pay(o.id))}>{pendingAction === `pay-${o.id}` ? "支付中…" : "支付"}</button><button data-testid={`cancel-order-${o.id}`} disabled={pendingAction !== null} onClick={() => runAction(`cancel-${o.id}`, () => cancelOrder(o.id))}>{pendingAction === `cancel-${o.id}` ? "取消中…" : "取消"}</button></div>}
+    {user?.role === "USER" && o.type === "DELIVERY" && ["DELIVERING", "COMPLETED"].includes(o.status) && <div className="actions"><button className="primary" data-testid={`receive-order-${o.id}`} disabled={pendingAction !== null} onClick={() => runAction(`receive-${o.id}`, () => receiveOrder(o.id))}>{pendingAction === `receive-${o.id}` ? "确认中…" : "确认收货"}</button></div>}
     {user?.role === "USER" && <div className="review-panel">
       <span>{o.reviewed ? "已评价" : canReview(o) ? "可以评价本次订单" : "订单完成后可评价"}</span>
-      {!o.reviewed && canReview(o) && reviewingId !== o.id && <button onClick={() => startReview(o.id)}>填写评价</button>}
+      {!o.reviewed && canReview(o) && reviewingId !== o.id && <button disabled={pendingAction !== null} onClick={() => startReview(o.id)}>填写评价</button>}
     </div>}
     {reviewingId === o.id && <div className="review-form">
       <div className="form-grid">
@@ -63,7 +81,7 @@ export default function Orders({ user, orders, reload, pay, cancelOrder, receive
         <input type="number" min="1" max="5" value={reviewForm.serviceScore} onChange={e => setReviewForm({ ...reviewForm, serviceScore: e.target.value })} placeholder="此处填写服务评分（1-5）" />
       </div>
       <textarea value={reviewForm.content} onChange={e => setReviewForm({ ...reviewForm, content: e.target.value })} placeholder="写下这次体验" />
-      <div className="actions"><button className="primary" onClick={() => submitReview(o.id)}>提交评价</button><button onClick={() => setReviewingId(null)}>取消</button></div>
+      <div className="actions"><button className="primary" data-testid={`submit-review-${o.id}`} disabled={pendingAction !== null} onClick={() => submitReview(o.id)}>{pendingAction === `review-${o.id}` ? "提交中…" : "提交评价"}</button><button disabled={pendingAction !== null} onClick={() => setReviewingId(null)}>取消</button></div>
     </div>}
   </article>)}</div>;
 }
