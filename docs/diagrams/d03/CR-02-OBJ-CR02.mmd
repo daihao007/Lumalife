@@ -1,0 +1,34 @@
+sequenceDiagram
+    actor User as 游客 / 用户
+    participant Home as homePage:Home
+    participant Ctrl as controllers:ApiControllers
+    participant Catalog as catalog:CatalogService
+    participant Category as category:Models.Category
+    participant Merchant as merchant:Models.Merchant
+    participant Product as product:Models.Product
+    participant Deal as deal:Models.GroupDeal
+    participant Fav as favorite:FavoriteService
+    participant Store as store:DemoStore
+    User->>Home: 选择分类或输入关键词
+    Home->>Ctrl: merchants(keyword,categoryId,sort,...)
+    Ctrl->>Catalog: merchants(...)
+    Catalog->>Store: categories / merchants(...)
+    Store-->>Category: 分类匹配
+    Store-->>Merchant: 评分、距离、价格和推荐数据
+    Merchant-->>Home: 商家列表
+    User->>Home: 打开商家详情
+    Home->>Ctrl: merchantDetail(id)
+    Ctrl->>Catalog: merchantDetail(id)
+    Catalog->>Store: 读取 Merchant、Product、GroupDeal
+    Store-->>Product: listed 商品
+    Store-->>Deal: active 团购
+    Catalog-->>Home: 详情聚合结果
+    opt 登录普通用户收藏
+        Home->>Fav: addFavorite(User, merchantId)
+        Fav->>Store: addFavorite(user.id(), merchantId)
+        Store-->>Home: 收藏状态
+    end
+    alt 商家不存在或内容不可见
+        Store-->>Catalog: BusinessException / 空列表
+        Catalog-->>Home: 404 或无结果
+    end
