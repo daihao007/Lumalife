@@ -6,7 +6,7 @@ LumaLife 是一个面向课程验收场景的本地生活服务平台演示项�
 
 - 后端：Java 17+、Spring Boot 3、Spring Security、Maven、JUnit 5
 - 前端：React 18、TypeScript、Vite、CSS Modules 风格的全局设计系统
-- 部署：Docker Compose、MySQL 8.4、Redis 7、版本化数据库迁移
+- 部署：Docker Compose、Nginx、MySQL 8.4、版本化数据库迁移
 
 ## 当前实现范围
 
@@ -22,14 +22,52 @@ LumaLife 是一个面向课程验收场景的本地生活服务平台演示项�
 
 ## 快速启动
 
-### 环境要求
+### Docker 三容器启动（推荐）
 
-- Java 17+
-- Maven 3.9+
-- Node.js 18+
-- npm 9+
+干净环境只需 Docker Engine 24+ 和 Docker Compose v2。首次启动会构建前后端镜像，并在空 MySQL 数据卷中自动创建 Schema；无需手工执行迁移命令。
 
-依赖安装使用仓库中的 lockfile；首次安装前端依赖请使用 `npm ci`。不要提交 `.env` 或本地运行状态文件；需要配置 AI 客服时，可复制 `.env.example` 为本地 `.env` 并填入自己的配置。
+```bash
+cp .env.example .env
+# 按需替换 .env 中的示例密码；不要提交 .env
+docker compose up --detach --build --wait
+docker compose ps
+```
+
+`docker compose ps` 应显示且只显示 `mysql`、`backend`、`frontend` 三个运行中且健康的服务。
+
+- 前端：http://localhost:5173
+- 后端：http://localhost:8080
+- 后端健康检查：http://localhost:8080/actuator/health
+- 前端代理健康检查：http://localhost:5173/actuator/health
+
+校验数据库已自动初始化且迁移 checksum 一致：
+
+```bash
+docker compose --profile db-tools run --rm db-migrate
+```
+
+如需把演示测试数据写入 MySQL，可显式执行（生产环境禁止执行）：
+
+```bash
+docker compose --profile db-tools run --rm db-seed
+```
+
+停止服务但保留数据库数据：
+
+```bash
+docker compose down
+```
+
+如需模拟干净环境并从空库重新验收：
+
+```bash
+docker compose down --volumes --remove-orphans
+docker compose up --detach --build --wait
+```
+
+### 源码开发启动
+
+本地源码开发需要 Java 17+、Maven 3.9+、Node.js 18+ 和 npm 9+。依赖安装使用仓库中的 lockfile；首次安装前端依赖请使用 `npm ci`。
 
 ```bash
 cd backend
@@ -46,12 +84,11 @@ npm run dev
 - 后端：http://localhost:8080
 - 健康检查：http://localhost:8080/actuator/health
 
-### 数据库初始化
+### 数据库生命周期工具
 
-数据库资产已落地，但业务 Service 当前仍默认使用内存版 `DemoStore`。首次运行先复制 `.env.example` 为 `.env`，并替换其中的 MySQL 密码；不要把 `.env` 提交到 Git。
+数据库资产已落地，但业务 Service 当前仍默认使用内存版 `DemoStore`。Compose 在空数据卷首次启动时自动执行基线 Schema，并写入迁移校验记录；已有数据卷不会重复初始化。手工迁移、seed、校验工具仍可独立执行：
 
 ```bash
-docker compose up -d --wait mysql
 docker compose --profile db-tools run --rm db-migrate
 docker compose --profile db-tools run --rm db-seed
 docker compose --profile db-tools run --rm db-verify
@@ -61,12 +98,6 @@ docker compose --profile db-tools run --rm db-verify
 
 ```bash
 docker compose --profile db-tools run --rm db-clean
-```
-
-彻底删除本地数据库卷并从空库重建：
-
-```bash
-docker compose down -v
 ```
 
 ## 演示账号
