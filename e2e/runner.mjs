@@ -5,15 +5,28 @@ import { promisify } from "node:util";
 import path from "node:path";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const baseUrl = (process.env.E2E_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+const backendPort = Number(process.env.E2E_BACKEND_PORT || 18080);
+const baseUrl = (process.env.E2E_BASE_URL || `http://localhost:${backendPort}`).replace(/\/$/, "");
 const timeoutMs = Number(process.env.E2E_TIMEOUT_MS || 30000);
 const reportDir = path.resolve(rootDir, process.env.E2E_REPORT_DIR || "e2e/reports");
 const startBackend = process.env.E2E_START_BACKEND !== "0";
 const results = [];
+const requestLog = [];
 const execFileAsync = promisify(execFile);
 let backendProcess;
 let sequence = 0;
 let environmentFailure;
+
+const sensitiveLogKeys = new Set([
+  "token",
+  "password",
+  "authorization",
+  "user",
+  "phone",
+  "contactname",
+  "address",
+  "addresssnapshot"
+]);
 
 class E2EFailure extends Error {
   constructor(message, details = {}) {
@@ -27,8 +40,33 @@ function assert(condition, message, details = {}) {
   if (!condition) throw new E2EFailure(message, details);
 }
 
+function responseSummary(body) {
+  if (body === null || body === undefined) return { bodyType: "empty" };
+  if (typeof body !== "object") return { bodyType: typeof body };
+  const data = body.data;
+  return {
+    bodyType: Array.isArray(body) ? "array" : "object",
+    ...(typeof body.code === "number" ? { code: body.code } : {}),
+    ...(typeof body.message === "string" ? { message: body.message } : {}),
+    ...(Array.isArray(data) ? { dataType: "array", dataCount: data.length } : {}),
+    ...(data && typeof data === "object" && !Array.isArray(data) ? { dataType: "object" } : {})
+  };
+}
+
+function redactDiagnostics(value, key = "") {
+  if (sensitiveLogKeys.has(key.toLowerCase())) return "[REDACTED]";
+  if (key.toLowerCase() === "response") return responseSummary(value);
+  if (Array.isArray(value)) return value.map((item) => redactDiagnostics(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([entryKey, entryValue]) => [entryKey, redactDiagnostics(entryValue, entryKey)]));
+  }
+  if (typeof value === "string" && value.length > 500) return `${value.slice(0, 500)}…`;
+  return value;
+}
+
 async function request(method, endpoint, token, body, requestTimeoutMs = timeoutMs) {
   const controller = new AbortController();
+  const startedAt = Date.now();
   const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -48,7 +86,12 @@ async function request(method, endpoint, token, body, requestTimeoutMs = timeout
     } catch {
       json = { raw: text };
     }
-    return { status: response.status, body: json };
+    const result = { status: response.status, body: json };
+    requestLog.push({ method, endpoint, status: response.status, durationMs: Date.now() - startedAt, response: responseSummary(json) });
+    return result;
+  } catch (error) {
+    requestLog.push({ method, endpoint, durationMs: Date.now() - startedAt, error: error.message });
+    throw error;
   } finally {
     clearTimeout(timer);
   }
@@ -58,7 +101,7 @@ function expectResponse(actual, status, message) {
   assert(actual.status === status, message, {
     expectedStatus: status,
     actualStatus: actual.status,
-    response: actual.body
+    response: responseSummary(actual.body)
   });
   return actual.body;
 }
@@ -68,7 +111,7 @@ function expectCode(actual, status, code, message) {
   assert(body.code === code, `${message}: unexpected API code`, {
     expectedCode: code,
     actualCode: body.code,
-    response: body
+    response: responseSummary(body)
   });
   return body;
 }
@@ -150,6 +193,94 @@ async function createCompletedDeliveryOrder(token, merchantToken, addressId, pro
     "order receive failed"
   );
   return orderId;
+}
+
+function pageRecords(body, message) {
+  assert(Array.isArray(body.data?.records), `${message} returned no page records`, { response: body });
+  return body.data.records;
+}
+
+async function cr01IdentityProfileAndAddress() {
+  const userToken = await registerUser("CR01");
+  const merchantToken = await login("13800000002", "abc123456");
+
+  const me = expectResponse(await request("GET", "/api/v1/auth/me", userToken), 200, "current user lookup failed");
+  assert(me.data?.role === "USER", "registered account must have USER role", { response: me });
+
+  const profile = expectResponse(
+    await request("POST", "/api/v1/user/profile", userToken, { nickname: "E2E CR01 用户", avatarUrl: "https://example.com/e2e-avatar.png" }),
+    200,
+    "profile update failed"
+  );
+  assert(profile.data?.nickname === "E2E CR01 用户" && profile.data?.avatarUrl === "https://example.com/e2e-avatar.png", "profile update did not persist", { response: profile });
+
+  const addressId = await createAddress(userToken, "E2E CR01 地址路 1 号");
+  const addresses = expectResponse(await request("GET", "/api/v1/user/addresses", userToken), 200, "address listing failed");
+  assert(addresses.data?.some((address) => address.id === addressId), "new address must be listed", { response: addresses });
+  const defaulted = expectResponse(
+    await request("POST", `/api/v1/user/addresses/${addressId}/default`, userToken),
+    200,
+    "default address update failed"
+  );
+  assert(defaulted.data?.id === addressId && defaulted.data?.defaultAddress === true, "selected address must become default", { response: defaulted });
+
+  expectResponse(await request("GET", "/api/v1/user/addresses", merchantToken), 403, "merchant must not access user addresses");
+  expectResponse(await request("GET", "/api/v1/cart"), 401, "anonymous cart access must be rejected");
+}
+
+async function cr02DiscoveryAndMerchantDetail() {
+  const userToken = await registerUser("CR02");
+  const categories = expectResponse(await request("GET", "/api/v1/categories"), 200, "category listing failed");
+  assert(categories.data?.some((category) => category.name === "咖啡茶饮"), "seed categories must include coffee", { response: categories });
+
+  const coffee = expectResponse(
+    await request("GET", "/api/v1/merchants?keyword=%E5%92%96%E5%95%A1&sort=distanceAsc&minScore=4.5"),
+    200,
+    "merchant keyword search failed"
+  );
+  const coffeeRecords = pageRecords(coffee, "coffee search");
+  assert(coffeeRecords.length === 1 && coffeeRecords[0].id === 2, "coffee search must return the coffee merchant", { response: coffee });
+
+  const recommended = expectResponse(await request("GET", "/api/v1/merchants?sort=recommend", userToken), 200, "personalized recommendation failed");
+  const recommendedRecords = pageRecords(recommended, "recommendation");
+  assert(recommendedRecords.length > 0 && typeof recommendedRecords[0].reason === "string", "recommendations must include explainable reasons", { response: recommended });
+
+  const detail = expectResponse(await request("GET", "/api/v1/merchants/2"), 200, "merchant detail failed");
+  assert(detail.data?.merchant?.id === 2 && detail.data?.products?.length > 0 && detail.data?.groupDeals?.length > 0, "merchant detail must include products and group deals", { response: detail });
+  expectCode(await request("GET", "/api/v1/merchants/999"), 404, 40400, "unknown merchant must return not found");
+}
+
+async function cr03CartOrderPaymentAndTracking() {
+  const userToken = await registerUser("CR03");
+  const merchantToken = await login("13800000002", "abc123456");
+  const addressId = await createAddress(userToken, "E2E CR03 订单路 1 号");
+
+  const cart = expectResponse(await request("POST", "/api/v1/cart/items", userToken, { productId: 1001, quantity: 2 }), 200, "cart add failed");
+  assert(cart.data?.some((item) => item.productId === 1001 && item.quantity === 2), "cart must contain the requested quantity", { response: cart });
+  const cartDetail = expectResponse(await request("GET", "/api/v1/cart/detail", userToken), 200, "cart detail failed");
+  assert(cartDetail.data?.some((item) => item.productId === 1001 && item.subtotalCent === item.priceCent * 2), "cart detail must calculate subtotal", { response: cartDetail });
+  const updatedCart = expectResponse(await request("POST", "/api/v1/cart/items/1001", userToken, { quantity: 1 }), 200, "cart quantity update failed");
+  assert(updatedCart.data?.some((item) => item.productId === 1001 && item.quantity === 1), "cart quantity must be updateable", { response: updatedCart });
+
+  const created = expectResponse(await request("POST", "/api/v1/orders/delivery", userToken, { addressId }), 200, "delivery order creation failed");
+  const orderId = created.data?.[0]?.id;
+  assert(orderId && created.data?.[0]?.status === "PENDING_PAYMENT", "delivery order must start pending payment", { response: created });
+  const clientRequestId = `e2e-cr03-${Date.now()}`;
+  const paid = expectResponse(await request("POST", "/api/v1/payments", userToken, { orderId, clientRequestId }), 200, "payment failed");
+  assert(paid.data?.status === "PAID" && paid.data?.statusTimeline?.PAID, "payment must move order to PAID with timeline", { response: paid });
+  const repeatedPayment = expectResponse(await request("POST", "/api/v1/payments", userToken, { orderId, clientRequestId }), 200, "idempotent payment retry failed");
+  assert(repeatedPayment.data?.id === orderId && repeatedPayment.data?.status === "PAID", "payment retry must be idempotent", { response: repeatedPayment });
+  expectCode(await request("POST", `/api/v1/orders/${orderId}/cancel`, userToken), 409, 40900, "paid order must not be cancelled");
+
+  const orders = expectResponse(await request("GET", "/api/v1/orders", userToken), 200, "user order listing failed");
+  assert(orders.data?.some((order) => order.id === orderId && order.status === "PAID"), "paid order must appear in user order list", { response: orders });
+  expectResponse(await request("GET", "/api/v1/orders", merchantToken), 403, "merchant must not access user orders");
+
+  await request("POST", "/api/v1/cart/items", userToken, { productId: 1002, quantity: 1 });
+  const pending = expectResponse(await request("POST", "/api/v1/orders/delivery", userToken, { addressId }), 200, "second delivery order creation failed");
+  const pendingId = pending.data?.[0]?.id;
+  const cancelled = expectResponse(await request("POST", `/api/v1/orders/${pendingId}/cancel`, userToken), 200, "pending order cancellation failed");
+  assert(cancelled.data?.status === "CANCELLED", "pending order must be cancellable", { response: cancelled });
 }
 
 async function cr04GroupBuyAndCouponLifecycle() {
@@ -314,10 +445,11 @@ function startBackendProcess() {
   const windows = process.platform === "win32";
   const command = windows ? "cmd.exe" : "mvn";
   const args = windows
-    ? ["/d", "/s", "/c", "mvn.cmd -q spring-boot:run -Dspring-boot.run.arguments=--lumalife.state-file="]
-    : ["-q", "spring-boot:run", "-Dspring-boot.run.arguments=--lumalife.state-file="];
+    ? ["/d", "/s", "/c", "mvn.cmd -q spring-boot:run -Dspring-boot.run.arguments=--lumalife.state-file= -Dspring-boot.run.fork=false"]
+    : ["-q", "spring-boot:run", "-Dspring-boot.run.arguments=--lumalife.state-file=", "-Dspring-boot.run.fork=false"];
   backendProcess = spawn(command, args, {
     cwd: path.join(rootDir, "backend"),
+    env: { ...process.env, SERVER_PORT: String(backendPort) },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true
   });
@@ -332,11 +464,22 @@ async function stopBackendProcess() {
   if (!backendProcess) return;
   if (backendProcess.killed) return;
   if (process.platform === "win32") {
+    const pids = new Set([backendProcess.pid]);
     try {
-      await execFileAsync("taskkill", ["/pid", String(backendProcess.pid), "/t", "/f"]);
+      const { stdout } = await execFileAsync("netstat", ["-ano"], { timeout: 5000, windowsHide: true });
+      const listeningLine = stdout.split(/\r?\n/).find((line) => line.includes(`:${backendPort}`) && line.includes("LISTENING"));
+      const pid = listeningLine?.trim().split(/\s+/).at(-1);
+      if (pid && /^\d+$/.test(pid)) pids.add(Number(pid));
     } catch {
-      // The process may already have exited during a failed startup.
+      // Port inspection is best effort; the process tree is still terminated below.
     }
+    await Promise.all([...pids].map(async (pid) => {
+      try {
+        await execFileAsync("taskkill", ["/pid", String(pid), "/t", "/f"], { timeout: 10000, windowsHide: true });
+      } catch {
+        // The process may already have exited during a failed startup.
+      }
+    }));
   } else {
     backendProcess.kill("SIGTERM");
   }
@@ -355,10 +498,10 @@ async function runScenario(name, scenario) {
       status: "failed",
       startedAt,
       durationMs: Date.now() - start,
-      error: {
+      error: redactDiagnostics({
         message: error.message,
         details: error.details || {}
-      }
+      })
     });
   }
 }
@@ -377,7 +520,7 @@ async function writeReports() {
       }
     : { status: "passed" };
   const report = {
-    suite: "LumaLife CR-04~CR-06 API E2E",
+    suite: "LumaLife CR-01~CR-06 API E2E",
     baseUrl,
     completedAt,
     environment,
@@ -387,6 +530,7 @@ async function writeReports() {
     scenarios: results
   };
   await writeFile(path.join(reportDir, "e2e-report.json"), `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(path.join(reportDir, "e2e-raw.log"), requestLog.map((item) => JSON.stringify(item)).join("\n") + "\n");
   const cases = results.map((item) => {
     if (item.status === "passed") return `    <testcase name="${xmlEscape(item.name)}" time="${(item.durationMs / 1000).toFixed(3)}" />`;
     return `    <testcase name="${xmlEscape(item.name)}" time="${(item.durationMs / 1000).toFixed(3)}"><failure message="${xmlEscape(item.error.message)}">${xmlEscape(JSON.stringify(item.error.details))}</failure></testcase>`;
@@ -442,6 +586,9 @@ async function main() {
   }
 
   if (!environmentFailure) {
+    await runScenario("CR-01 用户认证、资料与地址管理", cr01IdentityProfileAndAddress);
+    await runScenario("CR-02 分类搜索、推荐与商家详情", cr02DiscoveryAndMerchantDetail);
+    await runScenario("CR-03 购物车、下单、支付与订单跟踪", cr03CartOrderPaymentAndTracking);
     await runScenario("CR-04 团购购买、券码核销与异常边界", cr04GroupBuyAndCouponLifecycle);
     await runScenario("CR-05 完成订单评价、评分校验与重复评价限制", cr05ReviewLifecycle);
     await runScenario("CR-06 商家履约、商品/套餐校验与角色边界", cr06MerchantFulfillmentAndBoundaries);
@@ -455,6 +602,13 @@ try {
   await main();
 } catch (error) {
   console.error(error.message);
+  environmentFailure = environmentFailure || { message: error.message, details: error.details || {} };
+  try {
+    const report = await writeReports();
+    console.error(`E2E environment: ${report.environment.status}; report: ${path.relative(rootDir, reportDir)}`);
+  } catch (reportError) {
+    console.error(`Could not write E2E diagnostics: ${reportError.message}`);
+  }
   process.exitCode = 1;
 } finally {
   await stopBackendProcess();

@@ -183,7 +183,7 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Run CR-04 to CR-06 API E2E suite
+      - name: Run CR-01 to CR-06 API E2E suite
         working-directory: e2e
         run: npm test
 
