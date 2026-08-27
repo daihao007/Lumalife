@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor Merchant as 商家管理员
+    participant UI as MerchantOrders
+    participant API as frontend/src/api.ts
+    participant Sec as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Admin as MerchantAdminService
+    participant Store as DemoStore
+    Merchant->>UI: 输入 12 位团购券码
+    UI->>API: POST /merchant-admin/coupons/verify
+    API->>Sec: 携带商家 Token
+    Sec->>Ctrl: 校验 MERCHANT_ADMIN
+    Ctrl->>Admin: verifyCoupon(current,code)
+    Admin->>Store: couponIndex 查询订单
+    Store-->>Admin: 团购订单或空结果
+    Admin->>Store: 校验 merchantId、type、status
+    alt 有效且属于当前商家
+        Admin->>Store: 置 USED 并记录时间线/日志
+        Store-->>UI: 返回核销成功
+    else 无效、未支付、重复或跨商家
+        Store-->>UI: 返回 404/403/409，状态不变
+    end

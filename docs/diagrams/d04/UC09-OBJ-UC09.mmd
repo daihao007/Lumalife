@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor Admin as 管理员
+    participant Page as adminPage:Admin
+    participant Dashboard as dashboard:AdminDashboardService
+    participant Users as users:Map
+    participant Merchants as merchants:Map
+    participant Orders as orders:Map
+    participant Logs as logs:List
+    participant Store as store:DemoStore
+    Admin->>Page: 请求 metrics
+    Page->>Dashboard: metrics()
+    Dashboard->>Users: count User
+    Dashboard->>Merchants: count Merchant
+    Dashboard->>Orders: 聚合订单、营收和状态
+    Dashboard->>Logs: 读取最近操作日志
+    Users-->>Dashboard: userCount
+    Merchants-->>Dashboard: merchantCount
+    Orders-->>Dashboard: orderCount/revenue/statusStats
+    Logs-->>Dashboard: recentLogs
+    Dashboard->>Store: 组合 metrics Map
+    Store-->>Page: KPI、图表、健康和日志数据
+    alt 非 PLATFORM_ADMIN
+        Page-->>Admin: 403，无数据泄露
+    else 空集合
+        Page-->>Admin: 零值或空状态
+    end

@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor User as 普通用户
+    participant UI as Detail / Orders
+    participant API as frontend/src/api.ts
+    participant Ctrl as ApiControllers
+    participant Catalog as CatalogService
+    participant Order as OrderWorkflowService
+    participant Store as DemoStore
+    User->>UI: 查看可购买团购套餐
+    UI->>API: GET /merchants/{id}
+    API->>Ctrl: 查询商家详情
+    Ctrl->>Catalog: merchantDetail(id)
+    Catalog->>Store: 读取 active GroupDeal
+    Store-->>UI: 套餐、价格和库存
+    User->>UI: 提交数量并购买
+    UI->>API: POST /orders/group-buy
+    API->>Ctrl: 创建团购订单
+    Ctrl->>Order: createGroupOrder(current,dealId,quantity)
+    Order->>Store: 校验状态/数量并保存 PENDING_PAYMENT
+    User->>UI: 发起模拟支付
+    UI->>API: POST /payments(orderId,clientRequestId)
+    API->>Ctrl: 支付请求
+    Ctrl->>Order: pay(current,orderId,clientRequestId)
+    Order->>Store: 幂等扣库存、置 PAID、生成 couponCode
+    Store-->>UI: 同一订单与券码
+    alt 套餐停用、库存不足或数量非法
+        Order-->>UI: 返回 400/409，订单和库存不变
+    end

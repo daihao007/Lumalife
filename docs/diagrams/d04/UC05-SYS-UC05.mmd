@@ -1,0 +1,14 @@
+flowchart LR
+    User[普通用户]
+    subgraph Platform[LumaLife 平台 / UC05]
+        Discover((查看团购套餐))
+        Create((创建团购订单))
+        Pay((模拟支付))
+        Coupon((获得 12 位券码))
+        Check[(套餐状态、库存与幂等校验)]
+    end
+    User --> Discover --> Create --> Check
+    Check --> Pay
+    Pay --> Coupon
+    Coupon --> User
+    Check -->|失败| User

@@ -1,0 +1,18 @@
+stateDiagram-v2
+    state "order:Order\nPAID" as PAID
+    state "order:Order\nACCEPTED" as ACCEPTED
+    state "order:Order\nDELIVERING" as DELIVERING
+    state "order:Order\nCOMPLETED" as COMPLETED
+    state "order:Order\nRECEIVED" as RECEIVED
+    state "review:Review\n未评价" as Unreviewed
+    state "review:Review\n已评价" as Reviewed
+    [*] --> PAID
+    PAID --> ACCEPTED: MerchantAdminService.transition
+    ACCEPTED --> DELIVERING: MerchantAdminService.transition
+    DELIVERING --> COMPLETED: MerchantAdminService.transition
+    DELIVERING --> RECEIVED: OrderWorkflowService.receive
+    COMPLETED --> RECEIVED: OrderWorkflowService.receive
+    RECEIVED --> Unreviewed: OrderWorkflowService.reviewable
+    Unreviewed --> Reviewed: review(user, orderId, scores, content)
+    Reviewed --> [*]
+    PAID --> [*]: 越权/非法跳转/已取消

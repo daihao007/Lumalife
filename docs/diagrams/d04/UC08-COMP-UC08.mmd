@@ -1,0 +1,29 @@
+sequenceDiagram
+    actor User as 普通用户
+    actor Merchant as 商家管理员
+    participant UserUI as Assistant
+    participant MerchantUI as MerchantSupport
+    participant API as frontend/src/api.ts
+    participant Sec as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Chat as AssistantService
+    participant Store as DemoStore
+    participant AI as Agnes/本地回退
+    User->>UserUI: 选择商家并发送消息
+    UserUI->>API: POST /conversations/{merchantId}/messages
+    API->>Sec: 携带用户 Token
+    Sec->>Ctrl: 校验 USER
+    Ctrl->>Chat: sendUserMessage(current,merchantId,content)
+    Chat->>Store: 校验商家并保存 ChatMessage
+    Chat->>AI: 请求 AI 回复（可选）
+    AI-->>Chat: 回复或本地回退
+    Merchant->>MerchantUI: 查看会话并回复
+    MerchantUI->>API: POST /merchant-admin/conversations/{userId}/messages
+    API->>Sec: 携带商家 Token
+    Sec->>Ctrl: 校验 MERCHANT_ADMIN
+    Ctrl->>Chat: sendMerchantMessage(current,userId,content)
+    Chat->>Store: 校验商家归属并追加消息
+    Store-->>UserUI: 返回同一会话消息
+    alt 空消息或参与者不匹配
+        Ctrl-->>UserUI: 返回 400/403，消息不写入
+    end
