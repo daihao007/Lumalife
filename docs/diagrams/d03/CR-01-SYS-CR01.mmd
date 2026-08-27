@@ -1,0 +1,14 @@
+flowchart LR
+    User[普通用户]
+    subgraph Platform[LumaLife 平台 / CR-01]
+        Auth((注册 / 登录))
+        Profile((维护个人资料))
+        Address((维护收货地址))
+        Token[(Bearer Token)]
+    end
+    User --> Auth
+    Auth --> Token
+    Token --> Profile
+    Token --> Address
+    Profile --> User
+    Address --> User

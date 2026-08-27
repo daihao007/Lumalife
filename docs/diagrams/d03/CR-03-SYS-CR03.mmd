@@ -1,0 +1,17 @@
+flowchart LR
+    User[普通用户]
+    subgraph Platform[LumaLife 平台 / CR-03]
+        Cart((购物车))
+        Order((创建外卖订单))
+    end
+    User --> Cart --> Order
+    Order --> Pending[待支付订单]
+    Pending -->|首次支付| Pay[模拟支付]
+    Pay -->|成功| Paid[PAID]
+    Pending -->|用户取消| Cancelled[CANCELLED]
+    Paid --> Tracking[订单状态时间线]
+    Cancelled --> Tracking
+    Paid -->|取消请求| Reject[拒绝取消，状态不变]
+    Order -.地址快照、按商家拆单.-> Tracking
+    Pay -.clientRequestId 幂等.-> Tracking
+    Tracking --> User

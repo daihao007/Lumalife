@@ -628,7 +628,9 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
 
   public Order createGroupOrder(User user, long dealId, int quantity) {
     GroupDeal deal = deals.get(dealId);
-    if (deal == null || !deal.active() || deal.stock() < quantity) throw new BusinessException(40900, "套餐不可购买");
+    if (quantity <= 0 || deal == null || !deal.active() || deal.stock() < quantity) {
+      throw new BusinessException(40900, "套餐不可购买");
+    }
     Order order = new Order();
     order.id = ids.incrementAndGet();
     order.userId = user.id();
@@ -1142,12 +1144,19 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
         Product old = products.get(line.itemId());
         if (old == null || old.merchantId() != order.merchantId) throw new BusinessException(40900, "订单商品已失效");
         if (old.stock() < line.quantity()) throw new BusinessException(40900, old.name() + " 库存不足");
-        products.put(old.id(), new Product(old.id(), old.merchantId(), old.name(), old.description(), old.priceCent(),
-          old.stock() - line.quantity(), old.listed()));
       } else if (order.type == OrderType.GROUP_BUY) {
         GroupDeal old = deals.get(line.itemId());
         if (old == null || old.merchantId() != order.merchantId) throw new BusinessException(40900, "团购套餐已失效");
         if (old.stock() < line.quantity()) throw new BusinessException(40900, old.title() + " 库存不足");
+      }
+    }
+    for (OrderLine line : order.lines) {
+      if (order.type == OrderType.DELIVERY) {
+        Product old = products.get(line.itemId());
+        products.put(old.id(), new Product(old.id(), old.merchantId(), old.name(), old.description(), old.priceCent(),
+          old.stock() - line.quantity(), old.listed()));
+      } else if (order.type == OrderType.GROUP_BUY) {
+        GroupDeal old = deals.get(line.itemId());
         deals.put(old.id(), new GroupDeal(old.id(), old.merchantId(), old.title(), old.description(), old.priceCent(),
           old.stock() - line.quantity(), old.active()));
       }

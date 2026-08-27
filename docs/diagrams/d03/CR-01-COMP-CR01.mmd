@@ -1,0 +1,16 @@
+sequenceDiagram
+    actor User as 普通用户
+    participant UI as Login / Profile
+    participant API as frontend/src/api.ts
+    participant Sec as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Auth as AuthService
+    participant Store as DemoStore
+    User->>UI: 注册或登录
+    UI->>API: POST /auth/register 或 /auth/login
+    API->>Sec: HTTP 请求（资料操作时携带 Bearer Token）
+    Sec->>Ctrl: 认证通过后转发请求
+    Ctrl->>Auth: register/login/updateProfile
+    Auth->>Store: 用户、资料和地址读写
+    Store-->>Auth: safeUser(User) / Address
+    Auth-->>UI: ApiResponse

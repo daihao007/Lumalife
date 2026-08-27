@@ -1,0 +1,29 @@
+#!/bin/sh
+set -eu
+
+. /database/bin/common.sh
+wait_for_mysql
+
+assert_query() {
+  label=$1
+  expected=$2
+  query=$3
+  actual=$(mysql_exec --batch --skip-column-names --execute="$query")
+  if [ "$actual" != "$expected" ]; then
+    echo "Verification failed: ${label}; expected ${expected}, got ${actual}" >&2
+    exit 1
+  fi
+  echo "Verified: ${label} = ${actual}"
+}
+
+assert_query 'versioned migrations' '1' "SELECT COUNT(*) FROM schema_migration WHERE version = 'V001'"
+assert_query 'domain tables' '18' "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('category','merchant','user_account','user_address','auth_session','product','group_deal','cart_item','order_main','order_item','order_status_timeline','payment_record','coupon','review','merchant_favorite','chat_message','operation_log','schema_migration')"
+assert_query 'payment idempotency index' '3' "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'payment_record' AND index_name = 'uk_payment_request'"
+assert_query 'demo users' '6' 'SELECT COUNT(*) FROM user_account'
+assert_query 'demo merchants' '4' 'SELECT COUNT(*) FROM merchant'
+assert_query 'demo products' '7' 'SELECT COUNT(*) FROM product'
+assert_query 'fixed product ids' '7' 'SELECT COUNT(*) FROM product WHERE id BETWEEN 1001 AND 1007'
+assert_query 'demo group deals' '3' 'SELECT COUNT(*) FROM group_deal'
+assert_query 'BCrypt hashes only' '6' "SELECT COUNT(*) FROM user_account WHERE password_hash REGEXP '^[$]2[aby][$][0-9]{2}[$]'"
+
+echo 'Database schema and demo data verification passed.'
