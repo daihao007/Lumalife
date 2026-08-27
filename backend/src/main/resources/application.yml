@@ -4,6 +4,10 @@ spring:
   application:
     name: lumalife-backend
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
   endpoints:
     web:
       exposure:

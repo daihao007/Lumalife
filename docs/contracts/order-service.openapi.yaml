@@ -66,7 +66,9 @@ paths:
   /payments:
     post:
       operationId: payOrder
-      description: Idempotent by (authenticated userId, orderId, clientRequestId).
+      description: >-
+        clientRequestId is unique within the authenticated user. A replay for the recorded order returns
+        the existing result; reuse for a different order returns 409 IDEMPOTENCY_CONFLICT.
       x-required-role: USER
       requestBody:
         required: true
@@ -92,6 +94,7 @@ paths:
   /reviews:
     post:
       operationId: createReview
+      description: DELIVERY orders are reviewable in RECEIVED or COMPLETED; GROUP_BUY orders are reviewable in USED.
       x-required-role: USER
       requestBody:
         required: true
@@ -142,6 +145,8 @@ paths:
       parameters:
         - {$ref: '#/components/parameters/MerchantId'}
         - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
       responses:
         '200': {description: Review page or bootstrap list, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Review'}}}}}
         '404': {$ref: '#/components/responses/Error'}
@@ -154,6 +159,8 @@ paths:
       parameters:
         - {$ref: '#/components/parameters/OrderId'}
         - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
       responses:
         '200':
           description: Minimal reconciliation state
@@ -177,6 +184,8 @@ components:
     MerchantId: {name: merchantId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     OrderId: {name: orderId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+    TraceParent: {name: traceparent, in: header, required: true, schema: {type: string, minLength: 55, maxLength: 128}}
+    CallerService: {name: X-Caller-Service, in: header, required: true, schema: {type: string, enum: [api-gateway, identity-service, merchant-service, order-service]}}
   schemas:
     SuccessEnvelope: {type: object, required: [code, message, data], properties: {code: {const: 200}, message: {const: success}, data: {}}}
     ErrorEnvelope: {type: object, required: [code, message, data], properties: {code: {type: integer}, message: {type: string}, data: {type: 'null'}, requestId: {type: string}, reason: {type: string}, details: {type: array, items: {type: object}}}}

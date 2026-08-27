@@ -6,7 +6,7 @@ LumaLife 是一个面向课程验收场景的本地生活服务平台演示项�
 
 - 后端：Java 17+、Spring Boot 3、Spring Security、Maven、JUnit 5
 - 前端：React 18、TypeScript、Vite、CSS Modules 风格的全局设计系统
-- 部署：Docker Compose、Nginx、MySQL 8.4、版本化数据库迁移
+- 部署：Docker Compose、Kubernetes/Kustomize、Nginx、MySQL 8.4、版本化数据库迁移
 
 ## 当前实现范围
 
@@ -126,6 +126,7 @@ docker compose --profile db-tools run --rm db-clean
 ```text
 LumaLife/
   backend/      Spring Boot API 服务
+  services/     identity、merchant、order 三服务的独立构建与健康检查骨架
   database/     MySQL 版本迁移、显式演示 seed、清理和验证脚本
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
   e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
@@ -138,18 +139,20 @@ LumaLife/
 
 [![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 迁移/seed/清理幂等验证和 Docker 镜像构建验证；代码进入 `main` 且全部检查通过后，流水线会把带提交版本标签的前后端镜像发布到 GHCR。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的前后端镜像，随后滚动部署到目标 Kubernetes 集群并执行 Pod 探针与集群内 HTTP 健康检查。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md)。
 
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
 - 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离，当前实现仍由内存版 `DemoStore` 提供适配。
-- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前候选基线实测 66 个后端测试（41 个业务规则测试 + 25 个接口集成测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
+- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前主线基线实测 74 个后端测试（42 个业务规则测试 + 25 个接口集成测试 + 4 个服务边界契约测试 + 3 个数据库资产测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
 - MySQL Schema、版本迁移、演示 seed 和清理机制已落地，见 `docs/06_数据库设计.md`；业务持久化仍按 `docs/11_数据库持久化迁移计划.md` 从 `AuthService` 开始逐步替换内存实现。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
 - 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。
 - D03 服务边界落地、错误响应兼容和可运行契约样例见 `docs/17_D03服务边界落地记录.md`。
 - D05 中期全量测试报告与失败注入记录见 `docs/19_D05中期全量测试报告_2026-08-27.md`。
+- Issue #33 的中期检查入口（架构图、边界/接口/数据归属、故障策略、构建证据、风险与决策记录）见 `docs/19_D04C微服务边界接口与数据归属初稿.md`。
+- Issue #38 的微服务方案评审、三服务独立构建/配置/健康检查骨架与回滚边界见 `docs/20_D05C微服务方案评审与拆分骨架.md`；当前仍由单体承接业务流量。
 
 ## 说明
 

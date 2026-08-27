@@ -3,8 +3,6 @@
 (
 set -eu
 
-schema_file=/database/migrations/V001__baseline_schema.sql
-
 mysql_as_root() {
   MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql \
     --protocol=socket \
@@ -24,10 +22,18 @@ CREATE TABLE IF NOT EXISTS schema_migration (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 SQL
 
-mysql_as_root < "$schema_file"
+for migration in /database/migrations/V[0-9][0-9][0-9]__*.sql; do
+  [ -f "$migration" ] || continue
+  filename=$(basename "$migration")
+  version=${filename%%__*}
+  description=${filename#*__}
+  description=${description%.sql}
+  checksum=$(sha256sum "$migration" | awk '{print $1}')
 
-schema_checksum=$(sha256sum "$schema_file" | awk '{print $1}')
-mysql_as_root --execute="INSERT INTO schema_migration(version, description, checksum) VALUES ('V001', 'baseline_schema', '${schema_checksum}')"
+  mysql_as_root < "$migration"
+  mysql_as_root --execute="INSERT INTO schema_migration(version, description, checksum) VALUES ('${version}', '${description}', '${checksum}')"
+  echo "Applied during initialization: ${filename}"
+done
 
-echo "LumaLife schema initialized."
+echo "LumaLife schema initialized with all versioned migrations."
 )
