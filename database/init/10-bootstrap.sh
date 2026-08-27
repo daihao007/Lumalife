@@ -1,4 +1,6 @@
 #!/bin/sh
+
+(
 set -eu
 
 schema_file=/database/migrations/V001__baseline_schema.sql
@@ -28,3 +30,4 @@ schema_checksum=$(sha256sum "$schema_file" | awk '{print $1}')
 mysql_as_root --execute="INSERT INTO schema_migration(version, description, checksum) VALUES ('V001', 'baseline_schema', '${schema_checksum}')"
 
 echo "LumaLife schema initialized."
+)
