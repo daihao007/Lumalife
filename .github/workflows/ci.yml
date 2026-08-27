@@ -124,6 +124,45 @@ jobs:
         if: always()
         run: docker compose down --volumes --remove-orphans
 
+  compose-stack:
+    name: Three-container smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Generate isolated test credentials
+        shell: bash
+        run: |
+          echo "MYSQL_ROOT_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "MYSQL_DATABASE=life_assistant" >> "$GITHUB_ENV"
+          echo "MYSQL_USER=lifeassist" >> "$GITHUB_ENV"
+          echo "MYSQL_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
+      - name: Build and start the clean three-container stack
+        run: docker compose up --detach --build --wait
+
+      - name: Verify container count, health and automatic database initialization
+        shell: bash
+        run: |
+          mapfile -t running_services < <(docker compose ps --services --status running | sort)
+          expected_services=(backend frontend mysql)
+          test "${running_services[*]}" = "${expected_services[*]}"
+          curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
+          curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
+          curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version = 0x56303031"' | grep -qx 1
+
+      - name: Export stack status and logs
+        if: failure()
+        run: |
+          docker compose ps --all
+          docker compose logs --no-color
+
+      - name: Remove clean stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
   e2e-test:
     name: API E2E test
     runs-on: ubuntu-latest
@@ -164,6 +203,7 @@ jobs:
       - backend-test
       - frontend-build
       - database-schema
+      - compose-stack
       - e2e-test
     steps:
       - name: Demonstrate the failure gate
