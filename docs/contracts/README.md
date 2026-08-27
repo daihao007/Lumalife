@@ -1,6 +1,6 @@
 # 三服务机器可读契约
 
-本目录是 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的 `draft-2026-08-26` 契约候选：
+本目录承接 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的 `draft-2026-08-26` 契约候选，并作为 Issue [#33](https://github.com/daihao007/Lumalife/issues/33) 的接口机器可读附件：
 
 | 文件 | 所有者 | 内容 |
 |---|---|---|
