@@ -45,14 +45,27 @@ jobs:
           cache-dependency-path: backend/pom.xml
 
       - name: Compile and run backend tests
-        run: mvn -B -ntp verify
+        shell: bash
+        run: |
+          set +e
+          mkdir -p target
+          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "started_at=$started_at" | tee target/backend-test-raw.log
+          echo "command: mvn -B -ntp verify" | tee -a target/backend-test-raw.log
+          mvn -B -ntp verify 2>&1 | tee -a target/backend-test-raw.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=$status" | tee -a target/backend-test-raw.log
+          echo "completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a target/backend-test-raw.log
+          exit "$status"
 
       - name: Upload backend test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-reports
-          path: backend/target/surefire-reports
+          path: |
+            backend/target/surefire-reports
+            backend/target/backend-test-raw.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -75,6 +88,27 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Run frontend Vitest suite
+        shell: bash
+        run: |
+          set +e
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee vitest-raw.log
+          echo "command: npm test" | tee -a vitest-raw.log
+          npm test 2>&1 | tee -a vitest-raw.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=$status" | tee -a vitest-raw.log
+          echo "completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a vitest-raw.log
+          exit "$status"
+
+      - name: Upload frontend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-reports
+          path: frontend/vitest-raw.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build frontend
         run: npm run build
@@ -212,14 +246,65 @@ jobs:
 
       - name: Run CR-01 to CR-06 API E2E suite
         working-directory: e2e
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee ci-e2e-command.log
+          echo "command: npm test" | tee -a ci-e2e-command.log
+          npm test 2>&1 | tee -a ci-e2e-command.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=$status" | tee -a ci-e2e-command.log
+          echo "completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a ci-e2e-command.log
+          exit "$status"
 
       - name: Upload E2E reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: api-e2e-reports
-          path: e2e/reports
+          path: |
+            e2e/reports
+            e2e/ci-e2e-command.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  failure-injection:
+    name: E2E failure injection evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify unavailable backend is reported as an expected failure
+        working-directory: e2e
+        shell: bash
+        run: |
+          set +e
+          export E2E_START_BACKEND=0
+          export E2E_BASE_URL=http://127.0.0.1:65530
+          export E2E_TIMEOUT_MS=500
+          export E2E_REPORT_DIR=e2e/reports/d05-failure-check
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee ci-failure-injection-raw.log
+          echo "command: E2E_START_BACKEND=0 E2E_BASE_URL=$E2E_BASE_URL E2E_TIMEOUT_MS=$E2E_TIMEOUT_MS E2E_REPORT_DIR=$E2E_REPORT_DIR npm test" | tee -a ci-failure-injection-raw.log
+          npm test 2>&1 | tee -a ci-failure-injection-raw.log
+          status=${PIPESTATUS[0]}
+          echo "exit_code=$status" | tee -a ci-failure-injection-raw.log
+          echo "completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a ci-failure-injection-raw.log
+          test "$status" -eq 1
+
+      - name: Upload failure injection reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-injection-reports
+          path: |
+            e2e/reports/d05-failure-check
+            e2e/ci-failure-injection-raw.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -256,6 +341,7 @@ jobs:
       - database-schema
       - compose-stack
       - e2e-test
+      - failure-injection
       - kubernetes-manifests
     steps:
       - name: Demonstrate the failure gate
