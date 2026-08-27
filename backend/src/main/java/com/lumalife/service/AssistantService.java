@@ -7,6 +7,7 @@ import com.lumalife.domain.Models.GroupDeal;
 import com.lumalife.domain.Models.Merchant;
 import com.lumalife.domain.Models.Product;
 import com.lumalife.domain.Models.User;
+import com.lumalife.service.boundary.MerchantServicePort;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -25,18 +26,18 @@ import org.springframework.stereotype.Service;
 public class AssistantService {
   private static final Logger log = LoggerFactory.getLogger(AssistantService.class);
 
-  private final DemoStore store;
+  private final MerchantServicePort merchant;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
   private final String endpoint;
   private final String apiKey;
   private final String model;
 
-  public AssistantService(DemoStore store,
+  public AssistantService(MerchantServicePort merchant,
                           @Value("${agnes.endpoint:https://apihub.agnes-ai.com/v1/chat/completions}") String endpoint,
                           @Value("${agnes.api-key:}") String apiKey,
                           @Value("${agnes.model:agnes-2.0-flash}") String model) {
-    this.store = store;
+    this.merchant = merchant;
     this.endpoint = endpoint;
     this.apiKey = apiKey == null ? "" : apiKey.trim();
     this.model = model;
@@ -44,7 +45,7 @@ public class AssistantService {
 
   public String ask(String question) {
     String safeQuestion = question == null ? "" : question;
-    String fallback = store.askAssistant(safeQuestion);
+    String fallback = merchant.assistantFallback(safeQuestion);
     return callAgnes(List.of(
       Map.of("role", "system", "content", "你是 LumaLife 本地生活平台的 AI 客服，回答登录、下单、支付、评价、团购券核销和商家履约相关问题。请用简洁中文回复。"),
       Map.of("role", "user", "content", safeQuestion)
@@ -52,9 +53,9 @@ public class AssistantService {
   }
 
   public String askForMerchant(User admin, String question) {
-    Map<String, Object> profile = store.merchantProfile(admin);
+    Map<String, Object> profile = merchant.merchantProfile(admin);
     Merchant merchant = (Merchant) profile.get("merchant");
-    Map<String, Object> detail = store.merchantDetail(merchant.id());
+    Map<String, Object> detail = this.merchant.merchantDetail(merchant.id());
     List<Product> products = castList(detail.get("products"));
     List<GroupDeal> deals = castList(detail.get("groupDeals"));
     String safeQuestion = question == null ? "" : question;
@@ -68,27 +69,27 @@ public class AssistantService {
   }
 
   public List<Map<String, Object>> userConversations(User user) {
-    return store.userConversationSummaries(user);
+    return merchant.userConversationSummaries(user);
   }
 
   public List<Map<String, Object>> merchantConversations(User admin) {
-    return store.merchantConversationSummaries(admin);
+    return merchant.merchantConversationSummaries(admin);
   }
 
   public List<ChatMessage> userMessages(User user, long merchantId) {
-    return store.userConversation(user, merchantId);
+    return merchant.userConversation(user, merchantId);
   }
 
   public List<ChatMessage> merchantMessages(User admin, long userId) {
-    return store.merchantConversation(admin, userId);
+    return merchant.merchantConversation(admin, userId);
   }
 
   public List<ChatMessage> sendUserMessage(User user, long merchantId, String content) {
-    return store.sendUserMessage(user, merchantId, content, this::merchantAiReply);
+    return merchant.sendUserMessage(user, merchantId, content, this::merchantAiReply);
   }
 
   public List<ChatMessage> sendMerchantMessage(User admin, long userId, String content) {
-    return store.sendMerchantMessage(admin, userId, content);
+    return merchant.sendMerchantMessage(admin, userId, content);
   }
 
   private String merchantAiReply(List<ChatMessage> history) {
@@ -97,7 +98,7 @@ public class AssistantService {
     List<Product> products = List.of();
     List<GroupDeal> deals = List.of();
     if (merchantId > 0) {
-      Map<String, Object> detail = store.merchantDetail(merchantId);
+      Map<String, Object> detail = merchantServiceDetail(merchantId);
       merchant = (Merchant) detail.get("merchant");
       products = castList(detail.get("products"));
       deals = castList(detail.get("groupDeals"));
@@ -117,6 +118,10 @@ public class AssistantService {
       messages.add(Map.of("role", role, "content", message.content()));
     });
     return callAgnes(messages, localMerchantReply(history, merchant, products, deals));
+  }
+
+  private Map<String, Object> merchantServiceDetail(long merchantId) {
+    return merchant.merchantDetail(merchantId);
   }
 
   private String callAgnes(List<? extends Map<String, String>> messages, String fallback) {

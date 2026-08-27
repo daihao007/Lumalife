@@ -1,16 +1,16 @@
 /** @vitest-environment jsdom */
 
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
-import type { User } from "./types";
+import type { Order, User } from "./types";
 
 const apiMock = vi.hoisted(() => vi.fn());
 
 vi.mock("./api", () => ({ api: apiMock }));
 vi.mock("./pages/Login", () => ({ default: () => <div>login-page</div> }));
 vi.mock("./pages/Home", () => ({ default: () => <div>home-page</div> }));
-vi.mock("./pages/Detail", () => ({ default: ({ detail }: { detail: { merchant: { id: number } } }) => <div>detail-{detail.merchant.id}</div> }));
+vi.mock("./pages/Detail", () => ({ default: ({ detail, addCart, buyDeal, setMessage }: { detail: { merchant: { id: number } }; addCart: (id: number) => Promise<void>; buyDeal: (id: number) => Promise<void>; setMessage: (message: string) => void }) => <div>detail-{detail.merchant.id}<button onClick={() => void addCart(11).catch(() => undefined)}>mock-add-cart</button><button onClick={() => void buyDeal(21).catch(error => setMessage(error instanceof Error ? error.message : "购买失败"))}>mock-buy-deal</button></div> }));
 vi.mock("./pages/Cart", () => ({ default: () => <div>cart-page</div> }));
 vi.mock("./pages/Orders", () => ({ default: () => <div>orders-page</div> }));
 vi.mock("./pages/Profile", () => ({ default: () => <div>profile-page</div> }));
@@ -28,6 +28,13 @@ const merchantUser: User = {
   nickname: "演示商家",
   role: "MERCHANT_ADMIN",
   merchantId: 1
+};
+
+const regularUser: User = {
+  id: 1,
+  phone: "13800000001",
+  nickname: "演示用户",
+  role: "USER"
 };
 
 function mockCommonApi(authResult?: User | Error) {
@@ -116,5 +123,106 @@ describe("App route wiring", () => {
     await act(async () => resolveFirst({ merchant: { id: 1 } }));
     expect(screen.getByText("detail-2")).toBeTruthy();
     expect(screen.queryByText("detail-1")).toBeNull();
+  });
+
+  it("redirects guest purchase actions to login without calling protected APIs", async () => {
+    window.history.replaceState(null, "", "#/merchants/1");
+    apiMock.mockImplementation((path: string) => {
+      if (path === "/api/v1/categories") return Promise.resolve([]);
+      if (path.startsWith("/api/v1/merchants?")) return Promise.resolve({ records: [] });
+      if (path === "/api/v1/merchants/1") return Promise.resolve({ merchant: { id: 1 } });
+      return Promise.resolve([]);
+    });
+    render(<App />);
+
+    fireEvent.click(await screen.findByText("mock-add-cart"));
+
+    await waitFor(() => expect(window.location.hash).toBe("#/login"));
+    expect(screen.getByText("请先登录后再加购商品")).toBeTruthy();
+    expect(apiMock).not.toHaveBeenCalledWith("/api/v1/cart/items", expect.anything());
+  });
+
+  it("redirects a guest group-buy action without creating an order", async () => {
+    window.history.replaceState(null, "", "#/merchants/1");
+    apiMock.mockImplementation((path: string) => {
+      if (path === "/api/v1/categories") return Promise.resolve([]);
+      if (path.startsWith("/api/v1/merchants?")) return Promise.resolve({ records: [] });
+      if (path === "/api/v1/merchants/1") return Promise.resolve({ merchant: { id: 1 } });
+      return Promise.resolve([]);
+    });
+    render(<App />);
+
+    fireEvent.click(await screen.findByText("mock-buy-deal"));
+
+    await waitFor(() => expect(window.location.hash).toBe("#/login"));
+    expect(screen.getByText("请先登录后再购买团购套餐")).toBeTruthy();
+    expect(apiMock).not.toHaveBeenCalledWith("/api/v1/orders/group-buy", expect.anything());
+  });
+
+  it("retries payment for the same group-buy order after an uncertain response", async () => {
+    localStorage.setItem("lumalife-token", "user-token");
+    window.history.replaceState(null, "", "#/merchants/1");
+    const pendingOrder: Order = { id: 501, merchantId: 1, type: "GROUP_BUY", status: "PENDING_PAYMENT", totalCent: 6800, reviewed: false, lines: [] };
+    const paidOrder: Order = { ...pendingOrder, status: "PAID", couponCode: "123456789012" };
+    let paymentAttempts = 0;
+    apiMock.mockImplementation((path: string) => {
+      if (path === "/api/v1/categories") return Promise.resolve([]);
+      if (path.startsWith("/api/v1/merchants?")) return Promise.resolve({ records: [] });
+      if (path === "/api/v1/auth/me") return Promise.resolve(regularUser);
+      if (path === "/api/v1/user/favorites") return Promise.resolve([]);
+      if (path === "/api/v1/merchants/1") return Promise.resolve({ merchant: { id: 1 } });
+      if (path === "/api/v1/orders/group-buy") return Promise.resolve(pendingOrder);
+      if (path === "/api/v1/payments") {
+        paymentAttempts += 1;
+        return paymentAttempts === 1 ? Promise.reject(new Error("支付响应超时")) : Promise.resolve(paidOrder);
+      }
+      if (path === "/api/v1/orders") return Promise.resolve(paymentAttempts > 1 ? [paidOrder] : [pendingOrder]);
+      return Promise.resolve([]);
+    });
+    render(<App />);
+
+    const buyButton = await screen.findByText("mock-buy-deal");
+    fireEvent.click(buyButton);
+    expect(await screen.findByText(/团购订单 #501 已创建，支付结果未确认/)).toBeTruthy();
+
+    fireEvent.click(buyButton);
+    await waitFor(() => expect(window.location.hash).toBe("#/orders"));
+
+    const groupOrderCalls = apiMock.mock.calls.filter(([path]) => path === "/api/v1/orders/group-buy");
+    const paymentCalls = apiMock.mock.calls.filter(([path]) => path === "/api/v1/payments");
+    expect(groupOrderCalls).toHaveLength(1);
+    expect(paymentCalls).toHaveLength(2);
+    const firstPayment = JSON.parse(paymentCalls[0][1].body);
+    const secondPayment = JSON.parse(paymentCalls[1][1].body);
+    expect(firstPayment.orderId).toBe(501);
+    expect(secondPayment.orderId).toBe(501);
+    expect(secondPayment.clientRequestId).toBe(firstPayment.clientRequestId);
+    expect(screen.getByText("orders-page")).toBeTruthy();
+  });
+
+  it("accepts the reconciled paid state when the payment response times out", async () => {
+    localStorage.setItem("lumalife-token", "user-token");
+    window.history.replaceState(null, "", "#/merchants/1");
+    const pendingOrder: Order = { id: 502, merchantId: 1, type: "GROUP_BUY", status: "PENDING_PAYMENT", totalCent: 6800, reviewed: false, lines: [] };
+    const paidOrder: Order = { ...pendingOrder, status: "PAID", couponCode: "210987654321" };
+    apiMock.mockImplementation((path: string) => {
+      if (path === "/api/v1/categories") return Promise.resolve([]);
+      if (path.startsWith("/api/v1/merchants?")) return Promise.resolve({ records: [] });
+      if (path === "/api/v1/auth/me") return Promise.resolve(regularUser);
+      if (path === "/api/v1/user/favorites") return Promise.resolve([]);
+      if (path === "/api/v1/merchants/1") return Promise.resolve({ merchant: { id: 1 } });
+      if (path === "/api/v1/orders/group-buy") return Promise.resolve(pendingOrder);
+      if (path === "/api/v1/payments") return Promise.reject(new Error("支付响应超时"));
+      if (path === "/api/v1/orders") return Promise.resolve([paidOrder]);
+      return Promise.resolve([]);
+    });
+    render(<App />);
+
+    fireEvent.click(await screen.findByText("mock-buy-deal"));
+
+    await waitFor(() => expect(window.location.hash).toBe("#/orders"));
+    expect(screen.getByText("团购支付已确认，券码 210987654321")).toBeTruthy();
+    expect(apiMock.mock.calls.filter(([path]) => path === "/api/v1/orders/group-buy")).toHaveLength(1);
+    expect(apiMock.mock.calls.filter(([path]) => path === "/api/v1/payments")).toHaveLength(1);
   });
 });

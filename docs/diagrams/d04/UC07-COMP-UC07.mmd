@@ -1,0 +1,16 @@
+flowchart TD
+    A[MerchantShop / MerchantProducts]
+    B[frontend/src/api.ts]
+    C[ApiControllers]
+    D{SecurityConfig\nMERCHANT_ADMIN?}
+    E[MerchantAdminService\n字段、归属、状态校验]
+    F[DemoStore\nMerchant/Product/GroupDeal]
+    G[CatalogService\n过滤 listed/active]
+    H[Detail / Home\n用户端展示]
+    X[400/403/404\n不写入非法数据]
+    A --> B --> C --> D
+    D -- 否 --> X
+    D -- 是 --> E
+    E -- 校验失败 --> X
+    E --> F --> G --> H
+    E -->|toggle/delete| F

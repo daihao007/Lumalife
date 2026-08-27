@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor Merchant as 商家管理员
+    participant Page as merchantOrders:MerchantOrders
+    participant Admin as merchantAdmin:MerchantAdminService
+    participant Index as couponIndex:Map
+    participant Order as order:Order
+    participant Log as operationLog:OperationLog
+    participant Store as store:DemoStore
+    Merchant->>Page: 提交 couponCode
+    Page->>Admin: verifyCoupon(admin,code)
+    Admin->>Index: get(code)
+    Index-->>Admin: orderId 或 null
+    Admin->>Store: 查询订单并校验商家、类型、状态
+    alt PAID 且 merchantId 匹配
+        Admin->>Order: status=USED
+        Admin->>Store: 保存状态和核销时间
+        Store->>Log: 记录核销操作
+        Store-->>Page: USED
+    else null、非 PAID、已 USED 或跨商家
+        Admin-->>Page: BusinessException
+        Note over Order,Store: 订单状态与核销时间不变
+    end

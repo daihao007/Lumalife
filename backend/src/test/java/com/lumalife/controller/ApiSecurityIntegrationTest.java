@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 
 @SpringBootTest(properties = "lumalife.state-file=")
 @AutoConfigureMockMvc
@@ -336,10 +337,10 @@ class ApiSecurityIntegrationTest {
     mvc.perform(post("/api/v1/auth/register")
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"phone\":\"%s\",\"password\":\"abc123456\",\"nickname\":\"普通用户\",\"role\":\"MERCHANT_ADMIN\"}".formatted(phone)))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$.code").value(200))
-      .andExpect(jsonPath("$.data.user.role").value("USER"))
-      .andExpect(jsonPath("$.data.user.merchantId").doesNotExist());
+      .andExpect(status().isBadRequest())
+      .andExpect(jsonPath("$.code").value(40000))
+      .andExpect(jsonPath("$.reason").value("ROLE_NOT_ALLOWED"))
+      .andExpect(jsonPath("$.data").value(nullValue()));
   }
 
   @Test

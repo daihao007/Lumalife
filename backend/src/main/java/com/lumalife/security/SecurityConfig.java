@@ -2,7 +2,9 @@ package com.lumalife.security;
 
 import com.lumalife.domain.Enums.UserRole;
 import com.lumalife.domain.Models.User;
-import com.lumalife.service.DemoStore;
+import com.lumalife.common.ErrorResponse;
+import com.lumalife.service.boundary.IdentityServicePort;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,7 +27,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Configuration
 public class SecurityConfig {
   @Bean
-  SecurityFilterChain filterChain(HttpSecurity http, DemoStore store) throws Exception {
+  SecurityFilterChain filterChain(HttpSecurity http, IdentityServicePort identity) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/api/v1/auth/me").authenticated()
@@ -38,10 +40,21 @@ public class SecurityConfig {
         .requestMatchers("/api/v1/**").authenticated()
         .anyRequest().permitAll())
       .exceptionHandling(exceptions -> exceptions
-        .authenticationEntryPoint((request, response, authException) -> response.setStatus(HttpServletResponse.SC_UNAUTHORIZED))
-        .accessDeniedHandler((request, response, accessDeniedException) -> response.setStatus(HttpServletResponse.SC_FORBIDDEN)))
-      .addFilterBefore(new TokenFilter(store), UsernamePasswordAuthenticationFilter.class);
+        .authenticationEntryPoint((request, response, authException) -> writeError(response, request, 401, "未认证或登录状态已失效", "TOKEN_INVALID"))
+        .accessDeniedHandler((request, response, accessDeniedException) -> writeError(response, request, 403, "没有权限执行该操作", "ROLE_FORBIDDEN")))
+      .addFilterBefore(new TokenFilter(identity), UsernamePasswordAuthenticationFilter.class);
     return http.build();
+  }
+
+  private void writeError(HttpServletResponse response, HttpServletRequest request, int status,
+                          String message, String reason) throws IOException {
+    String requestId = request.getHeader("X-Request-Id");
+    if (requestId == null || requestId.isBlank()) requestId = java.util.UUID.randomUUID().toString();
+    response.setStatus(status);
+    response.setContentType("application/json;charset=UTF-8");
+    response.setHeader("X-Request-Id", requestId);
+    new ObjectMapper().writeValue(response.getWriter(),
+      new ErrorResponse(status == 401 ? 40100 : 40300, message, null, requestId, reason, List.of()));
   }
 
   @Bean
@@ -50,10 +63,10 @@ public class SecurityConfig {
   }
 
   static class TokenFilter extends OncePerRequestFilter {
-    private final DemoStore store;
+    private final IdentityServicePort identity;
 
-    TokenFilter(DemoStore store) {
-      this.store = store;
+    TokenFilter(IdentityServicePort identity) {
+      this.identity = identity;
     }
 
     @Override
@@ -62,7 +75,7 @@ public class SecurityConfig {
       String auth = request.getHeader("Authorization");
       if (auth != null && auth.startsWith("Bearer ")) {
         String rawToken = auth.substring(7).trim();
-        User user = rawToken.isBlank() ? null : store.userByToken(rawToken).orElse(null);
+        User user = rawToken.isBlank() ? null : identity.userByToken(rawToken).orElse(null);
         if (user != null) {
           var authority = new SimpleGrantedAuthority("ROLE_" + user.role().name());
           var token = new UsernamePasswordAuthenticationToken(user.phone(), null, List.of(authority));

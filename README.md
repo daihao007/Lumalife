@@ -6,7 +6,7 @@ LumaLife 是一个面向课程验收场景的本地生活服务平台演示项�
 
 - 后端：Java 17+、Spring Boot 3、Spring Security、Maven、JUnit 5
 - 前端：React 18、TypeScript、Vite、CSS Modules 风格的全局设计系统
-- 部署：Docker Compose 预留 MySQL、Redis、后端、前端服务
+- 部署：Docker Compose、Nginx、MySQL 8.4、版本化数据库迁移
 
 ## 当前实现范围
 
@@ -22,14 +22,52 @@ LumaLife 是一个面向课程验收场景的本地生活服务平台演示项�
 
 ## 快速启动
 
-### 环境要求
+### Docker 三容器启动（推荐）
 
-- Java 17+
-- Maven 3.9+
-- Node.js 18+
-- npm 9+
+干净环境只需 Docker Engine 24+ 和 Docker Compose v2。首次启动会构建前后端镜像，并在空 MySQL 数据卷中自动创建 Schema；无需手工执行迁移命令。
 
-依赖安装使用仓库中的 lockfile；首次安装前端依赖请使用 `npm ci`。不要提交 `.env` 或本地运行状态文件；需要配置 AI 客服时，可复制 `.env.example` 为本地 `.env` 并填入自己的配置。
+```bash
+cp .env.example .env
+# 按需替换 .env 中的示例密码；不要提交 .env
+docker compose up --detach --build --wait
+docker compose ps
+```
+
+`docker compose ps` 应显示且只显示 `mysql`、`backend`、`frontend` 三个运行中且健康的服务。
+
+- 前端：http://localhost:5173
+- 后端：http://localhost:8080
+- 后端健康检查：http://localhost:8080/actuator/health
+- 前端代理健康检查：http://localhost:5173/actuator/health
+
+校验数据库已自动初始化且迁移 checksum 一致：
+
+```bash
+docker compose --profile db-tools run --rm db-migrate
+```
+
+如需把演示测试数据写入 MySQL，可显式执行（生产环境禁止执行）：
+
+```bash
+docker compose --profile db-tools run --rm db-seed
+```
+
+停止服务但保留数据库数据：
+
+```bash
+docker compose down
+```
+
+如需模拟干净环境并从空库重新验收：
+
+```bash
+docker compose down --volumes --remove-orphans
+docker compose up --detach --build --wait
+```
+
+### 源码开发启动
+
+本地源码开发需要 Java 17+、Maven 3.9+、Node.js 18+ 和 npm 9+。依赖安装使用仓库中的 lockfile；首次安装前端依赖请使用 `npm ci`。
 
 ```bash
 cd backend
@@ -45,6 +83,22 @@ npm run dev
 - 前端：http://localhost:5173
 - 后端：http://localhost:8080
 - 健康检查：http://localhost:8080/actuator/health
+
+### 数据库生命周期工具
+
+数据库资产已落地，但业务 Service 当前仍默认使用内存版 `DemoStore`。Compose 在空数据卷首次启动时自动执行基线 Schema，并写入迁移校验记录；已有数据卷不会重复初始化。手工迁移、seed、校验工具仍可独立执行：
+
+```bash
+docker compose --profile db-tools run --rm db-migrate
+docker compose --profile db-tools run --rm db-seed
+docker compose --profile db-tools run --rm db-verify
+```
+
+迁移可重复执行，已经应用的文件会校验 SHA-256 后跳过。`db-seed` 只在显式调用时装载演示弱密码账号，不会随生产迁移自动执行。清空业务数据但保留 Schema 和迁移历史：
+
+```bash
+docker compose --profile db-tools run --rm db-clean
+```
 
 ## 演示账号
 
@@ -72,6 +126,7 @@ npm run dev
 ```text
 LumaLife/
   backend/      Spring Boot API 服务
+  database/     MySQL 版本迁移、显式演示 seed、清理和验证脚本
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
   e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
   docs/         需求、设计、接口、部署、测试与用户手册
@@ -83,16 +138,18 @@ LumaLife/
 
 [![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建和 Docker 镜像构建验证；代码进入 `main` 且全部检查通过后，流水线会把带提交版本标签的前后端镜像发布到 GHCR。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 迁移/seed/清理幂等验证和 Docker 镜像构建验证；代码进入 `main` 且全部检查通过后，流水线会把带提交版本标签的前后端镜像发布到 GHCR。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)。
 
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
-- 后端 Controller 已按认证、商家目录、购物车、订单、商家后台、管理员看板、AI 客服拆出 Service 门面，当前仍委托内存版 `DemoStore`。
-- 自动化测试包含后端业务规则测试、Web 层权限集成测试和独立真实 HTTP 黑盒 E2E；当前候选基线实测 66 个后端测试（41 个业务规则测试 + 25 个接口集成测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
-- 数据库持久化已形成迁移计划，见 `docs/11_数据库持久化迁移计划.md`，建议后续从 `AuthService` 开始逐步替换内存实现。
+- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离，当前实现仍由内存版 `DemoStore` 提供适配。
+- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前候选基线实测 66 个后端测试（41 个业务规则测试 + 25 个接口集成测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
+- MySQL Schema、版本迁移、演示 seed 和清理机制已落地，见 `docs/06_数据库设计.md`；业务持久化仍按 `docs/11_数据库持久化迁移计划.md` 从 `AuthService` 开始逐步替换内存实现。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
+- 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。
+- D03 服务边界落地、错误响应兼容和可运行契约样例见 `docs/17_D03服务边界落地记录.md`。
 
 ## 说明
 
-当前版本是从零搭建的课程演示版，业务数据保存在内存中，便于快速运行和答辩演示。数据库表设计、Docker MySQL/Redis、MyBatis-Plus 分层已在文档和配置中预留，后续可按模块迁移到持久化实现。
+当前版本是从零搭建的课程演示版，业务数据仍默认保存在内存中，便于快速运行和答辩演示。MySQL Schema 和可重复初始化流程已经可执行；后续可按模块将 `DemoStore` 替换为持久化实现。

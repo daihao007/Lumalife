@@ -1,0 +1,16 @@
+flowchart LR
+    Merchant[商家管理员]
+    User[普通用户]
+    subgraph Platform[LumaLife 平台 / UC04]
+        Fulfillment((履约外卖订单))
+        Receive((确认收货))
+        Review((提交评价))
+        Boundary[(状态与归属校验)]
+    end
+    Merchant --> Fulfillment
+    Fulfillment --> Boundary
+    User --> Receive
+    Receive --> Review
+    Review --> Boundary
+    Boundary --> Merchant
+    Boundary --> User

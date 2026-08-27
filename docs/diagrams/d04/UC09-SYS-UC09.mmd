@@ -1,0 +1,12 @@
+flowchart LR
+    Admin[平台管理员]
+    subgraph Platform[LumaLife 平台 / UC09]
+        Open((打开运营看板))
+        Metrics((聚合用户/商家/订单/营收))
+        Health((查看健康状态与日志))
+        Decision((判断平台状态))
+        Boundary[(PLATFORM_ADMIN 鉴权)]
+    end
+    Admin --> Open --> Boundary --> Metrics
+    Metrics --> Health --> Decision --> Admin
+    Boundary -->|401/403| Admin

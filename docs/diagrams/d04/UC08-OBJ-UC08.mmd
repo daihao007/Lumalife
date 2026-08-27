@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor User as 用户
+    actor Merchant as 商家管理员
+    participant UserObj as user:User
+    participant MerchantObj as merchant:Merchant
+    participant Chat as assistant:AssistantService
+    participant Messages as conversations:Map
+    participant Message as message:ChatMessage
+    participant AI as Agnes/本地 fallback
+    User->>Chat: sendUserMessage(user,merchantId,content)
+    Chat->>UserObj: 校验用户身份
+    Chat->>MerchantObj: 校验商家存在
+    Chat->>Message: 创建 USER 消息
+    Chat->>Messages: append(conversationKey,message)
+    opt AI 可用或本地回退
+        Chat->>AI: 生成商家上下文回复
+        AI-->>Chat: MERCHANT_AI 消息
+        Chat->>Messages: append(AI message)
+    end
+    Merchant->>Chat: sendMerchantMessage(admin,userId,content)
+    Chat->>MerchantObj: 校验商家对会话的归属
+    Chat->>Message: 创建 MERCHANT 消息
+    Chat->>Messages: append(conversationKey,message)
+    Messages-->>User: 返回用户与商家/AI消息
+    alt 空消息或会话越权
+        Chat-->>User: BusinessException，Map 不变
+    end

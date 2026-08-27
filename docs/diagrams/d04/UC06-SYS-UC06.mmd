@@ -1,0 +1,11 @@
+flowchart LR
+    Merchant[商家管理员]
+    subgraph Platform[LumaLife 平台 / UC06]
+        Input((输入券码))
+        Verify((核验券码))
+        Used((确认到店消费))
+        Boundary[(商家归属与券码状态校验)]
+    end
+    Merchant --> Input --> Verify --> Boundary
+    Boundary --> Used --> Merchant
+    Boundary -->|无效/重复/跨店| Merchant

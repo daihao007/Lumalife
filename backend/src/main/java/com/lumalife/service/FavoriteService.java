@@ -3,29 +3,30 @@ package com.lumalife.service;
 import com.lumalife.domain.Models.User;
 import java.util.List;
 import java.util.Map;
+import com.lumalife.service.boundary.MerchantServicePort;
 import org.springframework.stereotype.Service;
 
 @Service
 public class FavoriteService {
-  private final DemoStore store;
+  private final MerchantServicePort merchant;
 
-  public FavoriteService(DemoStore store) {
-    this.store = store;
+  public FavoriteService(MerchantServicePort merchant) {
+    this.merchant = merchant;
   }
 
   public void addFavorite(User user, long merchantId) {
-    store.addFavorite(user.id(), merchantId);
+    merchant.addFavorite(user.id(), merchantId);
   }
 
   public void removeFavorite(User user, long merchantId) {
-    store.removeFavorite(user.id(), merchantId);
+    merchant.removeFavorite(user.id(), merchantId);
   }
 
   public List<Long> listFavorites(User user) {
-    return store.listFavorites(user.id());
+    return merchant.listFavorites(user.id());
   }
 
   public List<Map<String, Object>> listFavoriteMerchants(User user) {
-    return store.listFavoriteMerchants(user.id());
+    return merchant.listFavoriteMerchants(user.id());
   }
 }

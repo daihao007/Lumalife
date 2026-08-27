@@ -32,10 +32,26 @@ const PIE_COLORS = ["#0f766e", "#3b82f6", "#8b5cf6", "#f97316", "#22c55e", "#ef4
 // ---------- 组件 ----------
 export default function Admin() {
   const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => { api("/api/v1/admin/metrics").then(setMetrics); }, []);
+  async function loadMetrics() {
+    setLoading(true);
+    setError("");
+    try {
+      setMetrics(await api("/api/v1/admin/metrics"));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "管理员看板加载失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  if (!metrics) return <p>Loading...</p>;
+  useEffect(() => { void loadMetrics(); }, []);
+
+  if (loading) return <div className="panel empty-state" role="status"><h2>正在加载管理员看板</h2><p>正在汇总用户、商家、订单和系统健康数据。</p></div>;
+  if (error) return <div className="panel empty-state"><h2>管理员看板加载失败</h2><p className="form-error" role="alert">{error}</p><button className="primary" data-testid="admin-retry" onClick={loadMetrics}>重新加载</button></div>;
+  if (!metrics) return null;
 
   const { overview, orderStatusDistribution, orderTypeDistribution, revenueTrend,
     merchantRanking, deliveryMetrics, activeOrders, health, userAccounts, merchantAccounts, logs } = metrics;
@@ -45,6 +61,12 @@ export default function Admin() {
   const typeData = Object.entries(orderTypeDistribution || {}).map(([k, v]) => ({ name: k === "DELIVERY" ? "外卖" : "团购", value: v as number }));
 
   return <div className="admin">
+    <div className="admin-health" data-testid="admin-health">
+      <span className={`health-indicator ${health?.status === "UP" ? "up" : "down"}`} aria-hidden="true" />
+      <span><b>系统健康</b><small>{health?.status || "UNKNOWN"}</small></span>
+      <span><b>待处理订单</b><small>{health?.pendingOrders ?? (activeOrders || []).length}</small></span>
+    </div>
+
     {/* ===== KPI 卡片 ===== */}
     <div className="kpis">
       <KpiCard value={overview.users} label="用户" />

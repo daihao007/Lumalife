@@ -1,17 +1,18 @@
 package com.lumalife.service;
 
 import java.util.Map;
+import com.lumalife.service.boundary.MetricsServicePort;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AdminDashboardService {
-  private final DemoStore store;
+  private final MetricsServicePort metrics;
 
-  public AdminDashboardService(DemoStore store) {
-    this.store = store;
+  public AdminDashboardService(MetricsServicePort metrics) {
+    this.metrics = metrics;
   }
 
   public Map<String, Object> metrics() {
-    return store.adminMetricsV2();
+    return metrics.metrics();
   }
 }

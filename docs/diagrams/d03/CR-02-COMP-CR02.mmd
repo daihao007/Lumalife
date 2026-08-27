@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor User as 游客 / 普通用户
+    participant UI as Home / Detail / Favorites
+    participant API as frontend/src/api.ts
+    participant Sec as SecurityConfig
+    participant Ctrl as ApiControllers
+    participant Catalog as CatalogService
+    participant Fav as FavoriteService
+    participant Store as DemoStore
+    User->>UI: 输入关键词、分类和排序条件
+    UI->>API: GET /categories、/merchants、/merchants/{id}
+    API->>Ctrl: 公开目录请求
+    Ctrl->>Catalog: categories / merchants / merchantDetail
+    Catalog->>Store: 读取 Category、Merchant、Product、GroupDeal
+    Store-->>Catalog: 可见目录数据
+    Catalog-->>UI: 列表、详情和评价
+    opt 普通用户收藏
+        UI->>API: POST /user/favorites
+        API->>Sec: 带 Bearer Token 的收藏请求
+        Sec->>Ctrl: 认证通过后转发请求
+        Ctrl->>Fav: addFavorite(User, merchantId)
+        Fav->>Store: 更新 favorites[userId]
+        Store-->>UI: 收藏结果
+    end

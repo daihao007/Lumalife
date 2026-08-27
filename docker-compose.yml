@@ -1,29 +1,108 @@
 services:
   mysql:
     image: mysql:8.4
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-lifeassist}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
-      MYSQL_USER: ${MYSQL_USER:-lifeassist}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-lifeassist123}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     ports:
-      - "3306:3306"
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/database:ro
+      - ./database/init/10-bootstrap.sh:/docker-entrypoint-initdb.d/10-bootstrap.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP --host=127.0.0.1 --user=$$MYSQL_USER --database=$$MYSQL_DATABASE --batch --skip-column-names --execute='SELECT COUNT(*) FROM schema_migration WHERE version = 0x56303031' | grep -qx 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
   backend:
     build: ./backend
+    restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
     ports:
       - "8080:8080"
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
   frontend:
     build: ./frontend
+    restart: unless-stopped
     ports:
       - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-migrate:
+    image: mysql:8.4
+    profiles: ["db-tools"]
+    environment: &database-tool-environment
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/database/bin/migrate.sh"]
+
+  db-seed:
+    image: mysql:8.4
+    profiles: ["db-tools"]
+    environment:
+      <<: *database-tool-environment
+      ALLOW_DEMO_SEED: "true"
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/database/bin/seed.sh"]
+
+  db-clean:
+    image: mysql:8.4
+    profiles: ["db-tools"]
+    environment:
+      <<: *database-tool-environment
+      ALLOW_DATABASE_CLEAN: "true"
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/database/bin/clean.sh"]
+
+  db-verify:
+    image: mysql:8.4
+    profiles: ["db-tools"]
+    environment:
+      <<: *database-tool-environment
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/database/bin/verify.sh"]
+
+volumes:
+  mysql_data:
