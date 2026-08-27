@@ -126,6 +126,7 @@ docker compose --profile db-tools run --rm db-clean
 ```text
 LumaLife/
   backend/      Spring Boot API 服务
+  services/     identity、merchant、order 三服务的独立构建与健康检查骨架
   database/     MySQL 版本迁移、显式演示 seed、清理和验证脚本
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
   e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
@@ -150,6 +151,7 @@ LumaLife/
 - 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。
 - D03 服务边界落地、错误响应兼容和可运行契约样例见 `docs/17_D03服务边界落地记录.md`。
 - Issue #33 的中期检查入口（架构图、边界/接口/数据归属、故障策略、构建证据、风险与决策记录）见 `docs/19_D04C微服务边界接口与数据归属初稿.md`。
+- Issue #38 的微服务方案评审、三服务独立构建/配置/健康检查骨架与回滚边界见 `docs/20_D05C微服务方案评审与拆分骨架.md`；当前仍由单体承接业务流量。
 
 ## 说明
 
