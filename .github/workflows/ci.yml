@@ -87,6 +87,33 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  service-skeletons:
+    name: Build ${{ matrix.service }} skeleton
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - identity-service
+          - merchant-service
+          - order-service
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: |
+            services/pom.xml
+            services/${{ matrix.service }}/pom.xml
+
+      - name: Verify independent service entry and health probes
+        run: mvn -B -ntp -f "services/${{ matrix.service }}/pom.xml" verify
+
   database-schema:
     name: Database schema
     runs-on: ubuntu-latest
@@ -225,6 +252,7 @@ jobs:
     needs:
       - backend-test
       - frontend-build
+      - service-skeletons
       - database-schema
       - compose-stack
       - e2e-test

@@ -1,0 +1,21 @@
+server:
+  port: ${IDENTITY_SERVICE_PORT:8081}
+spring:
+  application:
+    name: identity-service
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true
+info:
+  service:
+    name: identity-service
+    contract-version: v1
