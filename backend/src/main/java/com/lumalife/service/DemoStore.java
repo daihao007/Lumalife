@@ -649,7 +649,14 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   public Order pay(User user, long orderId, String clientRequestId) {
     if (clientRequestId == null || clientRequestId.isBlank()) throw new BusinessException(40000, "clientRequestId 不能为空");
     Order order = ownedOrder(user, orderId);
-    if (clientRequestId.equals(order.clientRequestId)) return order;
+    Order existingRequest = orders.values().stream()
+      .filter(candidate -> candidate.userId == user.id() && clientRequestId.equals(candidate.clientRequestId))
+      .findFirst()
+      .orElse(null);
+    if (existingRequest != null) {
+      if (existingRequest.id == orderId) return existingRequest;
+      throw new BusinessException(40900, "clientRequestId 已用于其他订单", "IDEMPOTENCY_CONFLICT");
+    }
     if (order.status != OrderStatus.PENDING_PAYMENT) throw new BusinessException(40900, "订单状态不允许支付");
     ensureStockDeducted(order);
     order.clientRequestId = clientRequestId;

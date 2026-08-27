@@ -491,7 +491,7 @@ class ApiSecurityIntegrationTest {
   }
 
   @Test
-  void groupBuyApiGeneratesCouponAndMerchantVerifiesOnlyOnceForOwnStore() throws Exception {
+  void groupBuyApiGeneratesCouponCanBeReviewedAfterUseAndMerchantVerifiesOnlyOnceForOwnStore() throws Exception {
     String userToken = login("13800000001", "abc123456");
     String ownerMerchantToken = login("13800000002", "abc123456");
     String otherMerchantToken = login("13800000003", "abc123456");
@@ -513,6 +513,13 @@ class ApiSecurityIntegrationTest {
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.data.id").value(orderId))
       .andExpect(jsonPath("$.data.status").value("USED"));
+
+    mvc.perform(post("/api/v1/reviews")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"orderId\":%d,\"score\":5,\"tasteScore\":5,\"serviceScore\":5,\"content\":\"团购核销后评价\"}".formatted(orderId)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.orderId").value(orderId));
 
     mvc.perform(post("/api/v1/merchant-admin/coupons/verify")
         .header("Authorization", bearer(ownerMerchantToken))

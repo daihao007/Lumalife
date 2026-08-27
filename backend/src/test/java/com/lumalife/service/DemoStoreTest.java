@@ -494,6 +494,22 @@ class DemoStoreTest {
   }
 
   @Test
+  void paymentRequestKeyCannotBeReusedForAnotherOrderByTheSameUser() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User user = store.userByPhone("13800000001");
+    Order first = store.createGroupOrder(user, 1, 1);
+    Order second = store.createGroupOrder(user, 1, 1);
+
+    store.pay(user, first.id, "req-user-scoped-key");
+    BusinessException error = Assertions.assertThrows(BusinessException.class,
+      () -> store.pay(user, second.id, "req-user-scoped-key"));
+
+    Assertions.assertEquals(40900, error.code());
+    Assertions.assertEquals("IDEMPOTENCY_CONFLICT", error.reason());
+    Assertions.assertEquals(OrderStatus.PENDING_PAYMENT, second.status);
+  }
+
+  @Test
   void paidGroupOrderGeneratesTwelveDigitCouponCodeAndCanBeVerifiedOnce() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");

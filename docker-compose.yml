@@ -14,7 +14,7 @@ services:
       - ./database:/database:ro
       - ./database/init/10-bootstrap.sh:/docker-entrypoint-initdb.d/10-bootstrap.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP --host=127.0.0.1 --user=$$MYSQL_USER --database=$$MYSQL_DATABASE --batch --skip-column-names --execute='SELECT COUNT(*) FROM schema_migration WHERE version = 0x56303031' | grep -qx 1"]
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP --host=127.0.0.1 --user=$$MYSQL_USER --database=$$MYSQL_DATABASE --batch --skip-column-names --execute='SELECT COUNT(*) FROM schema_migration WHERE version IN (0x56303031, 0x56303032)' | grep -qx 2"]
       interval: 5s
       timeout: 5s
       retries: 20
