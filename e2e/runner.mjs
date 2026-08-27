@@ -17,6 +17,17 @@ let backendProcess;
 let sequence = 0;
 let environmentFailure;
 
+const sensitiveLogKeys = new Set([
+  "token",
+  "password",
+  "authorization",
+  "user",
+  "phone",
+  "contactname",
+  "address",
+  "addresssnapshot"
+]);
+
 class E2EFailure extends Error {
   constructor(message, details = {}) {
     super(message);
@@ -27,6 +38,30 @@ class E2EFailure extends Error {
 
 function assert(condition, message, details = {}) {
   if (!condition) throw new E2EFailure(message, details);
+}
+
+function responseSummary(body) {
+  if (body === null || body === undefined) return { bodyType: "empty" };
+  if (typeof body !== "object") return { bodyType: typeof body };
+  const data = body.data;
+  return {
+    bodyType: Array.isArray(body) ? "array" : "object",
+    ...(typeof body.code === "number" ? { code: body.code } : {}),
+    ...(typeof body.message === "string" ? { message: body.message } : {}),
+    ...(Array.isArray(data) ? { dataType: "array", dataCount: data.length } : {}),
+    ...(data && typeof data === "object" && !Array.isArray(data) ? { dataType: "object" } : {})
+  };
+}
+
+function redactDiagnostics(value, key = "") {
+  if (sensitiveLogKeys.has(key.toLowerCase())) return "[REDACTED]";
+  if (key.toLowerCase() === "response") return responseSummary(value);
+  if (Array.isArray(value)) return value.map((item) => redactDiagnostics(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([entryKey, entryValue]) => [entryKey, redactDiagnostics(entryValue, entryKey)]));
+  }
+  if (typeof value === "string" && value.length > 500) return `${value.slice(0, 500)}…`;
+  return value;
 }
 
 async function request(method, endpoint, token, body, requestTimeoutMs = timeoutMs) {
@@ -52,7 +87,7 @@ async function request(method, endpoint, token, body, requestTimeoutMs = timeout
       json = { raw: text };
     }
     const result = { status: response.status, body: json };
-    requestLog.push({ method, endpoint, status: response.status, durationMs: Date.now() - startedAt, response: json });
+    requestLog.push({ method, endpoint, status: response.status, durationMs: Date.now() - startedAt, response: responseSummary(json) });
     return result;
   } catch (error) {
     requestLog.push({ method, endpoint, durationMs: Date.now() - startedAt, error: error.message });
@@ -66,7 +101,7 @@ function expectResponse(actual, status, message) {
   assert(actual.status === status, message, {
     expectedStatus: status,
     actualStatus: actual.status,
-    response: actual.body
+    response: responseSummary(actual.body)
   });
   return actual.body;
 }
@@ -76,7 +111,7 @@ function expectCode(actual, status, code, message) {
   assert(body.code === code, `${message}: unexpected API code`, {
     expectedCode: code,
     actualCode: body.code,
-    response: body
+    response: responseSummary(body)
   });
   return body;
 }
@@ -463,10 +498,10 @@ async function runScenario(name, scenario) {
       status: "failed",
       startedAt,
       durationMs: Date.now() - start,
-      error: {
+      error: redactDiagnostics({
         message: error.message,
         details: error.details || {}
-      }
+      })
     });
   }
 }
