@@ -6,7 +6,7 @@ LumaLife 是一个面向课程验收场景的本地生活服务平台演示项�
 
 - 后端：Java 17+、Spring Boot 3、Spring Security、Maven、JUnit 5
 - 前端：React 18、TypeScript、Vite、CSS Modules 风格的全局设计系统
-- 部署：Docker Compose、Nginx、MySQL 8.4、版本化数据库迁移
+- 部署：Docker Compose、Kubernetes/Kustomize、Nginx、MySQL 8.4、版本化数据库迁移
 
 ## 当前实现范围
 
@@ -138,7 +138,7 @@ LumaLife/
 
 [![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 迁移/seed/清理幂等验证和 Docker 镜像构建验证；代码进入 `main` 且全部检查通过后，流水线会把带提交版本标签的前后端镜像发布到 GHCR。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的前后端镜像，随后滚动部署到目标 Kubernetes 集群并执行 Pod 探针与集群内 HTTP 健康检查。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md)。
 
 ## 当前工程状态
 
