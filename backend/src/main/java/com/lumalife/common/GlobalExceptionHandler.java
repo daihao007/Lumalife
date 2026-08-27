@@ -2,13 +2,15 @@ package com.lumalife.common;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
   @ExceptionHandler(BusinessException.class)
-  public ResponseEntity<ApiResponse<Void>> business(BusinessException ex) {
+  public ResponseEntity<ErrorResponse> business(BusinessException ex, HttpServletRequest request) {
     HttpStatus status = switch (ex.code()) {
       case 40000 -> HttpStatus.BAD_REQUEST;
       case 40100 -> HttpStatus.UNAUTHORIZED;
@@ -16,11 +18,28 @@ public class GlobalExceptionHandler {
       case 40400 -> HttpStatus.NOT_FOUND;
       default -> HttpStatus.CONFLICT;
     };
-    return ResponseEntity.status(status).body(ApiResponse.fail(ex.code(), ex.getMessage()));
+    String requestId = requestId(request);
+    return ResponseEntity.status(status).header("X-Request-Id", requestId)
+      .body(ErrorResponse.of(ex, requestId));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> malformedRequest(
+      HttpMessageNotReadableException ex, HttpServletRequest request) {
+    String requestId = requestId(request);
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).header("X-Request-Id", requestId)
+      .body(ErrorResponse.of(40000, "请求体格式错误", requestId));
   }
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ApiResponse<Void>> system(Exception ex) {
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(50000, ex.getMessage()));
+  public ResponseEntity<ErrorResponse> system(Exception ex, HttpServletRequest request) {
+    String requestId = requestId(request);
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header("X-Request-Id", requestId)
+      .body(ErrorResponse.of(50000, "服务暂时不可用", requestId));
+  }
+
+  private String requestId(HttpServletRequest request) {
+    String requestId = request.getHeader("X-Request-Id");
+    return requestId == null || requestId.isBlank() ? java.util.UUID.randomUUID().toString() : requestId;
   }
 }

@@ -4,22 +4,23 @@ import com.lumalife.domain.Models.Category;
 import com.lumalife.domain.Models.Merchant;
 import java.util.List;
 import java.util.Map;
+import com.lumalife.service.boundary.MerchantServicePort;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CatalogService {
-  private final DemoStore store;
+  private final MerchantServicePort merchant;
 
-  public CatalogService(DemoStore store) {
-    this.store = store;
+  public CatalogService(MerchantServicePort merchant) {
+    this.merchant = merchant;
   }
 
   public List<Category> categories() {
-    return store.categories();
+    return merchant.categories();
   }
 
   public List<Merchant> merchants(String keyword, Long categoryId, String sort, Integer minPrice, Integer maxPrice, Double minScore) {
-    return store.merchants(keyword, categoryId, sort, minPrice, maxPrice, minScore);
+    return merchant.merchants(keyword, categoryId, sort, minPrice, maxPrice, minScore);
   }
 
   /**
@@ -27,10 +28,10 @@ public class CatalogService {
    */
   public List<Map<String, Object>> merchantsForUser(long userId, String keyword, Long categoryId,
                                                       String sort, Integer minPrice, Integer maxPrice, Double minScore) {
-    return store.merchantsForUser(userId, keyword, categoryId, sort, minPrice, maxPrice, minScore);
+    return merchant.merchantsForUser(userId, keyword, categoryId, sort, minPrice, maxPrice, minScore);
   }
 
   public Map<String, Object> merchantDetail(long id) {
-    return store.merchantDetail(id);
+    return merchant.merchantDetail(id);
   }
 }

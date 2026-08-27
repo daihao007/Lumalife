@@ -17,6 +17,10 @@ import com.lumalife.domain.Models.OrderLine;
 import com.lumalife.domain.Models.Product;
 import com.lumalife.domain.Models.Review;
 import com.lumalife.domain.Models.User;
+import com.lumalife.service.boundary.IdentityServicePort;
+import com.lumalife.service.boundary.MerchantServicePort;
+import com.lumalife.service.boundary.MetricsServicePort;
+import com.lumalife.service.boundary.OrderServicePort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -42,7 +46,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class DemoStore {
+public class DemoStore implements IdentityServicePort, MerchantServicePort, OrderServicePort, MetricsServicePort {
   private static final String DEFAULT_CHUANXIANG_COVER = "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80";
   private final PasswordEncoder passwordEncoder;
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -117,6 +121,18 @@ public class DemoStore {
 
   public Map<String, Object> register(String phone, String password, String nickname) {
     return register(phone, password, nickname, UserRole.USER);
+  }
+
+  /** Identity boundary entry point: public registration can only create USER accounts. */
+  @Override
+  public Map<String, Object> registerUser(String phone, String password, String nickname) {
+    return register(phone, password, nickname, UserRole.USER);
+  }
+
+  /** Identity boundary entry point for the legacy, explicitly named merchant route. */
+  @Override
+  public Map<String, Object> registerMerchant(String phone, String password, String nickname) {
+    return register(phone, password, nickname, UserRole.MERCHANT_ADMIN);
   }
 
   public Map<String, Object> register(String phone, String password, String nickname, UserRole role) {
@@ -1045,6 +1061,11 @@ public class DemoStore {
     return "我可以解答登录、下单、支付、评价、团购券核销和商家履约相关问题。";
   }
 
+  @Override
+  public String assistantFallback(String question) {
+    return askAssistant(question == null ? "" : question);
+  }
+
   private Order ownedOrder(User user, long orderId) {
     Order order = orders.get(orderId);
     if (order == null || order.userId != user.id()) throw new BusinessException(40400, "订单不存在");
@@ -1105,10 +1126,14 @@ public class DemoStore {
     Merchant renamed = new Merchant(old.id(), nextName, old.categoryId(), old.categoryName(), old.cover(), old.avgScore(),
       old.avgPrice(), old.monthlySales(), old.distanceKm(), old.status(), old.address(), old.reason());
     merchants.put(renamed.id(), renamed);
-    orders.values().stream()
-      .filter(order -> order.merchantId == renamed.id())
-      .forEach(order -> order.merchantName = nextName);
+    // Order.merchantName is an order-owned snapshot. A merchant rename must not
+    // rewrite historical orders; future orders read the current catalog name.
     return renamed;
+  }
+
+  @Override
+  public Map<String, Object> metrics() {
+    return adminMetricsV2();
   }
 
   private void ensureStockDeducted(Order order) {
