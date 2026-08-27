@@ -175,7 +175,10 @@ paths:
       x-internal-only: true
       servers: [{url: /internal/v1}]
       security: [{serviceAuth: []}]
-      parameters: [{$ref: '#/components/parameters/RequestId'}]
+      parameters:
+        - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
       requestBody:
         required: true
         content: {application/json: {schema: {$ref: '#/components/schemas/BatchGetRequest'}}}
@@ -190,6 +193,8 @@ paths:
       security: [{serviceAuth: []}]
       parameters:
         - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
         - {$ref: '#/components/parameters/IdempotencyKey'}
       requestBody:
         required: true
@@ -198,6 +203,21 @@ paths:
         '200': {description: Existing identical reservation, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
         '201': {description: Reservation created, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
         '409': {$ref: '#/components/responses/Error'}
+  /inventory/reservations/{orderId}:
+    get:
+      operationId: getInventoryReservation
+      description: Returns the original reservation after an ambiguous reserve timeout; no state is changed.
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/OrderId'}
+        - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
+      responses:
+        '200': {description: Existing reservation in any lifecycle state, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
+        '404': {$ref: '#/components/responses/Error'}
   /inventory/reservations/{orderId}:release:
     post:
       operationId: releaseInventory
@@ -207,6 +227,8 @@ paths:
       parameters:
         - {$ref: '#/components/parameters/OrderId'}
         - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
         - {$ref: '#/components/parameters/IdempotencyKey'}
       responses:
         '200': {description: Released or already released, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
@@ -221,6 +243,8 @@ components:
     UserId: {name: userId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     OrderId: {name: orderId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+    TraceParent: {name: traceparent, in: header, required: true, schema: {type: string, minLength: 55, maxLength: 128}}
+    CallerService: {name: X-Caller-Service, in: header, required: true, schema: {type: string, enum: [api-gateway, identity-service, merchant-service, order-service]}}
     IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
   requestBodies:
     Message: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [content], properties: {content: {type: string, minLength: 1, maxLength: 2000}}}}}}

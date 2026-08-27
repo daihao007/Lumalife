@@ -17,6 +17,7 @@ paths:
     post:
       tags: [external-auth]
       operationId: login
+      description: Merchant administrators can log in only after the provisioning Saga reaches ACTIVE.
       security: []
       requestBody:
         required: true
@@ -27,6 +28,7 @@ paths:
         '200': {$ref: '#/components/responses/AuthResultResponse'}
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /auth/register:
     post:
       tags: [external-auth]
@@ -46,7 +48,10 @@ paths:
     post:
       tags: [external-auth]
       operationId: registerMerchant
-      description: Compatibility route; target implementation must enforce invitation or approval policy.
+      description: >-
+        Starts an asynchronous merchant provisioning Saga. A 200 response is returned only when both
+        the identity account and merchant record are ACTIVE. A 202 response contains no token; retries
+        with the same phone and payload resume the same registration, while a different payload conflicts.
       security: []
       requestBody:
         required: true
@@ -55,6 +60,7 @@ paths:
             schema: {$ref: '#/components/schemas/MerchantRegisterRequest'}
       responses:
         '200': {$ref: '#/components/responses/AuthResultResponse'}
+        '202': {$ref: '#/components/responses/MerchantRegistrationPendingResponse'}
         '400': {$ref: '#/components/responses/BadRequest'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -141,6 +147,10 @@ paths:
       x-internal-only: true
       servers: [{url: /internal/v1}]
       security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
       requestBody:
         required: true
         content:
@@ -170,6 +180,8 @@ paths:
         - {name: userId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
         - {name: addressId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
         - {$ref: '#/components/parameters/RequestId'}
+        - {$ref: '#/components/parameters/TraceParent'}
+        - {$ref: '#/components/parameters/CallerService'}
       responses:
         '200':
           description: Address snapshot source
@@ -184,6 +196,8 @@ components:
   parameters:
     AddressId: {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+    TraceParent: {name: traceparent, in: header, required: true, schema: {type: string, minLength: 55, maxLength: 128}}
+    CallerService: {name: X-Caller-Service, in: header, required: true, schema: {type: string, enum: [api-gateway, identity-service, merchant-service, order-service]}}
   schemas:
     LoginRequest:
       type: object
@@ -253,6 +267,15 @@ components:
         refreshToken: {type: string}
         expiresIn: {type: integer, minimum: 1}
         user: {$ref: '#/components/schemas/UserView'}
+    MerchantRegistrationPending:
+      type: object
+      additionalProperties: false
+      required: [registrationId, merchantId, status, retryAfterSeconds]
+      properties:
+        registrationId: {type: string, format: uuid}
+        merchantId: {type: integer, format: int64, minimum: 1}
+        status: {const: PENDING}
+        retryAfterSeconds: {type: integer, minimum: 1, maximum: 300}
     TokenClaims:
       type: object
       required: [active]
@@ -290,6 +313,18 @@ components:
               - {$ref: '#/components/schemas/SuccessEnvelope'}
               - type: object
                 properties: {data: {$ref: '#/components/schemas/AuthResult'}}
+    MerchantRegistrationPendingResponse:
+      description: Merchant provisioning is pending; no access or refresh token is issued
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [code, message, data]
+            properties:
+              code: {const: 202}
+              message: {const: accepted}
+              data: {$ref: '#/components/schemas/MerchantRegistrationPending'}
     UserResponse:
       description: User view
       content:

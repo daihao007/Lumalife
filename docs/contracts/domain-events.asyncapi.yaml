@@ -36,6 +36,18 @@ channels:
     publish:
       operationId: publishMerchantAccountBoundV1
       message: {$ref: '#/components/messages/MerchantAccountBoundV1'}
+  lumalife.identity.merchant-registration-requested.v1:
+    publish:
+      operationId: publishMerchantRegistrationRequestedV1
+      message: {$ref: '#/components/messages/MerchantRegistrationRequestedV1'}
+  lumalife.merchant.merchant-provisioned.v1:
+    publish:
+      operationId: publishMerchantProvisionedV1
+      message: {$ref: '#/components/messages/MerchantProvisionedV1'}
+  lumalife.merchant.merchant-provisioning-failed.v1:
+    publish:
+      operationId: publishMerchantProvisioningFailedV1
+      message: {$ref: '#/components/messages/MerchantProvisioningFailedV1'}
   lumalife.merchant.product-changed.v1:
     publish:
       operationId: publishProductChangedV1
@@ -79,6 +91,27 @@ components:
       x-producer: identity-service
       x-consumers: [merchant-service]
       payload: {$ref: '#/components/schemas/MerchantAccountBoundEnvelope'}
+    MerchantRegistrationRequestedV1:
+      name: MerchantRegistrationRequested.v1
+      messageId: MerchantRegistrationRequested.v1
+      title: Identity accepted a merchant registration and requested idempotent provisioning
+      x-producer: identity-service
+      x-consumers: [merchant-service]
+      payload: {$ref: '#/components/schemas/MerchantRegistrationRequestedEnvelope'}
+    MerchantProvisionedV1:
+      name: MerchantProvisioned.v1
+      messageId: MerchantProvisioned.v1
+      title: Merchant created the requested merchant fact
+      x-producer: merchant-service
+      x-consumers: [identity-service]
+      payload: {$ref: '#/components/schemas/MerchantProvisionedEnvelope'}
+    MerchantProvisioningFailedV1:
+      name: MerchantProvisioningFailed.v1
+      messageId: MerchantProvisioningFailed.v1
+      title: Merchant provisioning reached a terminal failure
+      x-producer: merchant-service
+      x-consumers: [identity-service]
+      payload: {$ref: '#/components/schemas/MerchantProvisioningFailedEnvelope'}
     ProductChangedV1:
       name: ProductChanged.v1
       messageId: ProductChanged.v1
@@ -172,12 +205,66 @@ components:
             payload:
               type: object
               additionalProperties: false
-              required: [userId, merchantId, nickname, boundAt]
+              required: [registrationId, userId, merchantId, nickname, boundAt]
               properties:
+                registrationId: {type: string, format: uuid}
                 userId: {type: integer, format: int64}
                 merchantId: {type: integer, format: int64}
                 nickname: {type: string}
                 boundAt: {type: string, format: date-time}
+    MerchantRegistrationRequestedEnvelope:
+      allOf:
+        - {$ref: '#/components/schemas/EventEnvelope'}
+        - type: object
+          properties:
+            eventType: {const: MerchantRegistrationRequested}
+            version: {const: 1}
+            producer: {const: identity-service}
+            payload:
+              type: object
+              additionalProperties: false
+              required: [registrationId, userId, merchantId, nickname, requestedAt]
+              properties:
+                registrationId: {type: string, format: uuid}
+                userId: {type: integer, format: int64}
+                merchantId: {type: integer, format: int64}
+                nickname: {type: string, minLength: 1, maxLength: 64}
+                requestedAt: {type: string, format: date-time}
+    MerchantProvisionedEnvelope:
+      allOf:
+        - {$ref: '#/components/schemas/EventEnvelope'}
+        - type: object
+          properties:
+            eventType: {const: MerchantProvisioned}
+            version: {const: 1}
+            producer: {const: merchant-service}
+            payload:
+              type: object
+              additionalProperties: false
+              required: [registrationId, userId, merchantId, provisionedAt]
+              properties:
+                registrationId: {type: string, format: uuid}
+                userId: {type: integer, format: int64}
+                merchantId: {type: integer, format: int64}
+                provisionedAt: {type: string, format: date-time}
+    MerchantProvisioningFailedEnvelope:
+      allOf:
+        - {$ref: '#/components/schemas/EventEnvelope'}
+        - type: object
+          properties:
+            eventType: {const: MerchantProvisioningFailed}
+            version: {const: 1}
+            producer: {const: merchant-service}
+            payload:
+              type: object
+              additionalProperties: false
+              required: [registrationId, userId, merchantId, reason, failedAt]
+              properties:
+                registrationId: {type: string, format: uuid}
+                userId: {type: integer, format: int64}
+                merchantId: {type: integer, format: int64}
+                reason: {type: string, minLength: 1, maxLength: 128}
+                failedAt: {type: string, format: date-time}
     ProductChangedEnvelope:
       allOf:
         - {$ref: '#/components/schemas/EventEnvelope'}
