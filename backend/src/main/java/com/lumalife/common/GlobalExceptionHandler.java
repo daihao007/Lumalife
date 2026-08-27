@@ -2,6 +2,7 @@ package com.lumalife.common;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,14 @@ public class GlobalExceptionHandler {
     String requestId = requestId(request);
     return ResponseEntity.status(status).header("X-Request-Id", requestId)
       .body(ErrorResponse.of(ex, requestId));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> malformedRequest(
+      HttpMessageNotReadableException ex, HttpServletRequest request) {
+    String requestId = requestId(request);
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).header("X-Request-Id", requestId)
+      .body(ErrorResponse.of(40000, "请求体格式错误", requestId));
   }
 
   @ExceptionHandler(Exception.class)

@@ -44,4 +44,30 @@ class ServiceBoundaryContractTest {
       .andExpect(jsonPath("$.reason").value("ROLE_NOT_ALLOWED"))
       .andExpect(jsonPath("$.data").value(nullValue()));
   }
+
+  @Test
+  void publicRegistrationAcceptsTheUserRoleSentByExistingClients() throws Exception {
+    mvc.perform(post("/api/v1/auth/register")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"phone\":\"contract-user-role-user-001\",\"password\":\"abc123456\",\"nickname\":\"普通用户\",\"role\":\"USER\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.code").value(200))
+      .andExpect(jsonPath("$.data.user.role").value("USER"))
+      .andExpect(jsonPath("$.data.token").isNotEmpty());
+  }
+
+  @Test
+  void invalidRoleReturnsBadRequestInsteadOfInternalServerError() throws Exception {
+    mvc.perform(post("/api/v1/auth/register")
+        .header("X-Request-Id", "contract-invalid-role-001")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"phone\":\"contract-invalid-role-001\",\"password\":\"abc123456\",\"nickname\":\"非法角色\",\"role\":\"NOT_A_ROLE\"}"))
+      .andExpect(status().isBadRequest())
+      .andExpect(header().string("X-Request-Id", "contract-invalid-role-001"))
+      .andExpect(jsonPath("$.code").value(40000))
+      .andExpect(jsonPath("$.message").value("请求体格式错误"))
+      .andExpect(jsonPath("$.data").value(nullValue()))
+      .andExpect(jsonPath("$.requestId").value("contract-invalid-role-001"))
+      .andExpect(jsonPath("$.reason").value("VALIDATION_FAILED"));
+  }
 }

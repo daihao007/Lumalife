@@ -21,7 +21,7 @@ public class AuthService {
   }
 
   public Map<String, Object> register(String phone, String password, String nickname, UserRole role) {
-    if (role != null) {
+    if (role != null && role != UserRole.USER) {
       throw new com.lumalife.common.BusinessException(40000, "普通注册不允许指定角色", "ROLE_NOT_ALLOWED");
     }
     return identity.registerUser(phone, password, nickname);
