@@ -58,7 +58,9 @@ services:
       retries: 20
       start_period: 20s
   identity-service:
-    build: ./services/identity-service
+    build:
+      context: ./services
+      dockerfile: identity-service/Dockerfile
     environment:
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
     ports:
@@ -69,7 +71,9 @@ services:
       timeout: 5s
       retries: 20
   merchant-service:
-    build: ./services/merchant-service
+    build:
+      context: ./services
+      dockerfile: merchant-service/Dockerfile
     environment:
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
     ports:
@@ -80,7 +84,9 @@ services:
       timeout: 5s
       retries: 20
   order-service:
-    build: ./services/order-service
+    build:
+      context: ./services
+      dockerfile: order-service/Dockerfile
     environment:
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
     ports:
