@@ -441,6 +441,18 @@ jobs:
           - component: frontend
             context: ./frontend
             image: ghcr.io/daihao007/lumalife-frontend
+          - component: identity-service
+            context: ./services
+            file: ./services/identity-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-identity-service
+          - component: merchant-service
+            context: ./services
+            file: ./services/merchant-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-merchant-service
+          - component: order-service
+            context: ./services
+            file: ./services/order-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-order-service
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -470,6 +482,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file || format('{0}/Dockerfile', matrix.context) }}
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
