@@ -509,14 +509,21 @@ jobs:
           image_tag="ci-${GITHUB_SHA::7}"
           docker build --provenance=false --tag "lumalife-backend:${image_tag}" backend
           docker build --provenance=false --tag "lumalife-frontend:${image_tag}" frontend
+          docker build --provenance=false --tag "lumalife-identity-service:${image_tag}" -f services/identity-service/Dockerfile services
+          docker build --provenance=false --tag "lumalife-merchant-service:${image_tag}" -f services/merchant-service/Dockerfile services
+          docker build --provenance=false --tag "lumalife-order-service:${image_tag}" -f services/order-service/Dockerfile services
           kind load docker-image --name lumalife-ci \
-            "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}"
+            "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}" \
+            "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}"
 
       - name: Deploy and verify probes in the disposable cluster
         shell: bash
         env:
           BACKEND_IMAGE: lumalife-backend
           FRONTEND_IMAGE: lumalife-frontend
+          IDENTITY_IMAGE: lumalife-identity-service
+          MERCHANT_IMAGE: lumalife-merchant-service
+          ORDER_IMAGE: lumalife-order-service
         run: bash scripts/deploy-k8s.sh "ci-${GITHUB_SHA::7}"
 
   kubernetes-deploy:
