@@ -29,7 +29,14 @@ public class MerchantStore {
       new Product(1002, 1, "毛血旺小锅", "课程演示热门搜索菜", 4280, 120, true))));
   }
 
-  public MerchantStore() { this.jdbc = null; merchants.put(1L, new Merchant(1, "巷口川味研究所", 1, "川湘菜", "OPEN")); merchants.put(2L, new Merchant(2, "晨雾咖啡局", 2, "咖啡茶饮", "OPEN")); products.put(1L, new ArrayList<>(List.of(new Product(1001,1,"藤椒鸡饭","麻香鲜亮，适合午餐",2680,88,true), new Product(1002,1,"毛血旺小锅","课程演示热门搜索菜",4280,120,true))); }
+  public MerchantStore() {
+    this.jdbc = null;
+    merchants.put(1L, new Merchant(1, "巷口川味研究所", 1, "川湘菜", "OPEN"));
+    merchants.put(2L, new Merchant(2, "晨雾咖啡局", 2, "咖啡茶饮", "OPEN"));
+    products.put(1L, new ArrayList<>(List.of(
+      new Product(1001, 1, "藤椒鸡饭", "麻香鲜亮，适合午餐", 2680, 88, true),
+      new Product(1002, 1, "毛血旺小锅", "课程演示热门搜索菜", 4280, 120, true))));
+  }
 
   public synchronized List<Merchant> search(String keyword) {
     String normalized = keyword == null ? "" : keyword.trim();
