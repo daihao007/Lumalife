@@ -1,0 +1,16 @@
+started_at=2026-08-28T15:12:09+08:00
+environment=Windows 11 amd64; Java 21.0.8; Maven 3.9.9; Node.js 24.16.0; npm 11.13.0
+browser=Codex In-app Browser
+backend=http://localhost:8080
+frontend=http://localhost:5173
+command=manual browser flow on localhost; frontend page regression: cd frontend && npm test -- --run
+step=merchant_save_publish; route=#/merchant/products; product_id=1009; marker=UC07-PAGE-1787901118369; listed=true; price=18.80; stock=7; assertion=passed
+step=user_refresh_published; route=#/merchants/1; marker_visible=true; add_cart_button_visible=true; assertion=passed
+step=merchant_unpublish; route=#/merchant/products; product_id=1009; listed=false; status=下架; assertion=passed
+step=user_reload_after_unpublish; route=#/merchants/1; marker_visible=false; add_cart_button_count=0; assertion=passed
+total=4
+passed=4
+failed=0
+failure_reason=none
+exit_code=0
+completed_at=2026-08-28T15:13:47+08:00
