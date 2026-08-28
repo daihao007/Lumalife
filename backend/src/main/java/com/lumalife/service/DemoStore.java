@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,6 +53,7 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Path stateFile;
   private final boolean persistenceEnabled;
+  private final BusinessStateRepository stateRepository;
   private final AtomicLong ids = new AtomicLong(1000);
   private final Map<String, User> users = new LinkedHashMap<>();
   private final Map<String, Long> tokens = new HashMap<>();
@@ -69,22 +71,37 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   private final List<OperationLog> logs = new ArrayList<>();
 
   @Autowired
-  public DemoStore(PasswordEncoder passwordEncoder, @Value("${lumalife.state-file:./data/lumalife-state.json}") String stateFile) {
-    this(passwordEncoder, stateFile == null || stateFile.isBlank() ? null : Path.of(stateFile), true);
+  public DemoStore(PasswordEncoder passwordEncoder,
+                   @Value("${lumalife.state-file:./data/lumalife-state.json}") String stateFile,
+                   @Value("${lumalife.persistence:file}") String persistenceMode,
+                   ObjectProvider<BusinessStateRepository> stateRepositories) {
+    this(passwordEncoder,
+      stateFile == null || stateFile.isBlank() ? null : Path.of(stateFile),
+      true,
+      "mysql".equalsIgnoreCase(persistenceMode) ? stateRepositories.getIfAvailable() : null);
+    if ("mysql".equalsIgnoreCase(persistenceMode) && stateRepository == null) {
+      throw new IllegalStateException("lumalife.persistence=mysql requires a BusinessStateRepository");
+    }
   }
 
   public DemoStore(PasswordEncoder passwordEncoder) {
-    this(passwordEncoder, null, false);
+    this(passwordEncoder, null, false, null);
   }
 
   DemoStore(PasswordEncoder passwordEncoder, Path stateFile) {
-    this(passwordEncoder, stateFile, true);
+    this(passwordEncoder, stateFile, true, null);
   }
 
-  private DemoStore(PasswordEncoder passwordEncoder, Path stateFile, boolean persistenceEnabled) {
+  DemoStore(PasswordEncoder passwordEncoder, BusinessStateRepository stateRepository) {
+    this(passwordEncoder, null, true, stateRepository);
+  }
+
+  private DemoStore(PasswordEncoder passwordEncoder, Path stateFile, boolean persistenceEnabled,
+                    BusinessStateRepository stateRepository) {
     this.passwordEncoder = passwordEncoder;
     this.stateFile = stateFile;
-    this.persistenceEnabled = persistenceEnabled && stateFile != null;
+    this.persistenceEnabled = persistenceEnabled && (stateFile != null || stateRepository != null);
+    this.stateRepository = stateRepository;
     this.objectMapper.registerModule(new JavaTimeModule());
     this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     seed();
@@ -555,6 +572,7 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
     List<CartItem> cart = cart(userId);
     cart.removeIf(i -> i.productId() == productId);
     cart.add(new CartItem(productId, quantity));
+    persistState();
     return cart;
   }
 
@@ -567,6 +585,7 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
     List<CartItem> cart = cart(userId);
     if (cart.stream().noneMatch(i -> i.productId() == productId)) throw new BusinessException(40400, "购物车商品不存在");
     cart.replaceAll(i -> i.productId() == productId ? new CartItem(productId, quantity) : i);
+    persistState();
     return cart;
   }
 
@@ -574,11 +593,13 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
     List<CartItem> cart = cart(userId);
     boolean removed = cart.removeIf(i -> i.productId() == productId);
     if (!removed) throw new BusinessException(40400, "购物车商品不存在");
+    persistState();
     return cart;
   }
 
   public void clearCart(long userId) {
     carts.remove(userId);
+    persistState();
   }
 
   public Order createDeliveryOrder(User user, Long addressId) {
@@ -1202,6 +1223,7 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
 
   private void log(String actor, String action) {
     logs.add(new OperationLog(ids.incrementAndGet(), actor, action, LocalDateTime.now()));
+    persistState();
   }
 
   private void syncMerchantNamesFromAccounts() {
@@ -1227,15 +1249,53 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   }
 
   private void loadPersistentState() {
-    if (!persistenceEnabled || !Files.exists(stateFile)) return;
+    if (!persistenceEnabled) return;
     try {
-      PersistentState state = objectMapper.readValue(stateFile.toFile(), PersistentState.class);
+      String payload;
+      if (stateRepository != null) {
+        payload = stateRepository.load().orElse(null);
+      } else {
+        if (!Files.exists(stateFile)) return;
+        payload = Files.readString(stateFile);
+      }
+      if (payload == null || payload.isBlank()) return;
+      PersistentState state = objectMapper.readValue(payload, PersistentState.class);
       boolean needsMigration = state.accounts() == null
         || state.orders() == null
         || state.reviews() == null
         || state.conversations() == null
-        || state.merchantProfiles() == null;
+        || state.merchantProfiles() == null
+        || state.addresses() == null
+        || state.products() == null
+        || state.deals() == null
+        || state.carts() == null
+        || state.logs() == null;
       if (state.accounts() != null) state.accounts().forEach(this::applyStoredAccount);
+      if (state.addresses() != null) {
+        addresses.clear();
+        state.addresses().forEach(address -> {
+          addresses.computeIfAbsent(address.userId(), ignored -> new ArrayList<>()).add(address);
+          bumpId(address.id());
+        });
+      }
+      if (state.products() != null) {
+        products.clear();
+        state.products().forEach(product -> {
+          products.put(product.id(), product);
+          bumpId(product.id());
+        });
+      }
+      if (state.deals() != null) {
+        deals.clear();
+        state.deals().forEach(deal -> {
+          deals.put(deal.id(), deal);
+          bumpId(deal.id());
+        });
+      }
+      if (state.carts() != null) {
+        carts.clear();
+        state.carts().forEach((userId, items) -> carts.put(userId, new ArrayList<>(items)));
+      }
       if (state.orders() != null) state.orders().forEach(this::applyStoredOrder);
       if (state.reviews() != null) state.reviews().forEach(review -> {
         reviews.put(review.id(), review);
@@ -1244,9 +1304,14 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
       if (state.conversations() != null) state.conversations().forEach(this::applyStoredConversation);
       if (state.merchantProfiles() != null) state.merchantProfiles().forEach(this::applyStoredMerchantProfile);
       if (state.favorites() != null) favorites.putAll(state.favorites());
+      if (state.logs() != null) {
+        logs.clear();
+        logs.addAll(state.logs());
+        state.logs().forEach(log -> bumpId(log.id()));
+      }
       if (needsMigration) persistState();
     } catch (IOException error) {
-      throw new IllegalStateException("Failed to load LumaLife state from " + stateFile, error);
+      throw new IllegalStateException("Failed to load LumaLife persistent state", error);
     }
   }
 
@@ -1304,8 +1369,6 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   private void persistState() {
     if (!persistenceEnabled) return;
     try {
-      Path parent = stateFile.getParent();
-      if (parent != null) Files.createDirectories(parent);
       List<AccountState> accounts = users.values().stream()
         .map(user -> new AccountState(user.id(), user.phone(), user.password(), user.nickname(), user.avatarUrl(),
           user.role(), user.merchantId(), user.merchantId() == null ? null : merchants.get(user.merchantId())))
@@ -1320,9 +1383,21 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
         .filter(user -> user.role() == UserRole.MERCHANT_ADMIN && user.merchantId() != null && merchants.containsKey(user.merchantId()))
         .map(user -> new MerchantProfileState(user.phone(), user.merchantId(), merchants.get(user.merchantId()).name()))
         .toList();
-      objectMapper.writerWithDefaultPrettyPrinter().writeValue(stateFile.toFile(), new PersistentState(accounts, persistedOrders, persistedReviews, persistedConversations, merchantProfiles, favorites.isEmpty() ? null : favorites));
+      List<Address> persistedAddresses = addresses.values().stream().flatMap(List::stream).toList();
+      PersistentState state = new PersistentState(accounts, persistedOrders, persistedReviews,
+        persistedConversations, merchantProfiles, favorites.isEmpty() ? null : favorites,
+        persistedAddresses, new ArrayList<>(products.values()), new ArrayList<>(deals.values()),
+        new LinkedHashMap<>(carts), new ArrayList<>(logs));
+      String payload = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(state);
+      if (stateRepository != null) {
+        stateRepository.save(payload);
+      } else {
+        Path parent = stateFile.getParent();
+        if (parent != null) Files.createDirectories(parent);
+        Files.writeString(stateFile, payload);
+      }
     } catch (IOException error) {
-      throw new IllegalStateException("Failed to save LumaLife state to " + stateFile, error);
+      throw new IllegalStateException("Failed to save LumaLife persistent state", error);
     }
   }
 
@@ -1332,7 +1407,8 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
 
   private record PersistentState(List<AccountState> accounts, List<Order> orders, List<Review> reviews,
                                  List<ConversationState> conversations, List<MerchantProfileState> merchantProfiles,
-                                 Map<Long, Set<Long>> favorites) {}
+                                 Map<Long, Set<Long>> favorites, List<Address> addresses, List<Product> products,
+                                 List<GroupDeal> deals, Map<Long, List<CartItem>> carts, List<OperationLog> logs) {}
   private record AccountState(long id, String phone, String password, String nickname, String avatarUrl, UserRole role, Long merchantId, Merchant merchant) {}
   private record ConversationState(List<ChatMessage> messages) {}
   private record MerchantProfileState(String phone, long merchantId, String nickname) {}
