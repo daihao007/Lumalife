@@ -1,6 +1,0 @@
-spring:
-  application:
-    name: merchant-service-test
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
