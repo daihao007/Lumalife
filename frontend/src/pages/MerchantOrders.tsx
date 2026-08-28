@@ -8,6 +8,7 @@ export default function MerchantOrders({ user, orders, reload, setMessage }: { u
   const [reviews, setReviews] = useState<Review[]>([]);
   const [code, setCode] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
   const actionLock = useRef(false);
 
   useEffect(() => {
@@ -27,13 +28,16 @@ export default function MerchantOrders({ user, orders, reload, setMessage }: { u
     if (!nextStatus) return;
     actionLock.current = true;
     setPendingAction(`transition-${order.id}`);
+    setActionError("");
     try {
       await api(`/api/v1/merchant-admin/orders/${order.id}/transition`, { method: "POST", body: JSON.stringify({ next: nextStatus }) });
       setMessage("订单状态已更新");
       await reload();
       setReviews(await api<Review[]>("/api/v1/merchant-admin/reviews"));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "订单状态更新失败，请重试");
+      const message = error instanceof Error ? error.message : "订单状态更新失败，请重试";
+      setActionError(message);
+      setMessage(message);
     } finally {
       actionLock.current = false;
       setPendingAction(null);
@@ -43,19 +47,25 @@ export default function MerchantOrders({ user, orders, reload, setMessage }: { u
   async function verify() {
     const normalizedCode = code.trim();
     if (!/^\d{12}$/.test(normalizedCode)) {
-      setMessage("请输入 12 位数字券码");
+      const message = "请输入 12 位数字券码";
+      setActionError(message);
+      setMessage(message);
       return;
     }
     if (actionLock.current) return;
     actionLock.current = true;
     setPendingAction("verify");
+    setActionError("");
     try {
       await api("/api/v1/merchant-admin/coupons/verify", { method: "POST", body: JSON.stringify({ code: normalizedCode }) });
       setMessage("券码核销成功");
+      setActionError("");
       setCode("");
       await reload();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "券码核销失败，请重试");
+      const message = error instanceof Error ? error.message : "券码核销失败，请重试";
+      setActionError(message);
+      setMessage(message);
     } finally {
       actionLock.current = false;
       setPendingAction(null);
@@ -65,6 +75,7 @@ export default function MerchantOrders({ user, orders, reload, setMessage }: { u
   return <>
     <section className="fulfillment-section">
       <h3>履约订单</h3>
+      {actionError && <p className="form-error" data-testid="merchant-orders-error" role="alert">{actionError}</p>}
       {orders.map((o: Order) => {
         const orderReviews = reviewsFor(o.id);
         return <div className="fulfillment-order" key={o.id}>
@@ -87,9 +98,10 @@ export default function MerchantOrders({ user, orders, reload, setMessage }: { u
     <section>
       <h3>团购核销</h3>
       <div className="chat-input">
-        <input aria-label="团购券码" inputMode="numeric" maxLength={12} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ""))} placeholder="输入 12 位券码" />
+        <input aria-label="团购券码" inputMode="numeric" maxLength={12} value={code} onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setActionError(""); }} placeholder="输入 12 位券码" />
         <button className="primary" data-testid="verify-coupon" disabled={pendingAction !== null || code.length !== 12} onClick={verify}><TicketCheck /> {pendingAction === "verify" ? "核销中…" : "核销"}</button>
       </div>
+      {code.length > 0 && code.length !== 12 && <p className="form-error" data-testid="coupon-format-error" role="alert">请输入 12 位数字券码</p>}
     </section>
   </>;
 }
