@@ -1131,8 +1131,13 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   }
 
   private void ensureMerchantAdmin(User admin) {
-    if (admin.role() != UserRole.MERCHANT_ADMIN || admin.merchantId() == null || !merchants.containsKey(admin.merchantId())) {
+    if (admin.role() != UserRole.MERCHANT_ADMIN || admin.merchantId() == null) {
       throw new BusinessException(40300, "商家账号未绑定店铺");
+    }
+    if (!merchants.containsKey(admin.merchantId())) {
+      merchants.put(admin.merchantId(), new Merchant(admin.merchantId(), admin.nickname(), 1, "川湘菜",
+        DEFAULT_CHUANXIANG_COVER, 5.0, 25, 0, 1.0, "营业中", "新商家地址待维护", "远程身份服务新建商家"));
+      persistState();
     }
   }
 
