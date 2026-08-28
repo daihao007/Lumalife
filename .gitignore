@@ -38,6 +38,7 @@ __pycache__/
 test-results/
 playwright-report/
 e2e/reports/
+ui-e2e/reports/
 
 # Runtime state and local application data
 /backend/data/
