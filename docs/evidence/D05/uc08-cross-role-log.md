@@ -22,7 +22,7 @@
 | 失败 | 0 |
 | 失败原因 | 无 |
 
-本次冲突解决以最新 `main` 提交 [`c3ce405b`](https://github.com/daihao007/Lumalife/commit/c3ce405bc55c7684a8eee780b50405a0b35ebfc7) 为基线，解决提交为 [`706e6fdd`](https://github.com/daihao007/Lumalife/commit/706e6fdd4377b66e5b328eed3b5e2bbb09b1e6bf)。
+本次冲突解决以任务二合并后的最新 `main` 提交 [`94b9598b`](https://github.com/daihao007/Lumalife/commit/94b9598b28e75fff4046b222aed1a71df6c5a8fc) 为基线；任务一将在本次同步提交后重新复核。
 
 ## 3. UC08 关键结果
 
