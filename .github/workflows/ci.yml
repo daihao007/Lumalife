@@ -207,7 +207,7 @@ jobs:
         shell: bash
         run: |
           mapfile -t running_services < <(docker compose ps --services --status running | sort)
-          expected_services=(backend frontend identity-service merchant-service order-service mysql)
+          expected_services=(backend frontend identity-service merchant-service mysql order-service)
           test "${running_services[*]}" = "${expected_services[*]}"
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
