@@ -302,11 +302,20 @@ class ApiSecurityIntegrationTest {
 
   @Test
   void platformAdminCanAccessMetrics() throws Exception {
+    String actuatorResponse = mvc.perform(get("/actuator/health"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").isNotEmpty())
+      .andReturn()
+      .getResponse()
+      .getContentAsString();
+    String actuatorStatus = objectMapper.readTree(actuatorResponse).path("status").asText();
+
     String response = mvc.perform(get("/api/v1/admin/metrics")
         .header("Authorization", bearer(login("13800000000", "admin123456"))))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.code").value(200))
-      .andExpect(jsonPath("$.data.health.status").value("UP"))
+      .andExpect(jsonPath("$.data.health.status").value(actuatorStatus))
+      .andExpect(jsonPath("$.data.health.source").value("/actuator/health"))
       .andExpect(jsonPath("$.data.overview.users").value(1))
       .andExpect(jsonPath("$.data.userAccounts[0].username").value("13800000001"))
       .andExpect(jsonPath("$.data.userAccounts[0].nickname").value("林夏"))
