@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - mysql.yaml
+  - services.yaml
   - backend.yaml
   - frontend.yaml
