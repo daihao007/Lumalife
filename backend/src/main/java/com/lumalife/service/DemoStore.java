@@ -996,7 +996,7 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
     ensureMerchantAdmin(admin);
     User customer = userById(userId);
     if (customer.role() != UserRole.USER) throw new BusinessException(40400, "用户账号不存在");
-    return new ArrayList<>(conversations.getOrDefault(conversationKey(userId, admin.merchantId()), List.of()));
+    return merchantConversationMessages(admin, userId);
   }
 
   public List<ChatMessage> sendUserMessage(User user, long merchantId, String content, Function<List<ChatMessage>, String> aiResponder) {
@@ -1017,11 +1017,19 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
     ensureMerchantAdmin(admin);
     User customer = userById(userId);
     if (customer.role() != UserRole.USER) throw new BusinessException(40400, "用户账号不存在");
-    List<ChatMessage> messages = conversations.computeIfAbsent(conversationKey(userId, admin.merchantId()), ignored -> new ArrayList<>());
+    List<ChatMessage> messages = merchantConversationMessages(admin, userId);
     messages.add(new ChatMessage(ids.incrementAndGet(), userId, admin.merchantId(), "MERCHANT", admin.nickname(), normalizeMessage(content), LocalDateTime.now()));
     persistState();
     log(admin.nickname(), "回复用户客服 " + customer.nickname());
     return new ArrayList<>(messages);
+  }
+
+  private List<ChatMessage> merchantConversationMessages(User admin, long userId) {
+    List<ChatMessage> messages = conversations.get(conversationKey(userId, admin.merchantId()));
+    if (messages == null || messages.isEmpty()) {
+      throw new BusinessException(40400, "商家会话不存在");
+    }
+    return messages;
   }
 
   private Map<String, Object> conversationSummary(List<ChatMessage> messages, boolean userSide) {
@@ -1123,8 +1131,13 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   }
 
   private void ensureMerchantAdmin(User admin) {
-    if (admin.role() != UserRole.MERCHANT_ADMIN || admin.merchantId() == null || !merchants.containsKey(admin.merchantId())) {
+    if (admin.role() != UserRole.MERCHANT_ADMIN || admin.merchantId() == null) {
       throw new BusinessException(40300, "商家账号未绑定店铺");
+    }
+    if (!merchants.containsKey(admin.merchantId())) {
+      merchants.put(admin.merchantId(), new Merchant(admin.merchantId(), admin.nickname(), 1, "川湘菜",
+        DEFAULT_CHUANXIANG_COVER, 5.0, 25, 0, 1.0, "营业中", "新商家地址待维护", "远程身份服务新建商家"));
+      persistState();
     }
   }
 

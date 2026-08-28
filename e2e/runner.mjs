@@ -12,10 +12,12 @@ const reportDir = path.resolve(rootDir, process.env.E2E_REPORT_DIR || "e2e/repor
 const startBackend = process.env.E2E_START_BACKEND !== "0";
 const results = [];
 const requestLog = [];
+const evidenceLog = [];
 const execFileAsync = promisify(execFile);
 let backendProcess;
 let sequence = 0;
 let environmentFailure;
+const suiteStartedAt = new Date().toISOString();
 
 const sensitiveLogKeys = new Set([
   "token",
@@ -87,10 +89,27 @@ async function request(method, endpoint, token, body, requestTimeoutMs = timeout
       json = { raw: text };
     }
     const result = { status: response.status, body: json };
-    requestLog.push({ method, endpoint, status: response.status, durationMs: Date.now() - startedAt, response: responseSummary(json) });
+    requestLog.push({
+      type: "http",
+      startedAt: new Date(startedAt).toISOString(),
+      completedAt: new Date().toISOString(),
+      method,
+      endpoint,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+      response: responseSummary(json)
+    });
     return result;
   } catch (error) {
-    requestLog.push({ method, endpoint, durationMs: Date.now() - startedAt, error: error.message });
+    requestLog.push({
+      type: "http",
+      startedAt: new Date(startedAt).toISOString(),
+      completedAt: new Date().toISOString(),
+      method,
+      endpoint,
+      durationMs: Date.now() - startedAt,
+      error: error.message
+    });
     throw error;
   } finally {
     clearTimeout(timer);
@@ -116,6 +135,10 @@ function expectCode(actual, status, code, message) {
   return body;
 }
 
+function recordEvidence(entry) {
+  evidenceLog.push({ recordedAt: new Date().toISOString(), type: "uc08-evidence", ...entry });
+}
+
 async function login(phone, password) {
   const response = await request("POST", "/api/v1/auth/login", undefined, { phone, password });
   const body = expectResponse(response, 200, `login failed for ${phone}`);
@@ -132,6 +155,18 @@ async function registerUser(label) {
   });
   const body = expectResponse(response, 200, `register failed for ${label}`);
   assert(body.data?.token, `registration returned no token for ${label}`, { response: body });
+  return body.data.token;
+}
+
+async function registerMerchant(label) {
+  const phone = `e2e-merchant-${Date.now()}-${sequence++}`;
+  const response = await request("POST", "/api/v1/auth/register/merchant", undefined, {
+    phone,
+    password: "abc123456",
+    nickname: `E2E ${label}`
+  });
+  const body = expectResponse(response, 200, `register merchant failed for ${label}`);
+  assert(body.data?.token, `merchant registration returned no token for ${label}`, { response: body });
   return body.data.token;
 }
 
@@ -427,6 +462,154 @@ async function cr06MerchantFulfillmentAndBoundaries() {
   assert(metrics.data?.health?.status === "UP", "platform metrics must report UP health", { response: metrics });
 }
 
+async function uc08CrossRoleCustomerService() {
+  const userToken = await registerUser("UC08");
+  const merchantToken = await login("13800000002", "abc123456");
+  const user = expectResponse(await request("GET", "/api/v1/auth/me", userToken), 200, "UC08 user lookup failed").data;
+  const merchantProfile = expectResponse(
+    await request("GET", "/api/v1/merchant-admin/profile", merchantToken),
+    200,
+    "UC08 merchant profile lookup failed"
+  ).data;
+  const merchantId = merchantProfile?.merchant?.id;
+  assert(user?.id && user.role === "USER", "UC08 actor must be a normal user", { actorId: user?.id, role: user?.role });
+  assert(merchantId && merchantProfile.user?.role === "MERCHANT_ADMIN", "UC08 actor must be a merchant administrator", {
+    merchantId,
+    role: merchantProfile.user?.role
+  });
+
+  const marker = `UC08-${Date.now()}-${sequence++}`;
+  const userContent = `请确认店内客服已收到消息 ${marker}`;
+  const sent = expectResponse(
+    await request("POST", `/api/v1/conversations/${merchantId}/messages`, userToken, { content: userContent }),
+    200,
+    "UC08 user message failed"
+  );
+  const sentMessages = sent.data;
+  const userMessage = sentMessages?.find((message) => message.senderRole === "USER" && message.content === userContent);
+  assert(userMessage, "UC08 response must contain the user's message", { response: sent });
+  recordEvidence({
+    step: "user-send",
+    actor: "USER",
+    userId: user.id,
+    merchantId,
+    messageId: userMessage.id,
+    senderRole: userMessage.senderRole,
+    content: userMessage.content,
+    responseStatus: 200
+  });
+
+  const merchantSummaries = expectResponse(
+    await request("GET", "/api/v1/merchant-admin/conversations", merchantToken),
+    200,
+    "UC08 merchant conversation list failed"
+  );
+  assert(merchantSummaries.data?.some((conversation) => conversation.userId === user.id && conversation.merchantId === merchantId),
+    "UC08 merchant must see the user's conversation", { response: merchantSummaries });
+  const merchantRead = expectResponse(
+    await request("GET", `/api/v1/merchant-admin/conversations/${user.id}`, merchantToken),
+    200,
+    "UC08 merchant conversation read failed"
+  );
+  const merchantUserMessage = merchantRead.data?.find((message) => message.id === userMessage.id);
+  assert(merchantUserMessage?.senderRole === "USER" && merchantUserMessage.content === userContent,
+    "UC08 merchant read must contain the original user message", { response: merchantRead });
+  recordEvidence({
+    step: "merchant-read",
+    actor: "MERCHANT_ADMIN",
+    userId: user.id,
+    merchantId,
+    messageId: merchantUserMessage.id,
+    senderRole: merchantUserMessage.senderRole,
+    content: merchantUserMessage.content,
+    responseStatus: 200
+  });
+
+  const merchantContent = `商家人工回复已收到，稍后为您处理 ${marker}`;
+  const replied = expectResponse(
+    await request("POST", `/api/v1/merchant-admin/conversations/${user.id}/messages`, merchantToken, { content: merchantContent }),
+    200,
+    "UC08 merchant reply failed"
+  );
+  const merchantMessage = replied.data?.find((message) => message.senderRole === "MERCHANT" && message.content === merchantContent);
+  assert(merchantMessage, "UC08 response must contain a human merchant reply", { response: replied });
+  recordEvidence({
+    step: "merchant-reply",
+    actor: "MERCHANT_ADMIN",
+    userId: user.id,
+    merchantId,
+    messageId: merchantMessage.id,
+    senderRole: merchantMessage.senderRole,
+    content: merchantMessage.content,
+    responseStatus: 200
+  });
+
+  const userRead = expectResponse(
+    await request("GET", `/api/v1/conversations/${merchantId}`, userToken),
+    200,
+    "UC08 user conversation re-read failed"
+  );
+  const rereadUserMessage = userRead.data?.find((message) => message.id === userMessage.id);
+  const rereadMerchantMessage = userRead.data?.find((message) => message.id === merchantMessage.id);
+  assert(rereadUserMessage?.senderRole === "USER" && rereadMerchantMessage?.senderRole === "MERCHANT" && rereadMerchantMessage.content === merchantContent,
+    "UC08 user re-read must contain both user message and human merchant reply", { response: userRead });
+  recordEvidence({
+    step: "user-reread",
+    actor: "USER",
+    userId: user.id,
+    merchantId,
+    messageIds: [rereadUserMessage.id, rereadMerchantMessage.id],
+    senderRoles: [rereadUserMessage.senderRole, rereadMerchantMessage.senderRole],
+    responseStatus: 200
+  });
+
+  const merchantBToken = await registerMerchant("UC08-B");
+  const merchantB = expectResponse(
+    await request("GET", "/api/v1/auth/me", merchantBToken),
+    200,
+    "UC08 merchant B lookup failed"
+  ).data;
+  assert(merchantB?.role === "MERCHANT_ADMIN" && merchantB.merchantId && merchantB.merchantId !== merchantId,
+    "UC08 merchant B must be a different merchant", { merchantAId: merchantId, merchantB });
+  const merchantBRead = await request("GET", `/api/v1/merchant-admin/conversations/${user.id}`, merchantBToken);
+  assert([403, 404].includes(merchantBRead.status),
+    "UC08 merchant B must not read merchant A conversation", { response: merchantBRead, merchantAId: merchantId, merchantBId: merchantB.merchantId });
+  const merchantBReply = await request(
+    "POST",
+    `/api/v1/merchant-admin/conversations/${user.id}/messages`,
+    merchantBToken,
+    { content: `越权回复应被拒绝 ${marker}` }
+  );
+  assert([403, 404].includes(merchantBReply.status),
+    "UC08 merchant B must not reply to merchant A conversation", { response: merchantBReply, merchantAId: merchantId, merchantBId: merchantB.merchantId });
+  recordEvidence({
+    step: "merchant-b-cross-merchant-boundary",
+    actor: "MERCHANT_ADMIN_B",
+    targetActor: "MERCHANT_ADMIN_A",
+    userId: user.id,
+    merchantAId: merchantId,
+    merchantBId: merchantB.merchantId,
+    readStatus: merchantBRead.status,
+    replyStatus: merchantBReply.status,
+    expectedStatuses: [403, 404]
+  });
+
+  const userOnMerchantApi = await request("GET", "/api/v1/merchant-admin/conversations", userToken);
+  assert(userOnMerchantApi.status === 403, "UC08 user must not access merchant conversations", { response: userOnMerchantApi });
+  recordEvidence({ step: "user-merchant-boundary", actor: "USER", responseStatus: userOnMerchantApi.status });
+
+  return {
+    userId: user.id,
+    merchantId,
+    marker,
+    messageIds: [userMessage.id, merchantMessage.id],
+    senderRoles: [userMessage.senderRole, merchantMessage.senderRole],
+    negativeBoundaryStatus: userOnMerchantApi.status,
+    crossMerchantReadStatus: merchantBRead.status,
+    crossMerchantReplyStatus: merchantBReply.status
+  };
+}
+
 async function waitForHealth(maxWaitMs) {
   const deadline = Date.now() + maxWaitMs;
   while (Date.now() < deadline) {
@@ -444,9 +627,10 @@ async function waitForHealth(maxWaitMs) {
 function startBackendProcess() {
   const windows = process.platform === "win32";
   const command = windows ? "cmd.exe" : "mvn";
+  const springBootArguments = `--server.port=${backendPort} --lumalife.state-file=`;
   const args = windows
-    ? ["/d", "/s", "/c", "mvn.cmd -q spring-boot:run -Dspring-boot.run.arguments=--lumalife.state-file= -Dspring-boot.run.fork=false"]
-    : ["-q", "spring-boot:run", "-Dspring-boot.run.arguments=--lumalife.state-file=", "-Dspring-boot.run.fork=false"];
+    ? ["/d", "/s", "/c", `mvn.cmd -q spring-boot:run "-Dspring-boot.run.arguments=${springBootArguments}" -Dspring-boot.run.fork=false`]
+    : ["-q", "spring-boot:run", `-Dspring-boot.run.arguments=${springBootArguments}`, "-Dspring-boot.run.fork=false"];
   backendProcess = spawn(command, args, {
     cwd: path.join(rootDir, "backend"),
     env: { ...process.env, SERVER_PORT: String(backendPort) },
@@ -490,8 +674,8 @@ async function runScenario(name, scenario) {
   const startedAt = new Date().toISOString();
   const start = Date.now();
   try {
-    await scenario();
-    results.push({ name, status: "passed", startedAt, durationMs: Date.now() - start });
+    const evidence = await scenario();
+    results.push({ name, status: "passed", startedAt, durationMs: Date.now() - start, ...(evidence ? { evidence } : {}) });
   } catch (error) {
     results.push({
       name,
@@ -520,7 +704,7 @@ async function writeReports() {
       }
     : { status: "passed" };
   const report = {
-    suite: "LumaLife CR-01~CR-06 API E2E",
+    suite: "LumaLife CR-01~CR-06 + UC08 cross-role API E2E",
     baseUrl,
     completedAt,
     environment,
@@ -529,8 +713,30 @@ async function writeReports() {
     failed: results.filter((item) => item.status === "failed").length,
     scenarios: results
   };
+  const failedScenarios = results.filter((item) => item.status === "failed");
+  const failureReasons = [
+    ...(environmentFailure ? [environmentFailure.message] : []),
+    ...failedScenarios.map((item) => `${item.name}: ${item.error.message}`)
+  ];
+  const runSummary = {
+    type: "run-summary",
+    command: `cd e2e && ${process.platform === "win32" ? "npm.cmd" : "npm"} test`,
+    startedAt: suiteStartedAt,
+    completedAt,
+    exitCode: environmentFailure || failedScenarios.length > 0 ? 1 : 0,
+    total: results.length,
+    passed: report.passed,
+    failed: report.failed,
+    failureReason: failureReasons.length === 0 ? null : failureReasons.join("; "),
+    failureReasons
+  };
+  report.runSummary = runSummary;
   await writeFile(path.join(reportDir, "e2e-report.json"), `${JSON.stringify(report, null, 2)}\n`);
-  await writeFile(path.join(reportDir, "e2e-raw.log"), requestLog.map((item) => JSON.stringify(item)).join("\n") + "\n");
+  await writeFile(path.join(reportDir, "e2e-raw.log"), [
+    ...requestLog.map((item) => JSON.stringify(item)),
+    ...evidenceLog.map((item) => JSON.stringify(item)),
+    JSON.stringify(runSummary)
+  ].join("\n") + "\n");
   const cases = results.map((item) => {
     if (item.status === "passed") return `    <testcase name="${xmlEscape(item.name)}" time="${(item.durationMs / 1000).toFixed(3)}" />`;
     return `    <testcase name="${xmlEscape(item.name)}" time="${(item.durationMs / 1000).toFixed(3)}"><failure message="${xmlEscape(item.error.message)}">${xmlEscape(JSON.stringify(item.error.details))}</failure></testcase>`;
@@ -592,6 +798,7 @@ async function main() {
     await runScenario("CR-04 团购购买、券码核销与异常边界", cr04GroupBuyAndCouponLifecycle);
     await runScenario("CR-05 完成订单评价、评分校验与重复评价限制", cr05ReviewLifecycle);
     await runScenario("CR-06 商家履约、商品/套餐校验与角色边界", cr06MerchantFulfillmentAndBoundaries);
+    await runScenario("UC08 user-merchant customer service cross-role loop", uc08CrossRoleCustomerService);
   }
   const report = await writeReports();
   console.log(`E2E ${report.passed}/${report.total} passed; environment: ${report.environment.status}; report: ${path.relative(rootDir, reportDir)}`);

@@ -7,12 +7,12 @@ async function clearAndOpen(page: Page, hash = "#login") {
   if (hash === "#login") await page.getByTestId("nav-login").click();
 }
 
-async function login(page: Page, phone: string, password = "abc123456") {
+async function login(page: Page, phone: string, expectedNav = "nav-home", password = "abc123456") {
   await clearAndOpen(page);
   await page.getByTestId("auth-phone").fill(phone);
   await page.getByTestId("auth-password").fill(password);
   await page.getByTestId("auth-submit").click();
-  await expect(page.getByTestId("nav-home")).toBeVisible();
+  await expect(page.getByTestId(expectedNav)).toBeVisible();
 }
 
 async function register(page: Page, label: string) {
@@ -49,28 +49,37 @@ test("用户可以在页面维护地址并创建待支付订单", async ({ page 
   await expect(page.getByText("待支付").first()).toBeVisible();
 });
 
-test("用户和商家可以在两个真实浏览器上下文中完成客服往返", async ({ browser }) => {
+test("用户和商家可以在两个真实浏览器上下文中完成客服往返", async ({ browser }, testInfo) => {
   const userContext = await browser.newContext();
   const merchantContext = await browser.newContext();
   const userPage = await userContext.newPage();
   const merchantPage = await merchantContext.newPage();
+  const runId = `${Date.now()}-${testInfo.retry}`;
+  const userMessage = `UI E2E 客服提问 ${runId}`;
+  const merchantReply = `UI E2E 客服回复 ${runId}`;
   try {
     await login(userPage, "13800000001");
     await userPage.getByTestId("merchant-card-1").click();
     await userPage.getByTestId("contact-merchant").click();
-    await userPage.getByTestId("user-chat-input").fill("请问今天营业到几点？");
+    await userPage.getByTestId("user-chat-input").fill(userMessage);
     await userPage.getByTestId("user-chat-send").click();
-    await expect(userPage.getByText("请问今天营业到几点？")).toBeVisible();
+    await expect(userPage.locator(".chat-messages").getByText(userMessage, { exact: true })).toBeVisible();
 
-    await login(merchantPage, "13800000002");
+    await login(merchantPage, "13800000002", "nav-merchant-orders");
     await merchantPage.getByTestId("nav-merchant-support").click();
-    await merchantPage.getByRole("button", { name: /林夏/ }).click();
-    await merchantPage.getByTestId("merchant-chat-input").fill("晚上九点前营业，欢迎到店。");
+    const conversation = merchantPage.getByRole("button", { name: /林夏/ }).first();
+    await expect(conversation).toBeVisible();
+    await conversation.click();
+    await expect(merchantPage.locator(".chat-messages").getByText(userMessage, { exact: true })).toBeVisible();
+    await merchantPage.getByTestId("merchant-chat-input").fill(merchantReply);
     await merchantPage.getByTestId("merchant-chat-send").click();
-    await expect(merchantPage.getByText("晚上九点前营业，欢迎到店。").last()).toBeVisible();
+    await expect(merchantPage.locator(".chat-messages").getByText(merchantReply, { exact: true })).toBeVisible();
 
     await userPage.reload();
-    await expect(userPage.getByText("晚上九点前营业，欢迎到店。").last()).toBeVisible();
+    const refreshedConversation = userPage.getByRole("button", { name: new RegExp(merchantReply) });
+    await expect(refreshedConversation).toBeVisible();
+    await refreshedConversation.click();
+    await expect(userPage.locator(".chat-messages").getByText(merchantReply, { exact: true })).toBeVisible();
   } finally {
     await userContext.close();
     await merchantContext.close();

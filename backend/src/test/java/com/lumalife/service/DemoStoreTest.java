@@ -348,6 +348,19 @@ class DemoStoreTest {
   }
 
   @Test
+  void merchantCannotReadOrReplyToAnotherMerchantsConversation() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User customer = store.userByPhone("13800000001");
+    User merchantA = store.userByPhone("13800000002");
+    User merchantB = store.userByPhone("13800000003");
+
+    store.sendUserMessage(customer, merchantA.merchantId(), "只属于商家 A 的会话", ignored -> "收到");
+
+    Assertions.assertThrows(BusinessException.class, () -> store.merchantConversation(merchantB, customer.id()));
+    Assertions.assertThrows(BusinessException.class, () -> store.sendMerchantMessage(merchantB, customer.id(), "越权回复"));
+  }
+
+  @Test
   void deliveryOrderUsesSelectedAddressSnapshot() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
