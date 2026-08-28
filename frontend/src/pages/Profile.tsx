@@ -60,7 +60,7 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
           <input value={profile.nickname} onChange={e => setProfile({ ...profile, nickname: e.target.value })} placeholder="昵称" />
           <label className="upload-button"><Upload size={16} /> 选择头像<input type="file" accept="image/*" onChange={e => uploadAvatar(e.target.files?.[0])} /></label>
         </div>
-        <button className="primary" onClick={saveProfile}>保存资料</button>
+      <button data-testid="profile-save" className="primary" onClick={saveProfile}>保存资料</button>
       </div>
       <h3>收货地址</h3>
       {addresses.map(a => <div className="line" key={a.id}><span><b>{a.contactName} · {a.phone}</b><small>{a.detail}</small></span><strong>{a.defaultAddress ? "默认" : ""}</strong><button onClick={() => edit(a)}>修改</button><button onClick={() => makeDefault(a.id)}>设默认</button><button onClick={() => remove(a.id)}>删除</button></div>)}
@@ -70,10 +70,10 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
       <div className="form-grid">
         <input value={form.contactName} onChange={e => setForm({ ...form, contactName: e.target.value })} placeholder="联系人" />
         <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="手机号" />
-        <input value={form.detail} onChange={e => setForm({ ...form, detail: e.target.value })} placeholder="详细地址" />
+        <input data-testid="address-detail" value={form.detail} onChange={e => setForm({ ...form, detail: e.target.value })} placeholder="详细地址" />
         <label className="check"><input type="checkbox" checked={form.defaultAddress} onChange={e => setForm({ ...form, defaultAddress: e.target.checked })} /> 默认地址</label>
       </div>
-      <button className="primary" onClick={save}>{form.id ? "更新地址" : "保存地址"}</button>
+      <button data-testid="address-save" className="primary" onClick={save}>{form.id ? "更新地址" : "保存地址"}</button>
       {form.id && <button onClick={() => setForm(emptyForm)}>取消修改</button>}
     </section>
   </div>;
