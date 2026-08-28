@@ -15,6 +15,21 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
+lumalife:
+  migration:
+    identity:
+      enabled: ${LUMALIFE_IDENTITY_REMOTE_ENABLED:false}
+    merchant:
+      enabled: ${LUMALIFE_MERCHANT_REMOTE_ENABLED:false}
+    order:
+      enabled: ${LUMALIFE_ORDER_REMOTE_ENABLED:false}
+  services:
+    identity:
+      base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+    merchant:
+      base-url: ${MERCHANT_SERVICE_URL:http://localhost:8082}
+    order:
+      base-url: ${ORDER_SERVICE_URL:http://localhost:8083}
 agnes:
   endpoint: https://apihub.agnes-ai.com/v1/chat/completions
   model: agnes-2.0-flash
