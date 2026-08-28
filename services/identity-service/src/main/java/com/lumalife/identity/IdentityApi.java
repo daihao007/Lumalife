@@ -47,23 +47,38 @@ public class IdentityApi {
   }
 
   @PutMapping("/users/{id}/profile")
-  Map<String, Object> profile(@PathVariable long id, @RequestBody ProfileRequest request) {
+  Map<String, Object> profile(@PathVariable long id, @RequestHeader("X-User-Id") long actorId,
+                              @RequestBody ProfileRequest request) {
+    store.requireActor(id, actorId);
     return store.safe(store.updateProfile(id, request.nickname(), request.avatarUrl()));
   }
 
   @GetMapping("/users/{id}/addresses")
-  List<IdentityStore.Address> addresses(@PathVariable long id) { return store.addresses(id); }
+  List<IdentityStore.Address> addresses(@PathVariable long id, @RequestHeader("X-User-Id") long actorId) {
+    store.requireActor(id, actorId);
+    return store.addresses(id);
+  }
 
   @PostMapping("/users/{id}/addresses")
-  IdentityStore.Address saveAddress(@PathVariable long id, @RequestBody AddressRequest request) {
+  IdentityStore.Address saveAddress(@PathVariable long id, @RequestHeader("X-User-Id") long actorId,
+                                    @RequestBody AddressRequest request) {
+    store.requireActor(id, actorId);
     return store.saveAddress(id, request.id(), request.contactName(), request.phone(), request.detail(), request.defaultAddress());
   }
 
   @PostMapping("/users/{id}/addresses/{addressId}/default")
-  IdentityStore.Address setDefault(@PathVariable long id, @PathVariable long addressId) { return store.setDefault(id, addressId); }
+  IdentityStore.Address setDefault(@PathVariable long id, @PathVariable long addressId,
+                                   @RequestHeader("X-User-Id") long actorId) {
+    store.requireActor(id, actorId);
+    return store.setDefault(id, addressId);
+  }
 
   @DeleteMapping("/users/{id}/addresses/{addressId}")
-  void deleteAddress(@PathVariable long id, @PathVariable long addressId) { store.deleteAddress(id, addressId); }
+  void deleteAddress(@PathVariable long id, @PathVariable long addressId,
+                     @RequestHeader("X-User-Id") long actorId) {
+    store.requireActor(id, actorId);
+    store.deleteAddress(id, addressId);
+  }
 
   private String token(String authorization) {
     if (authorization == null || !authorization.startsWith("Bearer ")) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "未认证");

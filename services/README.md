@@ -32,12 +32,14 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 - `/actuator/health/readiness`
 - `/actuator/info`
 
+所有 `/internal/v1/**` 请求都必须携带 `X-Luma-Service-Token`，该值由 `LUMALIFE_INTERNAL_SERVICE_TOKEN` 配置。涉及用户或商家写入的请求还必须携带与路径/请求体一致的 `X-User-Id` 或 `X-Merchant-Id`，避免仅凭路径参数越权。
+
 业务契约入口：
 
 - identity-service：`/internal/v1/auth/*`、`/internal/v1/users/*`
 - merchant-service：`/internal/v1/merchants/*`
 - order-service：`/internal/v1/orders/*`
 
-单体网关默认保持 `monolith` 路由；设置 `LUMALIFE_IDENTITY_REMOTE_ENABLED=true` 并配置 `IDENTITY_SERVICE_URL` 后，身份登录、令牌校验、注册、资料和地址请求切换到 identity-service。通过 `GET /internal/migration/status` 可查看当前路由，出现问题时把对应开关改回 `false` 即可回滚。
+单体网关默认保持 `monolith` 路由；设置 `LUMALIFE_IDENTITY_REMOTE_ENABLED=true`、`LUMALIFE_IDENTITY_BACKFILL_COMPLETED=true`、`IDENTITY_SERVICE_URL` 和共享服务令牌后，身份登录、令牌校验、注册、资料和地址请求才会切换到 identity-service。identity-service 使用 `LUMALIFE_IDENTITY_STATE_FILE` 持久化用户、地址和令牌。通过 `GET /internal/migration/status` 可查看当前路由；merchant/order 在后端适配器完成前固定为 `not-wired`，回滚身份流量时把 `LUMALIFE_IDENTITY_REMOTE_ENABLED` 改回 `false`。
 
 业务迁移必须遵守 `docs/19_D04C微服务边界接口与数据归属初稿.md` 冻结的所有权，不允许跨域 Repository、共享可写数据库表或复制单体业务代码形成双写。

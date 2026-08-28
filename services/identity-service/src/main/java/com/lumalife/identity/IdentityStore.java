@@ -1,11 +1,17 @@
 package com.lumalife.identity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,19 +24,35 @@ public class IdentityStore {
                         boolean defaultAddress) {}
 
   private final PasswordEncoder passwordEncoder;
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final Path stateFile;
   private final AtomicLong ids = new AtomicLong(1000);
+  private final AtomicLong merchantIds = new AtomicLong(2);
   private final Map<String, User> users = new LinkedHashMap<>();
   private final Map<String, Long> tokens = new LinkedHashMap<>();
   private final Map<Long, List<Address>> addresses = new LinkedHashMap<>();
 
+  @Autowired
+  public IdentityStore(PasswordEncoder passwordEncoder,
+                       @Value("${lumalife.identity.state-file:./data/identity-state.json}") String stateFile) {
+    this(passwordEncoder, stateFile == null || stateFile.isBlank() ? null : Path.of(stateFile));
+  }
+
   public IdentityStore(PasswordEncoder passwordEncoder) {
+    this(passwordEncoder, (Path) null);
+  }
+
+  IdentityStore(PasswordEncoder passwordEncoder, Path stateFile) {
     this.passwordEncoder = passwordEncoder;
+    this.stateFile = stateFile;
     seed(6, "13800000000", "admin123456", "平台管理员", "PLATFORM_ADMIN", null);
     seed(1, "13800000001", "abc123456", "林夏", "USER", null);
     seed(2, "13800000002", "abc123456", "巷口川味研究所", "MERCHANT_ADMIN", 1L);
     seed(3, "13800000003", "abc123456", "晨雾咖啡局", "MERCHANT_ADMIN", 2L);
     addresses.put(1L, new ArrayList<>(List.of(
       new Address(2101, 1, "林夏", "13800000001", "梧桐路 18 号 2 单元 601", true))));
+    loadPersistentState();
+    if (stateFile != null && !Files.exists(stateFile)) persistState();
   }
 
   public synchronized Map<String, Object> login(String phone, String password) {
@@ -40,6 +62,7 @@ public class IdentityStore {
     }
     String token = UUID.randomUUID().toString();
     tokens.put(token, user.id());
+    persistState();
     return Map.of("token", token, "user", safe(user));
   }
 
@@ -62,8 +85,9 @@ public class IdentityStore {
       throw new IdentityException(400, "用户名和至少 6 位密码不能为空");
     }
     if (users.containsKey(normalized)) throw new IdentityException(409, "用户名已注册");
+    boolean merchantAdmin = "MERCHANT_ADMIN".equals(role);
     User user = seed(ids.incrementAndGet(), normalized, password, nickname == null || nickname.isBlank() ? "新用户" : nickname.trim(),
-      "MERCHANT_ADMIN".equals(role) ? "MERCHANT_ADMIN" : "USER", null);
+      merchantAdmin ? "MERCHANT_ADMIN" : "USER", merchantAdmin ? merchantIds.incrementAndGet() : null);
     return login(normalized, password);
   }
 
@@ -73,7 +97,13 @@ public class IdentityStore {
       nickname == null || nickname.isBlank() ? old.nickname() : nickname.trim(),
       avatarUrl == null ? old.avatarUrl() : avatarUrl.trim(), old.role(), old.merchantId());
     users.put(updated.phone(), updated);
+    persistState();
     return updated;
+  }
+
+  public synchronized void requireActor(long targetUserId, long actorUserId) {
+    if (targetUserId != actorUserId) throw new IdentityException(403, "不能操作其他用户的数据");
+    byId(targetUserId);
   }
 
   public synchronized List<Address> addresses(long userId) {
@@ -89,6 +119,7 @@ public class IdentityStore {
     long addressId = id;
     list.removeIf(item -> item.id() == addressId);
     list.add(address);
+    persistState();
     return address;
   }
 
@@ -98,6 +129,7 @@ public class IdentityStore {
       .orElseThrow(() -> new IdentityException(404, "地址不存在"));
     List<Address> owned = addresses.computeIfAbsent(userId, ignored -> new ArrayList<>());
     owned.replaceAll(item -> new Address(item.id(), item.userId(), item.contactName(), item.phone(), item.detail(), item.id() == id));
+    persistState();
     return owned.stream().filter(item -> item.id() == id).findFirst().orElse(found);
   }
 
@@ -108,6 +140,7 @@ public class IdentityStore {
       Address first = list.get(0);
       list.set(0, new Address(first.id(), first.userId(), first.contactName(), first.phone(), first.detail(), true));
     }
+    persistState();
   }
 
   public synchronized User byId(long id) {
@@ -125,6 +158,8 @@ public class IdentityStore {
   private User seed(long id, String phone, String password, String nickname, String role, Long merchantId) {
     User user = new User(id, phone, passwordEncoder.encode(password), nickname, "", role, merchantId);
     users.put(phone, user);
+    ids.updateAndGet(current -> Math.max(current, id));
+    if (merchantId != null) merchantIds.updateAndGet(current -> Math.max(current, merchantId));
     return user;
   }
 
@@ -132,5 +167,48 @@ public class IdentityStore {
     private final int status;
     public IdentityException(int status, String message) { super(message); this.status = status; }
     public int status() { return status; }
+    public String reason() {
+      return switch (status) {
+        case 400 -> "VALIDATION_FAILED";
+        case 401 -> "AUTHENTICATION_FAILED";
+        case 403 -> "FORBIDDEN";
+        case 404 -> "NOT_FOUND";
+        case 409 -> "CONFLICT";
+        default -> "IDENTITY_ERROR";
+      };
+    }
   }
+
+  private void loadPersistentState() {
+    if (stateFile == null || !Files.exists(stateFile)) return;
+    try {
+      PersistentState state = objectMapper.readValue(stateFile.toFile(), PersistentState.class);
+      users.clear();
+      if (state.users() != null) state.users().forEach(user -> users.put(user.phone(), user));
+      addresses.clear();
+      if (state.addresses() != null) state.addresses().forEach((id, values) -> addresses.put(id, new ArrayList<>(values)));
+      tokens.clear();
+      if (state.tokens() != null) tokens.putAll(state.tokens());
+      users.values().forEach(user -> {
+        ids.updateAndGet(current -> Math.max(current, user.id()));
+        if (user.merchantId() != null) merchantIds.updateAndGet(current -> Math.max(current, user.merchantId()));
+      });
+      addresses.values().stream().flatMap(List::stream).forEach(address -> ids.updateAndGet(current -> Math.max(current, address.id())));
+    } catch (IOException error) {
+      throw new IllegalStateException("Failed to load identity state from " + stateFile, error);
+    }
+  }
+
+  private synchronized void persistState() {
+    if (stateFile == null) return;
+    try {
+      Path parent = stateFile.getParent();
+      if (parent != null) Files.createDirectories(parent);
+      objectMapper.writeValue(stateFile.toFile(), new PersistentState(new ArrayList<>(users.values()), addresses, tokens));
+    } catch (IOException error) {
+      throw new IllegalStateException("Failed to persist identity state to " + stateFile, error);
+    }
+  }
+
+  private record PersistentState(List<User> users, Map<Long, List<Address>> addresses, Map<String, Long> tokens) {}
 }

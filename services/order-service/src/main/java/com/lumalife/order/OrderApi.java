@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/internal/v1/orders")
@@ -17,7 +19,11 @@ public class OrderApi {
   public OrderApi(OrderStore store) { this.store = store; }
 
   @PostMapping
-  OrderStore.Order create(@RequestBody OrderStore.CreateOrderRequest request) { return store.create(request); }
+  OrderStore.Order create(@RequestHeader("X-User-Id") long actorUserId,
+                          @RequestBody OrderStore.CreateOrderRequest request) {
+    if (request.userId() != actorUserId) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能代替其他用户创建订单");
+    return store.create(request);
+  }
 
   @GetMapping
   List<OrderStore.Order> orders(@RequestHeader("X-User-Id") long userId) { return store.byUser(userId); }

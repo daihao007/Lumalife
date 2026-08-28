@@ -16,13 +16,12 @@ springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
 lumalife:
+  internal:
+    service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
   migration:
     identity:
       enabled: ${LUMALIFE_IDENTITY_REMOTE_ENABLED:false}
-    merchant:
-      enabled: ${LUMALIFE_MERCHANT_REMOTE_ENABLED:false}
-    order:
-      enabled: ${LUMALIFE_ORDER_REMOTE_ENABLED:false}
+      backfill-completed: ${LUMALIFE_IDENTITY_BACKFILL_COMPLETED:false}
   services:
     identity:
       base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}

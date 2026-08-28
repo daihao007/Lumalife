@@ -3,6 +3,9 @@ server:
 spring:
   application:
     name: merchant-service
+lumalife:
+  internal:
+    service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
 management:
   endpoint:
     health:

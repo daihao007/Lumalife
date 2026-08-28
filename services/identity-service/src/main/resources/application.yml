@@ -3,6 +3,11 @@ server:
 spring:
   application:
     name: identity-service
+lumalife:
+  internal:
+    service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
+  identity:
+    state-file: ${LUMALIFE_IDENTITY_STATE_FILE:./data/identity-state.json}
 management:
   endpoint:
     health:

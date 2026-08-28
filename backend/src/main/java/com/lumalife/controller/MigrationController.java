@@ -11,13 +11,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/internal/migration")
 public class MigrationController {
   @Value("${lumalife.migration.identity.enabled:false}") private boolean identity;
-  @Value("${lumalife.migration.merchant.enabled:false}") private boolean merchant;
-  @Value("${lumalife.migration.order.enabled:false}") private boolean order;
+  @Value("${lumalife.migration.identity.backfill-completed:false}") private boolean identityBackfillCompleted;
 
   @GetMapping("/status")
   Map<String, Object> status() {
-    return Map.of("identity", route(identity), "merchant", route(merchant), "order", route(order), "rollback", "set corresponding LUMALIFE_*_REMOTE_ENABLED=false");
+    return Map.of(
+      "identity", identityRoute(),
+      "merchant", "not-wired",
+      "order", "not-wired",
+      "rollback", "set LUMALIFE_IDENTITY_REMOTE_ENABLED=false",
+      "note", "merchant/order switches are intentionally unavailable until their adapters own real traffic");
   }
 
-  private String route(boolean remote) { return remote ? "remote-service" : "monolith"; }
+  private String identityRoute() {
+    if (!identity) return "monolith";
+    return identityBackfillCompleted ? "remote-service" : "blocked-backfill-required";
+  }
 }
