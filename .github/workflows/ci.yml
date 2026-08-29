@@ -214,6 +214,34 @@ jobs:
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
           docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\")"' | grep -qx 4
 
+      - name: Verify relational business persistence across backend restart
+        shell: bash
+        run: |
+          login_response=$(curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -d '{"phone":"13800000001","password":"abc123456"}' \
+            http://localhost:8080/api/v1/auth/login)
+          token=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["token"])' <<< "$login_response")
+          curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $token" \
+            -d '{"productId":1001,"quantity":2}' \
+            http://localhost:8080/api/v1/cart/items | grep -q '"productId":1001'
+
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM cart_item WHERE user_id=1 AND product_id=1001 AND quantity=2"' | grep -qx 1
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM business_state"' | grep -qx 0
+
+          docker compose restart backend
+          docker compose up --detach --wait backend
+          login_response=$(curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            -d '{"phone":"13800000001","password":"abc123456"}' \
+            http://localhost:8080/api/v1/auth/login)
+          token=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["token"])' <<< "$login_response")
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $token" \
+            http://localhost:8080/api/v1/cart | grep -q '"productId":1001'
+
       - name: Export stack status and logs
         if: failure()
         run: |

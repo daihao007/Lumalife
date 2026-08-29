@@ -23,8 +23,8 @@ metadata:
     app.kubernetes.io/name: lumalife-backend
     app.kubernetes.io/part-of: lumalife
 spec:
-  # DemoStore keeps the active aggregate in-process and persists snapshots to MySQL.
-  # Keep a single writer until the state is split into transactional repositories.
+  # The domain aggregate remains in-process while its durable state lives in
+  # normalized MySQL tables. Keep one writer until repositories load per request.
   replicas: 1
   revisionHistoryLimit: 3
   strategy:

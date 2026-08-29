@@ -1269,13 +1269,21 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
         || state.products() == null
         || state.deals() == null
         || state.carts() == null
-        || state.logs() == null;
+        || state.logs() == null
+        || state.categories() == null;
       if (state.accounts() != null) state.accounts().forEach(this::applyStoredAccount);
       if (state.addresses() != null) {
         addresses.clear();
         state.addresses().forEach(address -> {
           addresses.computeIfAbsent(address.userId(), ignored -> new ArrayList<>()).add(address);
           bumpId(address.id());
+        });
+      }
+      if (state.categories() != null) {
+        categories.clear();
+        state.categories().forEach(category -> {
+          categories.put(category.id(), category);
+          bumpId(category.id());
         });
       }
       if (state.products() != null) {
@@ -1387,7 +1395,7 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
       PersistentState state = new PersistentState(accounts, persistedOrders, persistedReviews,
         persistedConversations, merchantProfiles, favorites.isEmpty() ? null : favorites,
         persistedAddresses, new ArrayList<>(products.values()), new ArrayList<>(deals.values()),
-        new LinkedHashMap<>(carts), new ArrayList<>(logs));
+        new LinkedHashMap<>(carts), new ArrayList<>(logs), new ArrayList<>(categories.values()));
       String payload = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(state);
       if (stateRepository != null) {
         stateRepository.save(payload);
@@ -1408,7 +1416,8 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   private record PersistentState(List<AccountState> accounts, List<Order> orders, List<Review> reviews,
                                  List<ConversationState> conversations, List<MerchantProfileState> merchantProfiles,
                                  Map<Long, Set<Long>> favorites, List<Address> addresses, List<Product> products,
-                                 List<GroupDeal> deals, Map<Long, List<CartItem>> carts, List<OperationLog> logs) {}
+                                 List<GroupDeal> deals, Map<Long, List<CartItem>> carts, List<OperationLog> logs,
+                                 List<Category> categories) {}
   private record AccountState(long id, String phone, String password, String nickname, String avatarUrl, UserRole role, Long merchantId, Merchant merchant) {}
   private record ConversationState(List<ChatMessage> messages) {}
   private record MerchantProfileState(String phone, long merchantId, String nickname) {}

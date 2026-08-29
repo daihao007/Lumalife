@@ -22,7 +22,7 @@ Kubernetes 清单同时交付 MySQL StatefulSet、持久卷、后端和前端。
 
 ## 2. Kubernetes 资源
 
-`k8s/` 使用原生 Kustomize，包含固定命名空间 `lumalife`、MySQL StatefulSet/PVC、后端单副本 Deployment、前端双副本 Deployment 与 ClusterIP Service。后端暂为单副本，是为了满足当前聚合快照的单写者约束。
+`k8s/` 使用原生 Kustomize，包含固定命名空间 `lumalife`、MySQL StatefulSet/PVC、后端单副本 Deployment、前端双副本 Deployment 与 ClusterIP Service。后端持久化已使用 MySQL 关系表事务，但领域聚合仍在进程内，因此暂以单写者约束固定为一个副本。
 
 | 工作负载 | 启动探针 | 就绪探针 | 存活探针 |
 | --- | --- | --- | --- |
