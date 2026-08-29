@@ -1,5 +1,6 @@
 server:
-  port: ${IDENTITY_SERVICE_PORT:8081}
+  # Kubernetes reserves IDENTITY_SERVICE_PORT for a tcp:// service-link URI.
+  port: ${LUMALIFE_IDENTITY_PORT:8081}
 spring:
   application:
     name: identity-service

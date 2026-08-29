@@ -1,5 +1,6 @@
 server:
-  port: ${ORDER_SERVICE_PORT:8083}
+  # Kubernetes reserves ORDER_SERVICE_PORT for a tcp:// service-link URI.
+  port: ${LUMALIFE_ORDER_PORT:8083}
 spring:
   application:
     name: order-service
