@@ -104,5 +104,17 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/sh", "/database/bin/verify.sh"]
 
+  db-backfill-services:
+    image: mysql:8.4
+    profiles: ["db-tools"]
+    environment:
+      <<: *database-tool-environment
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/database/bin/backfill-services.sh"]
+
 volumes:
   mysql_data:

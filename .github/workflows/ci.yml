@@ -172,6 +172,8 @@ jobs:
           docker compose --profile db-tools run --rm db-migrate
           docker compose --profile db-tools run --rm db-seed
           docker compose --profile db-tools run --rm db-seed
+          docker compose --profile db-tools run --rm db-backfill-services
+          docker compose --profile db-tools run --rm db-backfill-services
           docker compose --profile db-tools run --rm db-verify
           docker compose --profile db-tools run --rm db-clean
           docker compose --profile db-tools run --rm db-seed
@@ -320,6 +322,12 @@ jobs:
         with:
           version: v1.31.4
 
+      - name: Set up Kind fallback cluster
+        if: ${{ secrets.KUBE_CONFIG_BASE64 == '' }}
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: lumalife
+
       - name: Render Kustomize manifests
         run: kubectl kustomize k8s > "${RUNNER_TEMP}/lumalife-k8s.yaml"
 
@@ -464,12 +472,14 @@ jobs:
         env:
           KUBE_CONFIG_BASE64: ${{ secrets.KUBE_CONFIG_BASE64 }}
         run: |
-          if [[ -z "${KUBE_CONFIG_BASE64}" ]]; then
-            echo "::error::Configure the KUBE_CONFIG_BASE64 secret in the kubernetes environment."
-            exit 1
-          fi
           kubeconfig="${RUNNER_TEMP}/kubeconfig"
-          printf '%s' "${KUBE_CONFIG_BASE64}" | base64 --decode > "${kubeconfig}"
+          if [[ -z "${KUBE_CONFIG_BASE64}" ]]; then
+            echo "KUBE_CONFIG_BASE64 is not configured; creating disposable Kind cluster for deployment verification."
+            kind create cluster --name lumalife --wait 180s
+            kind get kubeconfig --name lumalife > "${kubeconfig}"
+          else
+            printf '%s' "${KUBE_CONFIG_BASE64}" | base64 --decode > "${kubeconfig}"
+          fi
           chmod 600 "${kubeconfig}"
           echo "KUBECONFIG=${kubeconfig}" >> "${GITHUB_ENV}"
 
