@@ -75,7 +75,13 @@ services:
       context: ./services
       dockerfile: merchant-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     ports:
       - "8082:8082"
     healthcheck:
@@ -91,6 +97,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
       MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
       MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
