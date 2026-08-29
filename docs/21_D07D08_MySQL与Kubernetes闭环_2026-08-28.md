@@ -7,18 +7,18 @@
 
 ## 实现证据
 
-1. V003 创建 `business_state` JSON 聚合存储；数据库校验要求 V001～V003 共 3 个迁移和 19 张表。
+1. V001 创建业务关系表，V003 的 `business_state` 仅作为旧部署兼容入口；发现旧快照时自动导入关系表并清除活动快照。
 2. Compose 和 Kubernetes 注入 `LUMALIFE_PERSISTENCE=mysql`，Actuator 的 MySQL HealthIndicator 会实际读取 Repository。
 3. Kubernetes 部署脚本创建 MySQL Secret 和初始化 ConfigMap，等待 StatefulSet、Backend、Frontend 后执行三条集群内 HTTP 健康检查。
-4. 聚合快照目前采用单写者模型，因此后端固定为一个副本；这避免多实例内存状态相互覆盖。关系表级 Repository 与水平扩容属于后续架构演进，不影响本次持久化闭环。
+4. 关系表同步采用事务和 MySQL 命名写锁；领域聚合目前仍是单写者模型，因此后端固定为一个副本。按请求 Repository 与水平扩容属于后续服务化演进。
 
 ## 本地验收结果
 
 - 后端测试：76 个通过，0 失败。
-- 原生 MySQL 8.0.45：应用 V001～V003，注册新用户，确认 `business_state` 写入，强制重启后端后登录成功。
+- 原生 MySQL：应用 V001～V004，通过 API 写入购物车，确认 `cart_item` 已写入且 `business_state` 为空，强制重启后端后业务数据仍可读取。
 - Docker Compose：MySQL、Backend、Frontend 全部 healthy；重启 Backend 后状态仍可读取。
 - Kind v0.32.0 / Kubernetes v1.36.1：MySQL StatefulSet、Backend、Frontend 全部 Ready；后端 readiness、前端 `/healthz`、前端代理后的后端 readiness 均通过。
 
 ## 完成边界
 
-当前实现解决了“业务仅存在进程内、重启即丢失”和“没有 kubeconfig 导致主线部署直接失败”两项验收问题。未配置 kubeconfig 时部署到自托管 Runner 上的本机 Kind；若课程后续要求公网长期部署，仍需提供真实集群的 `KUBE_CONFIG_BASE64`。MySQL 当前保存完整业务聚合快照，而不是把每个领域操作都改写成关系表事务。
+当前实现解决了“业务仅存在进程内、MySQL 只验证 Schema”和“没有 kubeconfig 导致主线部署直接失败”两项验收问题。未配置 kubeconfig 时部署到自托管 Runner 上的本机 Kind；若课程后续要求公网长期部署，仍需提供真实集群的 `KUBE_CONFIG_BASE64`。MySQL 当前使用规范化业务表承载稳态数据，V003 JSON 表只承担旧数据升级兼容。

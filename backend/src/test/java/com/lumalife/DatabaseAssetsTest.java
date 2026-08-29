@@ -49,7 +49,7 @@ class DatabaseAssetsTest {
   }
 
   @Test
-  void businessStateMigrationCreatesMysqlSourceOfTruth() throws IOException {
+  void businessStateMigrationPreservesLegacyImportSource() throws IOException {
     String sql = Files.readString(BUSINESS_STATE_MIGRATION);
 
     assertThat(sql).contains("CREATE TABLE IF NOT EXISTS business_state");

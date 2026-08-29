@@ -22,7 +22,7 @@ Kubernetes 清单同时交付 MySQL StatefulSet、持久卷、后端和前端。
 
 ## 2. Kubernetes 资源
 
-`k8s/` 使用原生 Kustomize，包含固定命名空间 `lumalife`、MySQL StatefulSet/PVC、后端单副本 Deployment、前端双副本 Deployment 与 ClusterIP Service。后端暂为单副本，是为了满足当前聚合快照的单写者约束。
+`k8s/` 使用原生 Kustomize，包含固定命名空间 `lumalife`、MySQL StatefulSet/PVC、后端单副本 Deployment、前端双副本 Deployment 与 ClusterIP Service。后端持久化已使用 MySQL 关系表事务，但领域聚合仍在进程内，因此暂以单写者约束固定为一个副本。
 
 | 工作负载 | 启动探针 | 就绪探针 | 存活探针 |
 | --- | --- | --- | --- |
@@ -38,7 +38,7 @@ Kubernetes 清单同时交付 MySQL StatefulSet、持久卷、后端和前端。
 
 - `KUBE_CONFIG_BASE64`：有权管理目标命名空间的 kubeconfig 文件经过 Base64 编码后的内容。
 
-没有外部集群时可以不配置该 Secret。Windows 自托管 Runner 会下载（如需要）Kind，自动创建或复用名为 `lumalife` 的本地集群，并生成 kubeconfig，因此不会再因缺少 `KUBE_CONFIG_BASE64` 失败。本地 Kind 适合课程验收和局域机部署，不等同于公网生产集群。
+没有外部集群时可以不配置该 Secret。GitHub 托管 Runner 会创建名为 `lumalife` 的一次性 Kind 集群完成部署验证，因此不会因缺少 Secret 或专用自托管 Runner 离线而失败。该回退集群会随作业销毁，只用于验收；长期环境必须配置可从 GitHub Runner 访问的目标集群 kubeconfig。
 
 Linux/macOS 生成方式：
 
@@ -66,9 +66,9 @@ kubectl -n lumalife patch serviceaccount default \
 
 ## 4. 自动部署与健康检查
 
-PR 阶段的 `Kubernetes rollout smoke test` 会创建一次性 Kind 集群、本地构建并加载两张镜像、应用同一套清单，然后等待前后端滚动发布完成。
+PR 阶段的 `Kubernetes rollout smoke test` 会创建一次性 Kind 集群、本地构建并加载五张应用镜像、应用同一套清单，然后等待 MySQL 和全部应用滚动发布完成。
 
-`main` 的 `Deploy Kubernetes` 使用不可变的 `sha-*` 镜像更新目标集群；未配置外部目标时，从 GHCR 拉取同标签镜像并加载到本机 Kind。随后执行：
+`main` 的 `Deploy Kubernetes` 使用不可变的 `sha-*` 镜像更新目标集群；未配置外部目标时，从 GHCR 拉取同标签镜像并加载到一次性 Kind 集群。随后执行：
 
 1. 等待 MySQL StatefulSet，再等待前后端，只有所有工作负载通过 readiness probe 才继续；
 2. 在集群内创建一次性 curl Pod，检查后端 readiness、前端 `/healthz` 和前端代理后的后端 readiness；
@@ -96,6 +96,6 @@ kubectl -n lumalife rollout status deployment/frontend --timeout=300s
 
 ## 6. Issue #40 验收证据
 
-成功记录：合并后保存一次 `main` 的 Actions 运行链接，并确认质量门禁、两张版本镜像、Kind 冒烟与 `Deploy Kubernetes` 均成功；下载 `kubernetes-manifests` Artifact，保存部署作业末尾的 Pod/探针输出。
+成功记录：合并后保存一次 `main` 的 Actions 运行链接，并确认质量门禁、五张版本镜像、Kind 冒烟与 `Deploy Kubernetes` 均成功；下载 `kubernetes-manifests` Artifact，保存部署作业末尾的 Pod/探针输出。
 
 失败阻断记录：在 Actions 中从 `main` 手动运行 `Monolith CI`，将 `demonstrate_failure_gate` 设为 `true`。确认 `Quality gate` 预期失败，镜像、Kind 冒烟和真实部署作业均为 `Skipped`，然后把运行链接附到 Issue #40。该开关不修改应用代码或集群。
