@@ -27,6 +27,12 @@ public class MerchantApi {
   @GetMapping("/merchants/{id}/products")
   List<MerchantStore.Product> products(@PathVariable long id) { return store.products(id); }
 
+  @GetMapping("/deals/{id}")
+  MerchantStore.GroupDeal deal(@PathVariable long id) { return store.deal(id); }
+
+  @GetMapping("/products/{id}")
+  MerchantStore.Product product(@PathVariable long id) { return store.product(id); }
+
   @PostMapping("/merchants/{id}/products")
   MerchantStore.Product saveProduct(@PathVariable long id, @RequestHeader("X-Merchant-Id") long actorMerchantId,
                                     @RequestBody MerchantStore.ProductRequest request) {

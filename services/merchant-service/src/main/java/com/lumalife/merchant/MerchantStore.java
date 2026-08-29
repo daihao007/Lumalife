@@ -14,10 +14,12 @@ import org.springframework.beans.factory.ObjectProvider;
 public class MerchantStore {
   public record Merchant(long id, String name, long categoryId, String categoryName, String status) {}
   public record Product(long id, long merchantId, String name, String description, long priceCent, int stock, boolean listed) {}
+  public record GroupDeal(long id, long merchantId, String title, String description, long priceCent, int stock, boolean active) {}
 
   private final AtomicLong ids = new AtomicLong(3000);
   private final Map<Long, Merchant> merchants = new LinkedHashMap<>();
   private final Map<Long, List<Product>> products = new LinkedHashMap<>();
+  private final Map<Long, GroupDeal> deals = new LinkedHashMap<>();
   private final JdbcTemplate jdbc;
 
   public MerchantStore(ObjectProvider<JdbcTemplate> jdbcProvider) {
@@ -27,6 +29,7 @@ public class MerchantStore {
     products.put(1L, new ArrayList<>(List.of(
       new Product(1001, 1, "藤椒鸡饭", "麻香鲜亮，适合午餐", 2680, 88, true),
       new Product(1002, 1, "毛血旺小锅", "课程演示热门搜索菜", 4280, 120, true))));
+    deals.put(1L, new GroupDeal(1, 1, "双人川味套餐", "含招牌菜和饮品", 4880, 50, true));
   }
 
   public MerchantStore() {
@@ -36,6 +39,7 @@ public class MerchantStore {
     products.put(1L, new ArrayList<>(List.of(
       new Product(1001, 1, "藤椒鸡饭", "麻香鲜亮，适合午餐", 2680, 88, true),
       new Product(1002, 1, "毛血旺小锅", "课程演示热门搜索菜", 4280, 120, true))));
+    deals.put(1L, new GroupDeal(1, 1, "双人川味套餐", "含招牌菜和饮品", 4880, 50, true));
   }
 
   public synchronized List<Merchant> search(String keyword) {
@@ -64,6 +68,17 @@ public class MerchantStore {
     owned.removeIf(item -> item.id() == id);
     owned.add(product);
     return product;
+  }
+
+  public synchronized GroupDeal deal(long id) {
+    GroupDeal deal = deals.get(id);
+    if (deal == null) throw new IllegalArgumentException("团购套餐不存在");
+    return deal;
+  }
+
+  public synchronized Product product(long id) {
+    return products.values().stream().flatMap(List::stream).filter(item -> item.id() == id).findFirst()
+      .orElseThrow(() -> new IllegalArgumentException("商品不存在"));
   }
 
   record ProductRequest(Long id, String name, String description, long priceCent, int stock, boolean listed) {}
