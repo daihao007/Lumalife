@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Optional;
-import com.lumalife.domain.Enums.OrderStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.beans.factory.ObjectProvider;
