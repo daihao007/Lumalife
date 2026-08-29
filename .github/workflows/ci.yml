@@ -323,7 +323,6 @@ jobs:
           version: v1.31.4
 
       - name: Set up Kind fallback cluster
-        if: ${{ secrets.KUBE_CONFIG_BASE64 == '' }}
         uses: helm/kind-action@v1
         with:
           cluster_name: lumalife
