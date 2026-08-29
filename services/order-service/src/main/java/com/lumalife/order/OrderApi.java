@@ -30,4 +30,16 @@ public class OrderApi {
 
   @PostMapping("/{id}/cancel")
   OrderStore.Order cancel(@PathVariable long id, @RequestHeader("X-User-Id") long userId) { return store.cancel(userId, id); }
+
+  @GetMapping("/cart")
+  java.util.Map<Long,Integer> cart(@RequestHeader("X-User-Id") long userId) { return store.cart(userId); }
+
+  @PostMapping("/cart/{productId}")
+  java.util.Map<Long,Integer> cartPut(@PathVariable long productId, @RequestHeader("X-User-Id") long userId, @RequestBody CartRequest request) { return store.putCart(userId, productId, request.quantity()); }
+
+  @PostMapping("/{id}/pay")
+  OrderStore.Payment pay(@PathVariable long id, @RequestHeader("X-User-Id") long userId, @RequestBody PayRequest request) { return store.pay(userId, id, request.amountCent(), request.clientRequestId()); }
+
+  record CartRequest(int quantity) {}
+  record PayRequest(long amountCent, String clientRequestId) {}
 }

@@ -14,5 +14,21 @@ SELECT o.id, o.user_id, o.merchant_id, MIN(oi.item_id), MIN(oi.quantity), o.tota
 FROM order_main o JOIN order_item oi ON oi.order_id=o.id
 GROUP BY o.id, o.user_id, o.merchant_id, o.total_cent, o.status, o.created_at
 ON DUPLICATE KEY UPDATE status=VALUES(status), total_cent=VALUES(total_cent);
+
+INSERT INTO service_cart_item (user_id, product_id, quantity)
+SELECT user_id, product_id, quantity FROM cart_item
+ON DUPLICATE KEY UPDATE quantity=VALUES(quantity);
+
+INSERT INTO service_payment (user_id, order_id, client_request_id, amount_cent, status, paid_at)
+SELECT user_id, order_id, client_request_id, amount_cent, status, paid_at FROM payment_record
+ON DUPLICATE KEY UPDATE status=VALUES(status), paid_at=VALUES(paid_at);
+
+INSERT INTO service_coupon (code, order_id, merchant_id, status, redeemed_at)
+SELECT code, order_id, merchant_id, status, redeemed_at FROM coupon
+ON DUPLICATE KEY UPDATE status=VALUES(status), redeemed_at=VALUES(redeemed_at);
+
+INSERT INTO service_review (order_id, user_id, merchant_id, score, taste_score, service_score, content, created_at)
+SELECT order_id, user_id, merchant_id, score, taste_score, service_score, content, created_at FROM review
+ON DUPLICATE KEY UPDATE score=VALUES(score), content=VALUES(content);
 SQL
 echo "Backfill completed"
