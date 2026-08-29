@@ -29,6 +29,7 @@ class InternalServiceTokenFilter extends OncePerRequestFilter {
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
     String actual = request.getHeader("X-Luma-Service-Token");
+    if (actual == null || actual.isBlank()) actual = request.getHeader("X-Internal-Service-Token");
     if (expectedToken.isBlank() || actual == null
         || !MessageDigest.isEqual(expectedToken.getBytes(StandardCharsets.UTF_8), actual.getBytes(StandardCharsets.UTF_8))) {
       response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "服务调用未认证");

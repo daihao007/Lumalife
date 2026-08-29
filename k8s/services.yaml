@@ -18,6 +18,7 @@ spec:
       containers:
         - name: identity-service
           image: ghcr.io/daihao007/lumalife-identity-service:main
+          imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 8081}]
           env: [{name: LUMALIFE_INTERNAL_SERVICE_TOKEN, value: compose-internal-token}]
           readinessProbe: {httpGet: {path: /actuator/health, port: http}, periodSeconds: 5}
@@ -40,8 +41,23 @@ spec:
       containers:
         - name: merchant-service
           image: ghcr.io/daihao007/lumalife-merchant-service:main
+          imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 8082}]
-          env: [{name: LUMALIFE_INTERNAL_SERVICE_TOKEN, value: compose-internal-token}]
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_DATABASE
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: database}}
+            - name: MYSQL_USER
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: username}}
+            - name: MYSQL_PASSWORD
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: password}}
+            - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
+              value: compose-internal-token
           readinessProbe: {httpGet: {path: /actuator/health, port: http}, periodSeconds: 5}
 ---
 apiVersion: v1
@@ -62,6 +78,21 @@ spec:
       containers:
         - name: order-service
           image: ghcr.io/daihao007/lumalife-order-service:main
+          imagePullPolicy: IfNotPresent
           ports: [{name: http, containerPort: 8083}]
-          env: [{name: LUMALIFE_INTERNAL_SERVICE_TOKEN, value: compose-internal-token}]
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_DATABASE
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: database}}
+            - name: MYSQL_USER
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: username}}
+            - name: MYSQL_PASSWORD
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: password}}
+            - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
+              value: compose-internal-token
           readinessProbe: {httpGet: {path: /actuator/health, port: http}, periodSeconds: 5}
