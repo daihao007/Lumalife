@@ -391,25 +391,25 @@ export default function App() {
     <main>
       <aside>
         <div className="brand"><HeartPulse size={26} /> <span>LumaLife</span></div>
-        {(!user || user.role === "USER") && <button onClick={() => navigate("home")}><Store /> 发现</button>}
-        {(!user || user.role === "USER") && <button onClick={() => { loadCart(); navigate("cart"); }}><ShoppingCart /> 购物车</button>}
-        {user?.role === "USER" && <button onClick={() => { loadOrders(); navigate("orders"); }}><CreditCard /> 订单</button>}
-        {user?.role === "USER" && <button onClick={() => { loadFavorites(); navigate("favorites"); }}><Heart /> 收藏</button>}
-        {user?.role === "USER" && <button onClick={() => navigate("profile")}><HomeIcon /> 地址</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => { loadOrders(); navigate("merchant-orders"); }}><PackageCheck /> 订单</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => navigate("merchant-products")}><ShoppingBag /> 商品</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => navigate("merchant-support")}><MessageCircle /> 客服</button>}
-        {user?.role === "MERCHANT_ADMIN" && <button onClick={() => navigate("merchant-shop")}><Store /> 店铺</button>}
-        {user?.role === "PLATFORM_ADMIN" && <button onClick={() => navigate("admin")}><BarChart3 /> 看板</button>}
-        {(!user || user.role === "USER") && <button onClick={() => { setAssistantMerchantId(null); navigate("assistant"); }}><MessageCircle /> 客服</button>}
+        {(!user || user.role === "USER") && <button data-testid="nav-home" onClick={() => navigate("home")}><Store /> 发现</button>}
+        {(!user || user.role === "USER") && <button data-testid="nav-cart" onClick={() => { loadCart(); navigate("cart"); }}><ShoppingCart /> 购物车</button>}
+        {user?.role === "USER" && <button data-testid="nav-orders" onClick={() => { loadOrders(); navigate("orders"); }}><CreditCard /> 订单</button>}
+        {user?.role === "USER" && <button data-testid="nav-favorites" onClick={() => { loadFavorites(); navigate("favorites"); }}><Heart /> 收藏</button>}
+        {user?.role === "USER" && <button data-testid="nav-profile" onClick={() => navigate("profile")}><HomeIcon /> 地址</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button data-testid="nav-merchant-orders" onClick={() => { loadOrders(); navigate("merchant-orders"); }}><PackageCheck /> 订单</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button data-testid="nav-merchant-products" onClick={() => navigate("merchant-products")}><ShoppingBag /> 商品</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button data-testid="nav-merchant-support" onClick={() => navigate("merchant-support")}><MessageCircle /> 客服</button>}
+        {user?.role === "MERCHANT_ADMIN" && <button data-testid="nav-merchant-shop" onClick={() => navigate("merchant-shop")}><Store /> 店铺</button>}
+        {user?.role === "PLATFORM_ADMIN" && <button data-testid="nav-admin" onClick={() => navigate("admin")}><BarChart3 /> 看板</button>}
+        {(!user || user.role === "USER") && <button data-testid="nav-assistant" onClick={() => { setAssistantMerchantId(null); navigate("assistant"); }}><MessageCircle /> 客服</button>}
         <div className="account">
           {user ? <>
             <div className="account-user">
               <div className="account-avatar">{user.avatarUrl ? <img src={user.avatarUrl} /> : <UserRound size={20} />}</div>
               <span title={accountDisplayName}>{accountDisplayName}</span>
             </div>
-            <button onClick={logout}>退出</button>
-          </> : <button onClick={() => navigate("login")}>登录</button>}
+            <button data-testid="logout" onClick={logout}>退出</button>
+          </> : <button data-testid="nav-login" onClick={() => navigate("login")}>登录</button>}
         </div>
       </aside>
 

@@ -86,7 +86,7 @@ npm run dev
 
 ### 数据库生命周期工具
 
-数据库资产已落地，但业务 Service 当前仍默认使用内存版 `DemoStore`。Compose 在空数据卷首次启动时自动执行基线 Schema，并写入迁移校验记录；已有数据卷不会重复初始化。手工迁移、seed、校验工具仍可独立执行：
+本地直接运行后端时默认使用文件快照；Compose 和 Kubernetes 会设置 `LUMALIFE_PERSISTENCE=mysql`，由 `JdbcBusinessStateRepository` 将全部可变业务状态持久化到 MySQL `business_state` 表。后端或容器重启后会从 MySQL 恢复账号、地址、商品、团购、购物车、订单、评价、会话、收藏和操作日志。手工迁移、seed、校验工具仍可独立执行：
 
 ```bash
 docker compose --profile db-tools run --rm db-migrate
@@ -139,14 +139,14 @@ LumaLife/
 
 [![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的前后端镜像，随后滚动部署到目标 Kubernetes 集群并执行 Pod 探针与集群内 HTTP 健康检查。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的前后端镜像；配置 `KUBE_CONFIG_BASE64` 时部署到目标集群，未配置时由 Windows 自托管 Runner 自动创建或复用本机 `lumalife` Kind 集群，不再因缺少 Secret 直接失败。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md)。
 
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
-- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离，当前实现仍由内存版 `DemoStore` 提供适配。
-- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前主线基线实测 74 个后端测试（42 个业务规则测试 + 25 个接口集成测试 + 4 个服务边界契约测试 + 3 个数据库资产测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
-- MySQL Schema、版本迁移、演示 seed 和清理机制已落地，见 `docs/06_数据库设计.md`；业务持久化仍按 `docs/11_数据库持久化迁移计划.md` 从 `AuthService` 开始逐步替换内存实现。
+- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离，当前由 `DemoStore` 承接领域规则，并通过可替换的 `BusinessStateRepository` 完成持久化。
+- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前实测 76 个后端测试（43 个业务规则测试 + 25 个接口集成测试 + 4 个服务边界契约测试 + 4 个数据库资产测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
+- MySQL Schema、V001～V003 版本迁移、演示 seed、清理机制和业务状态读写已落地，见 `docs/06_数据库设计.md`；当前采用单行 JSON 聚合快照保证演示业务完整持久化，后续仍可按 `docs/11_数据库持久化迁移计划.md` 拆成细粒度事务 Repository。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
 - 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。
 - D03 服务边界落地、错误响应兼容和可运行契约样例见 `docs/17_D03服务边界落地记录.md`。
@@ -156,4 +156,4 @@ LumaLife/
 
 ## 说明
 
-当前版本是从零搭建的课程演示版，业务数据仍默认保存在内存中，便于快速运行和答辩演示。MySQL Schema 和可重复初始化流程已经可执行；后续可按模块将 `DemoStore` 替换为持久化实现。
+当前版本是从零搭建的课程演示版。本地直接运行默认使用文件快照，Compose/Kubernetes 默认使用 MySQL 持久化；为避免多副本并发覆盖聚合快照，Kubernetes 后端暂时固定为单副本，细粒度表级 Repository 完成后再扩容。

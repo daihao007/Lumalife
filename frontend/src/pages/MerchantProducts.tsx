@@ -69,23 +69,23 @@ export default function MerchantProducts({ user, setMessage }: { user: any; setM
   }
 
   return <>
-    <section>
+    <section data-testid="merchant-products-page">
       <h3>商品维护</h3>
       <div className="form-grid">
-        <input value={product.name} onChange={e => setProduct({ ...product, name: e.target.value })} placeholder="商品名" />
-        <input value={product.description} onChange={e => setProduct({ ...product, description: e.target.value })} placeholder="描述" />
-        <input type="number" min="0.01" step="0.01" value={product.priceYuan} onChange={e => setProduct({ ...product, priceYuan: e.target.value })} placeholder="单价（元）" />
-        <input type="number" min="0" value={product.stock} onChange={e => setProduct({ ...product, stock: e.target.value })} placeholder="库存量" />
+        <input data-testid="product-name" value={product.name} onChange={e => setProduct({ ...product, name: e.target.value })} placeholder="商品名" />
+        <input data-testid="product-description" value={product.description} onChange={e => setProduct({ ...product, description: e.target.value })} placeholder="描述" />
+        <input data-testid="product-price" type="number" min="0.01" step="0.01" value={product.priceYuan} onChange={e => setProduct({ ...product, priceYuan: e.target.value })} placeholder="单价（元）" />
+        <input data-testid="product-stock" type="number" min="0" value={product.stock} onChange={e => setProduct({ ...product, stock: e.target.value })} placeholder="库存量" />
       </div>
       <div className="actions manage-actions">
-        <button className="primary" onClick={saveProduct}><Utensils /> {product.id ? "更新商品" : "新增商品"}</button>
+        <button data-testid="product-save" className="primary" onClick={saveProduct}><Utensils /> {product.id ? "更新商品" : "新增商品"}</button>
         {product.id && <button onClick={() => setProduct(emptyProduct)}>取消编辑</button>}
       </div>
-      {products.map(p => <div className="line manage-line" key={p.id}>
-        <span><b>{p.name}</b><small>价格 {money(p.priceCent)} · 库存 {p.stock} 份</small></span>
-        <strong>{p.listed ? "上架" : "下架"}</strong>
-        <button onClick={() => editProduct(p)}><Pencil /> 编辑</button>
-        <button onClick={() => toggleProduct(p.id)}>{p.listed ? "下架" : "上架"}</button>
+      {products.map(p => <div className="line manage-line" data-testid={`product-row-${p.id}`} key={p.id}>
+        <span><b data-testid={`product-name-${p.id}`}>{p.name}</b><small>价格 {money(p.priceCent)} · 库存 {p.stock} 份</small></span>
+        <strong data-testid={`product-status-${p.id}`}>{p.listed ? "上架" : "下架"}</strong>
+        <button data-testid={`product-edit-${p.id}`} onClick={() => editProduct(p)}><Pencil /> 编辑</button>
+        <button data-testid={`product-toggle-${p.id}`} onClick={() => toggleProduct(p.id)}>{p.listed ? "下架" : "上架"}</button>
         <button onClick={() => deleteProduct(p.id)}><Trash2 /> 删除</button>
       </div>)}
     </section>

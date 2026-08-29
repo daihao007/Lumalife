@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -348,6 +350,19 @@ class DemoStoreTest {
   }
 
   @Test
+  void merchantCannotReadOrReplyToAnotherMerchantsConversation() {
+    DemoStore store = new DemoStore(new BCryptPasswordEncoder());
+    User customer = store.userByPhone("13800000001");
+    User merchantA = store.userByPhone("13800000002");
+    User merchantB = store.userByPhone("13800000003");
+
+    store.sendUserMessage(customer, merchantA.merchantId(), "只属于商家 A 的会话", ignored -> "收到");
+
+    Assertions.assertThrows(BusinessException.class, () -> store.merchantConversation(merchantB, customer.id()));
+    Assertions.assertThrows(BusinessException.class, () -> store.sendMerchantMessage(merchantB, customer.id(), "越权回复"));
+  }
+
+  @Test
   void deliveryOrderUsesSelectedAddressSnapshot() {
     DemoStore store = new DemoStore(new BCryptPasswordEncoder());
     User user = store.userByPhone("13800000001");
@@ -610,5 +625,39 @@ class DemoStoreTest {
       () -> store.review(user, order.id, 4, 4, 4, "重复评价"));
     Assertions.assertEquals(40900, error.code());
     Assertions.assertEquals("同一订单不可重复评价", error.getMessage());
+  }
+
+  @Test
+  void repositoryBackedStoreRestoresAllMutableBusinessAreas() {
+    AtomicReference<String> payload = new AtomicReference<>();
+    BusinessStateRepository repository = new BusinessStateRepository() {
+      @Override
+      public Optional<String> load() {
+        return Optional.ofNullable(payload.get());
+      }
+
+      @Override
+      public void save(String value) {
+        payload.set(value);
+      }
+    };
+
+    DemoStore firstStore = new DemoStore(new BCryptPasswordEncoder(), repository);
+    User user = firstStore.userByPhone("13800000001");
+    User admin = firstStore.userByPhone("13800000002");
+    firstStore.saveAddress(user, null, "数据库用户", "13800000001", "持久化路 7 号", false);
+    firstStore.saveProduct(admin, 1001L, "MySQL 藤椒鸡饭", "数据库持久化商品", 2880, 88, true);
+    firstStore.addCart(user.id(), 1001L, 2);
+    firstStore.sendUserMessage(user, 1L, "数据库重启后还能看到吗", ignored -> "可以");
+
+    DemoStore restartedStore = new DemoStore(new BCryptPasswordEncoder(), repository);
+
+    Assertions.assertTrue(restartedStore.addresses(restartedStore.userByPhone("13800000001")).stream()
+      .anyMatch(address -> "持久化路 7 号".equals(address.detail())));
+    Assertions.assertEquals("MySQL 藤椒鸡饭", restartedStore.merchantProducts(restartedStore.userByPhone("13800000002")).stream()
+      .filter(product -> product.id() == 1001L).findFirst().orElseThrow().name());
+    Assertions.assertEquals(2, restartedStore.cart(user.id()).get(0).quantity());
+    Assertions.assertEquals(2, restartedStore.userConversation(restartedStore.userByPhone("13800000001"), 1L).size());
+    Assertions.assertFalse(((List<?>) restartedStore.adminMetrics().get("logs")).isEmpty());
   }
 }

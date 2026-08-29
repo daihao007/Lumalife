@@ -137,9 +137,9 @@ describe("merchant fulfillment interactions", () => {
   });
 
   it("validates coupon format before verification and reports API errors", async () => {
-    apiMock.mockImplementation((path: string) => {
+    apiMock.mockImplementation((path = "") => {
       if (path === "/api/v1/merchant-admin/reviews") return Promise.resolve([]);
-      if (path === "/api/v1/merchant-admin/coupons/verify") return Promise.reject(new Error("券码已核销"));
+      if (path === "/api/v1/merchant-admin/coupons/verify") return Promise.reject(new Error("券码不可重复核销"));
       return Promise.resolve(undefined);
     });
     const setMessage = vi.fn();
@@ -150,11 +150,50 @@ describe("merchant fulfillment interactions", () => {
     const verifyButton = screen.getByTestId("verify-coupon");
     expect((verifyButton as HTMLButtonElement).disabled).toBe(true);
 
+    fireEvent.change(input, { target: { value: "123" } });
+    expect(screen.getByTestId("coupon-format-error").textContent).toContain("请输入 12 位数字券码");
+
     fireEvent.change(input, { target: { value: "123456789012" } });
     expect((verifyButton as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(verifyButton);
 
-    await waitFor(() => expect(setMessage).toHaveBeenCalledWith("券码已核销"));
+    expect((await screen.findByTestId("merchant-orders-error")).textContent).toContain("券码不可重复核销");
+    expect(setMessage).toHaveBeenCalledWith("券码不可重复核销");
     expect((input as HTMLInputElement).value).toBe("123456789012");
+  });
+
+  it("shows a page-level error when a stale fulfillment action is rejected", async () => {
+    apiMock.mockImplementation((path = "") => {
+      if (path === "/api/v1/merchant-admin/reviews") return Promise.resolve([]);
+      if (path.includes("/transition")) return Promise.reject(new Error("非法订单状态流转"));
+      return Promise.resolve(undefined);
+    });
+    const setMessage = vi.fn();
+
+    render(<MerchantOrders user={{ id: 2 }} orders={[{ ...pendingOrder, status: "PAID" }]} reload={vi.fn()} setMessage={setMessage} />);
+
+    fireEvent.click(screen.getByTestId("transition-order-101"));
+
+    expect((await screen.findByTestId("merchant-orders-error")).textContent).toContain("非法订单状态流转");
+    expect(setMessage).toHaveBeenCalledWith("非法订单状态流转");
+    await waitFor(() => expect((screen.getByTestId("transition-order-101") as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it("shows a page-level error when another merchant's coupon is rejected", async () => {
+    apiMock.mockImplementation((path = "") => {
+      if (path === "/api/v1/merchant-admin/reviews") return Promise.resolve([]);
+      if (path === "/api/v1/merchant-admin/coupons/verify") return Promise.reject(new Error("不能核销其他商家的券码"));
+      return Promise.resolve(undefined);
+    });
+    const setMessage = vi.fn();
+
+    render(<MerchantOrders user={{ id: 3 }} orders={[]} reload={vi.fn()} setMessage={setMessage} />);
+
+    fireEvent.change(screen.getByLabelText("团购券码"), { target: { value: "123456789012" } });
+    fireEvent.click(screen.getByTestId("verify-coupon"));
+
+    expect((await screen.findByTestId("merchant-orders-error")).textContent).toContain("不能核销其他商家的券码");
+    expect(setMessage).toHaveBeenCalledWith("不能核销其他商家的券码");
+    await waitFor(() => expect((screen.getByTestId("verify-coupon") as HTMLButtonElement).disabled).toBe(false));
   });
 });

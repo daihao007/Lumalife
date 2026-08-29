@@ -72,4 +72,13 @@ class ServiceBoundaryContractTest {
       .andExpect(jsonPath("$.requestId").value("contract-invalid-role-001"))
       .andExpect(jsonPath("$.reason").value("VALIDATION_FAILED"));
   }
+
+  @Test
+  void migrationStatusReportsSafeDefaultRoutes() throws Exception {
+    mvc.perform(get("/internal/migration/status"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.identity").value("monolith"))
+      .andExpect(jsonPath("$.merchant").value("monolith"))
+      .andExpect(jsonPath("$.order").value("monolith"));
+  }
 }
