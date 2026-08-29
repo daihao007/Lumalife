@@ -520,6 +520,7 @@ jobs:
   kubernetes-smoke:
     name: Kubernetes rollout smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs:
       - images
     steps:
@@ -553,15 +554,16 @@ jobs:
           IDENTITY_IMAGE: lumalife-identity-service
           MERCHANT_IMAGE: lumalife-merchant-service
           ORDER_IMAGE: lumalife-order-service
+          ROLLOUT_TIMEOUT: 120s
         run: bash scripts/deploy-k8s.sh "ci-${GITHUB_SHA::7}"
 
   kubernetes-deploy:
     name: Deploy Kubernetes
-    runs-on:
-      - self-hosted
-      - windows
-      - x64
-      - lumalife-k8s
+    # A required self-hosted label leaves every main run queued indefinitely
+    # whenever that one machine is offline. A supplied kubeconfig can be used
+    # from the hosted runner; without it we still verify the deployment in Kind.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs:
       - images
       - kubernetes-smoke
@@ -584,52 +586,48 @@ jobs:
 
       - name: Select deployment target
         id: deployment-target
-        shell: pwsh
+        shell: bash
         env:
           KUBE_CONFIG_BASE64: ${{ secrets.KUBE_CONFIG_BASE64 }}
         run: |
-          $kubeconfig = Join-Path $env:RUNNER_TEMP "lumalife-kubeconfig"
-          if (-not [string]::IsNullOrWhiteSpace($env:KUBE_CONFIG_BASE64)) {
-            [IO.File]::WriteAllBytes(
-              $kubeconfig,
-              [Convert]::FromBase64String($env:KUBE_CONFIG_BASE64)
-            )
-            "kind=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "KUBECONFIG=$kubeconfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            exit 0
-          }
+          kubeconfig="${RUNNER_TEMP}/lumalife-kubeconfig"
+          if [[ -n "${KUBE_CONFIG_BASE64}" ]]; then
+            printf '%s' "${KUBE_CONFIG_BASE64}" | base64 --decode > "${kubeconfig}"
+            echo "kind=false" >> "${GITHUB_OUTPUT}"
+            echo "KUBECONFIG=${kubeconfig}" >> "${GITHUB_ENV}"
+          else
+            echo "kind=true" >> "${GITHUB_OUTPUT}"
+            echo "KUBE_CONFIG_BASE64 is not configured; using a disposable Kind deployment target."
+          fi
 
-          $kind = (Get-Command kind -ErrorAction SilentlyContinue).Source
-          if (-not $kind) {
-            $kind = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter kind.exe -ErrorAction SilentlyContinue |
-              Select-Object -First 1 -ExpandProperty FullName
-          }
-          if (-not $kind) {
-            $kind = Join-Path $env:RUNNER_TEMP "kind-v0.32.0.exe"
-            Invoke-WebRequest "https://kind.sigs.k8s.io/dl/v0.32.0/kind-windows-amd64" -OutFile $kind
-          }
-          docker info | Out-Null
-          $clusters = @(& $kind get clusters)
-          if ($clusters -notcontains "lumalife") {
-            & $kind create cluster --name lumalife --wait 180s
-          }
-          & $kind get kubeconfig --name lumalife | Set-Content -LiteralPath $kubeconfig -Encoding utf8
-          "kind=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "KIND_EXE=$kind" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "KUBECONFIG=$kubeconfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "KUBE_CONFIG_BASE64 is not configured; using the local Kind cluster."
+      - name: Create fallback deployment target
+        if: ${{ steps.deployment-target.outputs.kind == 'true' }}
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: lumalife
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ steps.deployment-target.outputs.kind == 'true' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Load versioned images into the local Kind cluster
         if: ${{ steps.deployment-target.outputs.kind == 'true' }}
-        shell: pwsh
+        shell: bash
         run: |
-          $imageTag = "sha-$($env:GITHUB_SHA.Substring(0, 7))"
-          $images = @(
-            "ghcr.io/daihao007/lumalife-backend:$imageTag",
-            "ghcr.io/daihao007/lumalife-frontend:$imageTag"
+          image_tag="sha-${GITHUB_SHA::7}"
+          images=(
+            "ghcr.io/daihao007/lumalife-backend:${image_tag}"
+            "ghcr.io/daihao007/lumalife-frontend:${image_tag}"
+            "ghcr.io/daihao007/lumalife-identity-service:${image_tag}"
+            "ghcr.io/daihao007/lumalife-merchant-service:${image_tag}"
+            "ghcr.io/daihao007/lumalife-order-service:${image_tag}"
           )
-          foreach ($image in $images) { docker pull $image }
-          & $env:KIND_EXE load docker-image --name lumalife @images
+          for image in "${images[@]}"; do docker pull "${image}"; done
+          kind load docker-image --name lumalife "${images[@]}"
 
       - name: Deploy versioned images and verify health
         shell: bash

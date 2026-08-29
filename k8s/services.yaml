@@ -12,6 +12,9 @@ spec:
   template:
     metadata: {labels: {app: identity-service}}
     spec:
+      # Services use cluster DNS. Disabling legacy service-link variables also
+      # prevents *_SERVICE_PORT URI values from colliding with app settings.
+      enableServiceLinks: false
       containers:
         - name: identity-service
           image: ghcr.io/daihao007/lumalife-identity-service:main
@@ -33,6 +36,7 @@ spec:
   template:
     metadata: {labels: {app: merchant-service}}
     spec:
+      enableServiceLinks: false
       containers:
         - name: merchant-service
           image: ghcr.io/daihao007/lumalife-merchant-service:main
@@ -54,6 +58,7 @@ spec:
   template:
     metadata: {labels: {app: order-service}}
     spec:
+      enableServiceLinks: false
       containers:
         - name: order-service
           image: ghcr.io/daihao007/lumalife-order-service:main
