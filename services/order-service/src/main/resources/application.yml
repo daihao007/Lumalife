@@ -7,14 +7,22 @@ lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
 management:
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
   endpoint:
     health:
       probes:
         enabled: true
+        add-additional-paths: true
       group:
         liveness:
+          enabled: true
           include: livenessState
         readiness:
+          enabled: true
           include: readinessState
   endpoints:
     web:
