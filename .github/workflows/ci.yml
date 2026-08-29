@@ -230,11 +230,14 @@ jobs:
             http://localhost:8083/internal/v1/orders/cart/1001)
           echo "Direct order-service cart response:"; echo "$direct_order_response"
           test "$(tail -n 1 <<< "$direct_order_response")" = 200
-          curl --fail --silent --show-error \
+          backend_cart_response=$(curl --silent --show-error --write-out $'\n%{http_code}' \
             -H 'Content-Type: application/json' \
             -H "Authorization: Bearer $token" \
             -d '{"productId":1001,"quantity":2}' \
-            http://localhost:8080/api/v1/cart/items | grep -q '"productId":1001'
+            http://localhost:8080/api/v1/cart/items)
+          echo "Backend cart response:"; echo "$backend_cart_response"
+          grep -q '"productId":1001' <<< "$backend_cart_response"
+          test "$(tail -n 1 <<< "$backend_cart_response")" = 200
 
           docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM service_cart_item WHERE user_id=1 AND product_id=1001 AND quantity=2"' | grep -qx 1
           docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM business_state"' | grep -qx 0
