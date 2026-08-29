@@ -20,6 +20,11 @@ diagnostics() {
   kubectl -n "${NAMESPACE}" get deployments,statefulsets,pods,services,persistentvolumeclaims -o wide || true
   kubectl -n "${NAMESPACE}" describe deployment backend frontend || true
   kubectl -n "${NAMESPACE}" describe pods || true
+  for pod in $(kubectl -n "${NAMESPACE}" get pods -o name 2>/dev/null); do
+    echo "--- logs ${pod} ---"
+    kubectl -n "${NAMESPACE}" logs "${pod}" --all-containers --tail=120 --prefix 2>/dev/null || true
+    kubectl -n "${NAMESPACE}" logs "${pod}" --all-containers --previous --tail=120 --prefix 2>/dev/null || true
+  done
   echo "::endgroup::"
 }
 trap diagnostics ERR
@@ -36,6 +41,8 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-init \
   --from-file=002-payment-idempotency.sql=database/migrations/V002__payment_idempotency_scope.sql \
   --from-file=003-business-state.sql=database/migrations/V003__business_state_store.sql \
   --from-file=004-service-owned.sql=database/migrations/V004__service_owned_catalog_orders.sql \
+  --from-file=005-service-events.sql=database/migrations/V005__order_domain_service_tables.sql \
+  --from-file=006-order-domain-state.sql=database/migrations/V006__order_domain_state_and_indexes.sql \
   --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -k k8s
 kubectl -n "${NAMESPACE}" set image deployment/backend \
