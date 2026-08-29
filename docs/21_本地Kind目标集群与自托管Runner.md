@@ -1,6 +1,6 @@
 # 本地 Kind 目标集群与自托管 Runner
 
-> 当前生效方案：最终部署使用本机 Windows 自托管 Runner 连接同机 Kind 集群；GitHub 托管 Runner 只负责测试、镜像构建和一次性 Kind 冒烟验证。
+> 可选的校园网长期运行方案：主线 CI 验收部署当前使用 GitHub 托管 Runner 上的一次性 Kind，不依赖本文的本机集群或自托管 Runner。
 
 ## 目的
 
