@@ -63,31 +63,31 @@ export default function Login({ onLogin, onRegister }: { onLogin: (phone: string
 
   return <div className="panel login">
     <div className="segmented">
-      <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>登录</button>
-      <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>注册</button>
+      <button data-testid="login-mode" type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>登录</button>
+      <button data-testid="register-mode" type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>注册</button>
     </div>
     <h2>{mode === "login" ? "演示登录" : "账号注册"}</h2>
-    <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="请输入用户名" />
+    <input data-testid="auth-phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="请输入用户名" />
     <div className="password-row">
-      <input value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="请输入密码" />
+      <input data-testid="auth-password" value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="请输入密码" />
       <button type="button" title={showPassword ? "隐藏密码" : "显示密码"} aria-label={showPassword ? "隐藏密码" : "显示密码"} onClick={() => setShowPassword(value => !value)}>
         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         {showPassword ? "隐藏密码" : "显示密码"}
       </button>
     </div>
     {mode === "register" && <>
-      <input value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="请确认密码" />
+      <input data-testid="auth-confirm-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="请确认密码" />
       <div className={`strength strength-${passwordStrength(password)}`}>
         <span>密码强度</span><b>{passwordStrength(password)}</b><i />
       </div>
-      <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="请输入昵称" />
+      <input data-testid="auth-nickname" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="请输入昵称" />
       <div className="segmented role-segmented">
         <button type="button" className={role === "USER" ? "active" : ""} onClick={() => switchRole("USER")}>用户账号</button>
         <button type="button" className={role === "MERCHANT_ADMIN" ? "active" : ""} onClick={() => switchRole("MERCHANT_ADMIN")}>商家账号</button>
       </div>
     </>}
     {error && <p className="form-error">{error}</p>}
-    <button className="primary" onClick={submit}>
+    <button data-testid="auth-submit" className="primary" onClick={submit}>
       {mode === "login" ? "进入系统" : "创建账号"}
     </button>
   </div>;

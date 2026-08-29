@@ -78,8 +78,8 @@ export default function MerchantSupport({ user, setMessage }: { user: any; setMe
           {!chatMessages.length && <p className="hint">选择用户会话后回复咨询，或先用上方 AI 客服生成回复建议</p>}
         </div>
         <div className="chat-input">
-          <input value={reply} onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === "Enter") sendReply(); }} placeholder="回复用户" />
-          <button className="primary" onClick={sendReply} disabled={!activeUserId}>发送</button>
+          <input data-testid="merchant-chat-input" value={reply} onChange={e => setReply(e.target.value)} onKeyDown={e => { if (e.key === "Enter") sendReply(); }} placeholder="回复用户" />
+          <button data-testid="merchant-chat-send" className="primary" onClick={sendReply} disabled={!activeUserId}>发送</button>
         </div>
       </div>
     </div>
