@@ -138,8 +138,9 @@ LumaLife/
 ## 持续集成
 
 [![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
+[![Deploy Local Kubernetes](https://github.com/daihao007/Lumalife/actions/workflows/deploy-local-k8s.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/deploy-local-k8s.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的五个应用镜像，并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查。该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的五个应用镜像，并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查；该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。Mac 自托管 Runner 在线时，`Deploy Local Kubernetes` 会在云端 CI 成功后把同一版本自动部署到 Docker Desktop Kubernetes 持久集群。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)、[Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md) 和 [Mac 自托管 Runner 配置](docs/24_Mac%E8%87%AA%E6%89%98%E7%AE%A1Runner%E4%B8%8E%E6%9C%AC%E5%9C%B0Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2.md)。
 
 ## 当前工程状态
 
