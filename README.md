@@ -139,7 +139,7 @@ LumaLife/
 
 [![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的五个应用镜像；配置 `KUBE_CONFIG_BASE64` 时由 GitHub 托管 Runner 部署到目标集群，未配置时在一次性 Kind 集群完成部署验证，不会因专用自托管 Runner 离线而无限排队。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的五个应用镜像；最终部署由带 `lumalife-k8s` 标签的 Windows 自托管 Runner 执行，并使用 `KUBE_CONFIG_BASE64` 连接同机的持久 Kind 集群。部署期间该电脑的 Docker Desktop、Kind 集群和 Runner 必须在线。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md) 和 [本地 Kind 目标集群与自托管 Runner](docs/21_%E6%9C%AC%E5%9C%B0Kind%E7%9B%AE%E6%A0%87%E9%9B%86%E7%BE%A4%E4%B8%8E%E8%87%AA%E6%89%98%E7%AE%A1Runner.md)。
 
 ## 当前工程状态
 

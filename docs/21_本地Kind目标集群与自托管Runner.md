@@ -1,6 +1,6 @@
 # 本地 Kind 目标集群与自托管 Runner
 
-> 历史方案：当前 CI 已改用 GitHub 托管 Runner，并通过 `KUBE_CONFIG_BASE64` 连接可公开访问的持久目标；未配置时使用一次性 Kind 验证。仅在确实需要部署到只能从本机访问的 Kind 集群时参考本文，并相应维护单独的自托管部署工作流。
+> 当前生效方案：最终部署使用本机 Windows 自托管 Runner 连接同机 Kind 集群；GitHub 托管 Runner 只负责测试、镜像构建和一次性 Kind 冒烟验证。
 
 ## 目的
 
