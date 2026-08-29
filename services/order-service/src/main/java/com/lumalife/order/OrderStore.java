@@ -26,6 +26,7 @@ public class OrderStore {
   private final Map<String, Coupon> coupons = new LinkedHashMap<>();
   private final Map<Long, Review> reviews = new LinkedHashMap<>();
   private final Map<Long, Integer> orderVersions = new HashMap<>();
+  private final Map<Long, String> orderTypes = new HashMap<>();
 
   public OrderStore(ObjectProvider<JdbcTemplate> provider) { this.jdbc = provider.getIfAvailable(); }
   public OrderStore() { this.jdbc = null; }
@@ -35,6 +36,7 @@ public class OrderStore {
     Order order = new Order(ids.incrementAndGet(), request.userId(), request.merchantId(), request.productId(),
       request.quantity(), request.totalCent(), "PENDING_PAYMENT", Instant.now());
     orders.put(order.id(), order);
+    orderTypes.put(order.id(), "DELIVERY");
     if (jdbc != null) jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at) VALUES (?,?,?,?,?,?,?,?)", order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), order.status(), java.sql.Timestamp.from(order.createdAt()));
     return order;
   }
@@ -94,7 +96,18 @@ public class OrderStore {
       orders.put(orderId, paid);
       appendEvent(orderId, userId, "PAID");
     }
+    if (current != null && "GROUP_BUY".equals(orderType(orderId))) {
+      String code = String.format("%012d", orderId);
+      coupons.putIfAbsent(code, new Coupon(code, orderId, current.merchantId(), "UNUSED"));
+      if (jdbc != null) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)", code, orderId, current.merchantId());
+    }
     return new Payment(userId, orderId, requestId, amount, "SUCCESS");
+  }
+
+  private String orderType(long id) {
+    if (jdbc == null) return orderTypes.getOrDefault(id, "DELIVERY");
+    var types = jdbc.query("SELECT order_type FROM order_record WHERE id=?", (rs,n) -> rs.getString(1), id);
+    return types.isEmpty() ? "DELIVERY" : types.get(0);
   }
 
   public synchronized Order createGroupOrder(GroupOrderRequest request) {
@@ -105,6 +118,7 @@ public class OrderStore {
     Order order = new Order(id, request.userId(), request.merchantId(), request.dealId(), request.quantity(),
       request.priceCent() * request.quantity(), "PENDING_PAYMENT", Instant.now());
     orders.put(id, order);
+    orderTypes.put(id, "GROUP_BUY");
     if (jdbc != null) jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
       id, request.userId(), request.merchantId(), request.dealId(), request.quantity(), order.totalCent(), order.status(), "GROUP_BUY", java.sql.Timestamp.from(order.createdAt()));
     appendEvent(id, request.userId(), "PENDING_PAYMENT");
@@ -120,6 +134,7 @@ public class OrderStore {
         long id = ids.incrementAndGet();
         Order next = new Order(id, request.userId(), merchant, line.productId(), line.quantity(), 0, "PENDING_PAYMENT", Instant.now());
         orders.put(id, next);
+        orderTypes.put(id, "DELIVERY");
         return next;
       });
       Order updated = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity() + line.quantity(), order.totalCent() + line.priceCent() * line.quantity(), order.status(), order.createdAt());
