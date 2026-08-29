@@ -34,11 +34,11 @@ Kubernetes 清单同时交付 MySQL StatefulSet、持久卷、后端和前端。
 
 ## 3. 首次配置目标集群
 
-当前部署目标是校园网电脑上的持久 Kind 集群。部署作业由安装在同一台电脑上的 Windows 自托管 Runner 执行。在 GitHub 仓库中创建名为 `kubernetes` 的 Environment，并添加 Secret：
+当前 CI 验收部署使用 GitHub 托管 Runner 上的一次性 Kind 集群，不需要配置外部集群凭据。
 
 - `KUBE_CONFIG_BASE64`：有权管理目标命名空间的 kubeconfig 文件经过 Base64 编码后的内容。
 
-该 Secret 必须由 `scripts/setup-kind-target-cluster.ps1` 为本机 `lumalife` Kind 集群生成。由于 kubeconfig 中的 API 地址是 `127.0.0.1:6443`，它只能由同机的自托管 Runner 使用，不能交给 `ubuntu-latest`。Docker Desktop、Kind 集群或自托管 Runner 离线时，最终部署不会运行；GitHub 托管 Runner 上的临时 Kind 仅用于前置冒烟测试，不承载持续访问的网站。
+`KUBE_CONFIG_BASE64` 仅供未来单独的长期环境部署流程使用，当前必需检查不会读取它。本地 Kind 和自托管 Runner 的历史配置仍可用于校园网演示，但不会影响主线 CI 是否通过。
 
 Linux/macOS 生成方式：
 
