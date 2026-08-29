@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /** Order-owned transactional slice. The user/merchant ids are references only. */
 @Service
@@ -28,6 +29,7 @@ public class OrderStore {
   private final Map<Long, Integer> orderVersions = new HashMap<>();
   private final Map<Long, String> orderTypes = new HashMap<>();
 
+  @Autowired
   public OrderStore(ObjectProvider<JdbcTemplate> provider) { this.jdbc = provider.getIfAvailable(); }
   public OrderStore() { this.jdbc = null; }
 

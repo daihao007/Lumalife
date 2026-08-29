@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /** Merchant-owned catalog slice. Product writes are kept behind this service boundary. */
 @Service
@@ -22,6 +23,7 @@ public class MerchantStore {
   private final Map<Long, GroupDeal> deals = new LinkedHashMap<>();
   private final JdbcTemplate jdbc;
 
+  @Autowired
   public MerchantStore(ObjectProvider<JdbcTemplate> jdbcProvider) {
     this.jdbc = jdbcProvider.getIfAvailable();
     merchants.put(1L, new Merchant(1, "巷口川味研究所", 1, "川湘菜", "OPEN"));
