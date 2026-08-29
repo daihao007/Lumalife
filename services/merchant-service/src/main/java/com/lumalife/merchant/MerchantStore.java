@@ -81,5 +81,38 @@ public class MerchantStore {
       .orElseThrow(() -> new IllegalArgumentException("商品不存在"));
   }
 
+  public synchronized List<GroupDeal> deals(long merchantId) {
+    return deals.values().stream().filter(item -> item.merchantId() == merchantId).toList();
+  }
+
+  public synchronized GroupDeal saveDeal(long merchantId, DealRequest request) {
+    if (request.priceCent() <= 0 || request.stock() < 0) throw new IllegalArgumentException("套餐价格和库存必须合法");
+    long id = request.id() == null ? ids.incrementAndGet() : request.id();
+    GroupDeal deal = new GroupDeal(id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());
+    deals.put(id, deal); return deal;
+  }
+
+  public synchronized GroupDeal toggleDeal(long merchantId, long id) {
+    GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐");
+    GroupDeal updated = new GroupDeal(old.id(), old.merchantId(), old.title(), old.description(), old.priceCent(), old.stock(), !old.active());
+    deals.put(id, updated); return updated;
+  }
+
+  public synchronized void deleteDeal(long merchantId, long id) {
+    GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐"); deals.remove(id);
+  }
+
+  public synchronized Product toggleProduct(long merchantId, long id) {
+    Product old = product(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该商品");
+    return saveProduct(merchantId, new ProductRequest(id, old.name(), old.description(), old.priceCent(), old.stock(), !old.listed()));
+  }
+
+  public synchronized void deleteProduct(long merchantId, long id) {
+    Product old = product(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该商品");
+    products.getOrDefault(merchantId, List.of()).removeIf(item -> item.id() == id);
+    if (jdbc != null) jdbc.update("DELETE FROM merchant_catalog WHERE id=? AND merchant_id=?", id, merchantId);
+  }
+
   record ProductRequest(Long id, String name, String description, long priceCent, int stock, boolean listed) {}
+  record DealRequest(Long id, String title, String description, long priceCent, int stock, boolean active) {}
 }
