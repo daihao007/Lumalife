@@ -30,10 +30,26 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      LUMALIFE_IDENTITY_REMOTE_ENABLED: ${LUMALIFE_IDENTITY_REMOTE_ENABLED:-true}
+      LUMALIFE_IDENTITY_BACKFILL_COMPLETED: ${LUMALIFE_IDENTITY_BACKFILL_COMPLETED:-true}
+      LUMALIFE_MERCHANT_REMOTE_ENABLED: ${LUMALIFE_MERCHANT_REMOTE_ENABLED:-true}
+      LUMALIFE_MERCHANT_BACKFILL_COMPLETED: ${LUMALIFE_MERCHANT_BACKFILL_COMPLETED:-true}
+      LUMALIFE_ORDER_REMOTE_ENABLED: ${LUMALIFE_ORDER_REMOTE_ENABLED:-true}
+      LUMALIFE_ORDER_BACKFILL_COMPLETED: ${LUMALIFE_ORDER_BACKFILL_COMPLETED:-true}
+      MERCHANT_SERVICE_URL: http://merchant-service:8082
+      ORDER_SERVICE_URL: http://order-service:8083
+      IDENTITY_SERVICE_URL: http://identity-service:8081
     ports:
       - "8080:8080"
     depends_on:
       mysql:
+        condition: service_healthy
+      merchant-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      identity-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
@@ -41,6 +57,45 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+  identity-service:
+    build:
+      context: ./services
+      dockerfile: identity-service/Dockerfile
+    environment:
+      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  merchant-service:
+    build:
+      context: ./services
+      dockerfile: merchant-service/Dockerfile
+    environment:
+      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  order-service:
+    build:
+      context: ./services
+      dockerfile: order-service/Dockerfile
+    environment:
+      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8083/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   frontend:
     build: ./frontend
     restart: unless-stopped

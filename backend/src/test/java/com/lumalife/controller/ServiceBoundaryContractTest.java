@@ -74,11 +74,11 @@ class ServiceBoundaryContractTest {
   }
 
   @Test
-  void migrationStatusDoesNotAdvertiseUnwiredTraffic() throws Exception {
+  void migrationStatusReportsSafeDefaultRoutes() throws Exception {
     mvc.perform(get("/internal/migration/status"))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.identity").value("monolith"))
-      .andExpect(jsonPath("$.merchant").value("not-wired"))
-      .andExpect(jsonPath("$.order").value("not-wired"));
+      .andExpect(jsonPath("$.merchant").value("monolith"))
+      .andExpect(jsonPath("$.order").value("monolith"));
   }
 }

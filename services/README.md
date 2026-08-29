@@ -40,6 +40,6 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 - merchant-service：`/internal/v1/merchants/*`
 - order-service：`/internal/v1/orders/*`
 
-单体网关默认保持 `monolith` 路由；设置 `LUMALIFE_IDENTITY_REMOTE_ENABLED=true`、`LUMALIFE_IDENTITY_BACKFILL_COMPLETED=true`、`IDENTITY_SERVICE_URL` 和共享服务令牌后，身份登录、令牌校验、注册、资料和地址请求才会切换到 identity-service。identity-service 使用 `LUMALIFE_IDENTITY_STATE_FILE` 持久化用户、地址和令牌。通过 `GET /internal/migration/status` 可查看当前路由；merchant/order 在后端适配器完成前固定为 `not-wired`，回滚身份流量时把 `LUMALIFE_IDENTITY_REMOTE_ENABLED` 改回 `false`。
+单体网关默认保持 `monolith` 路由。Compose 默认启动三个服务，并打开身份服务以及 merchant 的目录读取/商品写入、order 的订单查询/取消远程路由；设置对应 `LUMALIFE_*_REMOTE_ENABLED` 和 `*_BACKFILL_COMPLETED` 为 `false` 即可逐服务回滚。通过 `GET /internal/migration/status` 查看实时路由。merchant/order 仍有购物车、支付、团购、评价、券码等未迁移能力，这些能力会显式回落到单体，不能据此宣称全量流量已切换。
 
 业务迁移必须遵守 `docs/19_D04C微服务边界接口与数据归属初稿.md` 冻结的所有权，不允许跨域 Repository、共享可写数据库表或复制单体业务代码形成双写。

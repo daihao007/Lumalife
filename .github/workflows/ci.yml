@@ -207,12 +207,12 @@ jobs:
         shell: bash
         run: |
           mapfile -t running_services < <(docker compose ps --services --status running | sort)
-          expected_services=(backend frontend mysql)
+          expected_services=(backend frontend identity-service merchant-service mysql order-service)
           test "${running_services[*]}" = "${expected_services[*]}"
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (0x56303031, 0x56303032, 0x56303033)"' | grep -qx 3
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\")"' | grep -qx 4
 
       - name: Export stack status and logs
         if: failure()
@@ -441,6 +441,18 @@ jobs:
           - component: frontend
             context: ./frontend
             image: ghcr.io/daihao007/lumalife-frontend
+          - component: identity-service
+            context: ./services
+            file: ./services/identity-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-identity-service
+          - component: merchant-service
+            context: ./services
+            file: ./services/merchant-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-merchant-service
+          - component: order-service
+            context: ./services
+            file: ./services/order-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-order-service
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -470,6 +482,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.file || format('{0}/Dockerfile', matrix.context) }}
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -494,16 +507,24 @@ jobs:
         shell: bash
         run: |
           image_tag="ci-${GITHUB_SHA::7}"
-          docker build --provenance=false --tag "lumalife-backend:${image_tag}" backend
-          docker build --provenance=false --tag "lumalife-frontend:${image_tag}" frontend
+          retry_build() { for attempt in 1 2 3; do "$@" && return 0; echo "build retry ${attempt}"; sleep 10; done; return 1; }
+          retry_build docker build --provenance=false --tag "lumalife-backend:${image_tag}" backend
+          retry_build docker build --provenance=false --tag "lumalife-frontend:${image_tag}" frontend
+          retry_build docker build --provenance=false --tag "lumalife-identity-service:${image_tag}" -f services/identity-service/Dockerfile services
+          retry_build docker build --provenance=false --tag "lumalife-merchant-service:${image_tag}" -f services/merchant-service/Dockerfile services
+          retry_build docker build --provenance=false --tag "lumalife-order-service:${image_tag}" -f services/order-service/Dockerfile services
           kind load docker-image --name lumalife-ci \
-            "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}"
+            "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}" \
+            "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}"
 
       - name: Deploy and verify probes in the disposable cluster
         shell: bash
         env:
           BACKEND_IMAGE: lumalife-backend
           FRONTEND_IMAGE: lumalife-frontend
+          IDENTITY_IMAGE: lumalife-identity-service
+          MERCHANT_IMAGE: lumalife-merchant-service
+          ORDER_IMAGE: lumalife-order-service
         run: bash scripts/deploy-k8s.sh "ci-${GITHUB_SHA::7}"
 
   kubernetes-deploy:
