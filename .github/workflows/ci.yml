@@ -527,11 +527,20 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file || format('{0}/Dockerfile', matrix.context) }}
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+      - name: Verify published image platforms
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        shell: bash
+        run: |
+          image_tag="sha-${GITHUB_SHA::7}"
+          docker buildx imagetools inspect "${{ matrix.image }}:${image_tag}" --raw \
+            | jq -e '[.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64", "arm64"]'
 
   kubernetes-smoke:
     name: Kubernetes rollout smoke test

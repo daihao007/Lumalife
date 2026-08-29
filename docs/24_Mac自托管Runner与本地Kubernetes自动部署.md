@@ -9,6 +9,8 @@ GitHub 托管 Runner 无法访问 Mac 上 Docker Desktop 的 Kubernetes API。�
 
 PR 不会更新本地集群。只有进入 `main` 且完整 CI 成功的提交才会自动部署；也可以从 Actions 页面手动选择镜像标签重新部署。
 
+正式 GHCR 镜像同时发布 `linux/amd64` 和 `linux/arm64` manifest。镜像发布 job 会检查两个平台都存在，避免 Apple Silicon Runner 在部署阶段才遇到 `no matching manifest`。
+
 ## 前置检查
 
 保持 Docker Desktop 和 Kubernetes 开启，在终端运行：
