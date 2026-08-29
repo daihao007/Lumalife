@@ -222,13 +222,21 @@ jobs:
             -d '{"phone":"13800000001","password":"abc123456"}' \
             http://localhost:8080/api/v1/auth/login)
           token=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["token"])' <<< "$login_response")
+          direct_order_response=$(curl --silent --show-error --write-out $'\n%{http_code}' \
+            -H 'X-Internal-Service-Token: compose-internal-token' \
+            -H 'X-User-Id: 1' \
+            -H 'Content-Type: application/json' \
+            -d '{"quantity":2}' \
+            http://localhost:8083/internal/v1/orders/cart/1001)
+          echo "Direct order-service cart response:"; echo "$direct_order_response"
+          test "$(tail -n 1 <<< "$direct_order_response")" = 200
           curl --fail --silent --show-error \
             -H 'Content-Type: application/json' \
             -H "Authorization: Bearer $token" \
             -d '{"productId":1001,"quantity":2}' \
             http://localhost:8080/api/v1/cart/items | grep -q '"productId":1001'
 
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM cart_item WHERE user_id=1 AND product_id=1001 AND quantity=2"' | grep -qx 1
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM service_cart_item WHERE user_id=1 AND product_id=1001 AND quantity=2"' | grep -qx 1
           docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM business_state"' | grep -qx 0
 
           docker compose restart backend
