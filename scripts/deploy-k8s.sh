@@ -20,6 +20,14 @@ diagnostics() {
   kubectl -n "${NAMESPACE}" get deployments,statefulsets,pods,services,persistentvolumeclaims -o wide || true
   kubectl -n "${NAMESPACE}" describe deployment backend frontend || true
   kubectl -n "${NAMESPACE}" describe pods || true
+  echo "Recent container logs (including the previous crashed instance):"
+  kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 \
+    -l 'app.kubernetes.io/part-of=lumalife' || true
+  for app in identity-service merchant-service order-service; do
+    kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app=${app}" || true
+    kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 --previous -l "app=${app}" || true
+  done
+  kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp || true
   echo "::endgroup::"
 }
 trap diagnostics ERR

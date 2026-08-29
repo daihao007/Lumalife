@@ -1,5 +1,7 @@
 server:
-  port: ${IDENTITY_SERVICE_PORT:8081}
+  # Kubernetes injects IDENTITY_SERVICE_PORT=tcp://<service-ip>:8081 for
+  # service links. Do not use that reserved name as an integer HTTP port.
+  port: ${LUMALIFE_IDENTITY_HTTP_PORT:8081}
 spring:
   application:
     name: identity-service

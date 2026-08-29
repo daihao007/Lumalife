@@ -1,5 +1,8 @@
 -- Remove all business and demo data while retaining schema_migration history.
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE business_state;
+TRUNCATE TABLE order_record;
+TRUNCATE TABLE merchant_catalog;
 TRUNCATE TABLE operation_log;
 TRUNCATE TABLE chat_message;
 TRUNCATE TABLE merchant_favorite;
