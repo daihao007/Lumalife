@@ -7,6 +7,7 @@ import com.lumalife.service.boundary.MerchantServicePort;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,7 +34,19 @@ public class RemoteMerchantServicePort {
       }
       if (method.getName().equals("merchantDetail")) {
         Map row = client.get().uri("/internal/v1/merchants/{id}", args[0]).retrieve().body(Map.class);
-        return row;
+        Map<?, ?> fallbackMerchant = Map.of();
+        List<?> reviews = List.of();
+        try {
+          Map<String, Object> fallbackDetail = fallback.merchantDetail((long) args[0]);
+          fallbackMerchant = mapper.convertValue(fallbackDetail.get("merchant"), Map.class);
+          Object fallbackReviews = fallbackDetail.get("reviews");
+          if (fallbackReviews instanceof List<?> list) reviews = list;
+        } catch (RuntimeException ignored) {
+          // A newly migrated merchant may not exist in the compatibility store.
+        }
+        List products = client.get().uri("/internal/v1/merchants/{id}/products", args[0]).retrieve().body(List.class);
+        List groupDeals = client.get().uri("/internal/v1/merchants/{id}/deals", args[0]).retrieve().body(List.class);
+        return normalizeMerchantDetail(row, fallbackMerchant, products, groupDeals, reviews);
       }
       if (method.getName().equals("merchantsForUser")) {
         List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants").queryParam("keyword", args[1] == null ? "" : args[1]).build()).retrieve().body(List.class);
@@ -79,6 +92,32 @@ public class RemoteMerchantServicePort {
       return method.invoke(fallback, args);
     };
     return (MerchantServicePort) Proxy.newProxyInstance(MerchantServicePort.class.getClassLoader(), new Class[]{MerchantServicePort.class}, handler);
+  }
+
+  static Map<String, Object> normalizeMerchantDetail(Map<?, ?> remoteMerchant, Map<?, ?> fallbackMerchant,
+                                                       List<?> products, List<?> groupDeals, List<?> reviews) {
+    Map<String, Object> merchant = new LinkedHashMap<>();
+    copyEntries(fallbackMerchant, merchant);
+    copyEntries(remoteMerchant, merchant);
+    merchant.putIfAbsent("cover", "");
+    merchant.putIfAbsent("avgScore", 0.0);
+    merchant.putIfAbsent("avgPrice", 0);
+    merchant.putIfAbsent("monthlySales", 0);
+    merchant.putIfAbsent("distanceKm", 0.0);
+    merchant.putIfAbsent("address", "");
+    merchant.putIfAbsent("reason", "");
+
+    Map<String, Object> detail = new LinkedHashMap<>();
+    detail.put("merchant", merchant);
+    detail.put("products", products == null ? List.of() : products);
+    detail.put("groupDeals", groupDeals == null ? List.of() : groupDeals);
+    detail.put("reviews", reviews == null ? List.of() : reviews);
+    return detail;
+  }
+
+  private static void copyEntries(Map<?, ?> source, Map<String, Object> target) {
+    if (source == null) return;
+    source.forEach((key, value) -> target.put(String.valueOf(key), value));
   }
 
 }
