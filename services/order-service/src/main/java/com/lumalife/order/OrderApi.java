@@ -38,6 +38,9 @@ public class OrderApi {
   @PostMapping("/cart/{productId}")
   java.util.Map<Long,Integer> cartPut(@PathVariable long productId, @RequestHeader("X-User-Id") long userId, @RequestBody CartRequest request) { return store.putCart(userId, productId, request.quantity()); }
 
+  @PostMapping("/cart/{productId}/add")
+  java.util.Map<Long,Integer> cartAdd(@PathVariable long productId, @RequestHeader("X-User-Id") long userId, @RequestBody CartRequest request) { return store.addToCart(userId, productId, request.quantity()); }
+
   @DeleteMapping("/cart/{productId}")
   java.util.Map<Long,Integer> cartDelete(@PathVariable long productId, @RequestHeader("X-User-Id") long userId) { return store.removeCart(userId, productId); }
 
@@ -45,7 +48,10 @@ public class OrderApi {
   void cartClear(@RequestHeader("X-User-Id") long userId) { store.clearCart(userId); }
 
   @PostMapping("/{id}/pay")
-  OrderStore.Payment pay(@PathVariable long id, @RequestHeader("X-User-Id") long userId, @RequestBody PayRequest request) { return store.pay(userId, id, request.amountCent(), request.clientRequestId()); }
+  OrderStore.Order pay(@PathVariable long id, @RequestHeader("X-User-Id") long userId, @RequestBody PayRequest request) {
+    store.pay(userId, id, request.amountCent(), request.clientRequestId());
+    return store.order(id);
+  }
 
   @PostMapping("/group-buy")
   OrderStore.Order groupBuy(@RequestHeader("X-User-Id") long userId, @RequestBody OrderStore.GroupOrderRequest request) {

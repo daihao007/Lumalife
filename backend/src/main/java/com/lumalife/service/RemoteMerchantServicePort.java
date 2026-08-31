@@ -50,7 +50,7 @@ public class RemoteMerchantServicePort {
       }
       if (method.getName().equals("merchantsForUser")) {
         List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants").queryParam("keyword", args[1] == null ? "" : args[1]).build()).retrieve().body(List.class);
-        return rows;
+        return rows.stream().map(row -> mapper.convertValue(row, Map.class)).toList();
       }
       if (method.getName().equals("merchantProducts")) {
         com.lumalife.domain.Models.User user = (com.lumalife.domain.Models.User) args[0];

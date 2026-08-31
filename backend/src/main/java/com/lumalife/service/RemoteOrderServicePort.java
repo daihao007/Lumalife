@@ -49,7 +49,8 @@ public class RemoteOrderServicePort {
           return cartItems(row);
         }
         if (method.getName().equals("cart")) return cartItems(client.get().uri("/internal/v1/orders/cart").header("X-User-Id", String.valueOf(userId)).retrieve().body(Map.class));
-        Map row = client.post().uri("/internal/v1/orders/cart/{productId}", args[1]).header("X-User-Id", String.valueOf(userId)).body(Map.of("quantity", args[2])).retrieve().body(Map.class);
+        String path = method.getName().equals("addCart") ? "/internal/v1/orders/cart/{productId}/add" : "/internal/v1/orders/cart/{productId}";
+        Map row = client.post().uri(path, args[1]).header("X-User-Id", String.valueOf(userId)).body(Map.of("quantity", args[2])).retrieve().body(Map.class);
         return cartItems(row);
       }
       if (method.getName().equals("cartDetail")) {

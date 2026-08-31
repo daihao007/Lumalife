@@ -71,6 +71,12 @@ public class OrderStore {
     return cart(userId);
   }
 
+  public synchronized Map<Long,Integer> addToCart(long userId, long productId, int quantity) {
+    if (quantity <= 0) throw new IllegalArgumentException("数量必须大于 0");
+    int nextQuantity = cart(userId).getOrDefault(productId, 0) + quantity;
+    return putCart(userId, productId, nextQuantity);
+  }
+
   public synchronized Map<Long,Integer> removeCart(long userId, long productId) {
     Map<Long,Integer> current = cart(userId);
     if (!current.containsKey(productId)) throw new IllegalArgumentException("购物车商品不存在");
@@ -86,13 +92,15 @@ public class OrderStore {
 
   public synchronized Payment pay(long userId, long orderId, long amount, String requestId) {
     if (requestId == null || requestId.isBlank()) throw new IllegalArgumentException("clientRequestId 不能为空");
+    Order current = findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
+    if (current.userId() != userId) throw new IllegalArgumentException("订单不存在");
+    long chargedAmount = current.totalCent();
     if (jdbc != null) {
       List<Payment> existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, orderId, requestId);
       if (!existing.isEmpty()) return existing.get(0);
-      jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, amount, "SUCCESS");
+      jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
       jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
     }
-    Order current = findOrder(orderId).orElse(null);
     if (current != null && current.userId() == userId && "PENDING_PAYMENT".equals(current.status())) {
       Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt());
       orders.put(orderId, paid);
@@ -103,7 +111,11 @@ public class OrderStore {
       coupons.putIfAbsent(code, new Coupon(code, orderId, current.merchantId(), "UNUSED"));
       if (jdbc != null) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)", code, orderId, current.merchantId());
     }
-    return new Payment(userId, orderId, requestId, amount, "SUCCESS");
+    return new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
+  }
+
+  public synchronized Order order(long id) {
+    return findOrder(id).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
   }
 
   private String orderType(long id) {
@@ -134,7 +146,7 @@ public class OrderStore {
       if (line.quantity() <= 0 || line.merchantId() <= 0 || line.priceCent() <= 0) throw new IllegalArgumentException("订单商品参数不合法");
       Order order = grouped.computeIfAbsent(line.merchantId(), merchant -> {
         long id = ids.incrementAndGet();
-        Order next = new Order(id, request.userId(), merchant, line.productId(), line.quantity(), 0, "PENDING_PAYMENT", Instant.now());
+        Order next = new Order(id, request.userId(), merchant, line.productId(), 0, 0, "PENDING_PAYMENT", Instant.now());
         orders.put(id, next);
         orderTypes.put(id, "DELIVERY");
         return next;

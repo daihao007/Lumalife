@@ -28,6 +28,15 @@ class MerchantServiceBusinessTest {
   }
 
   @Test
+  void exposesCompleteMerchantCardsIncludingCovers() {
+    MerchantStore.Merchant[] merchants = http.exchange("/internal/v1/merchants", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), MerchantStore.Merchant[].class).getBody();
+
+    assertThat(merchants).hasSizeGreaterThanOrEqualTo(4);
+    assertThat(merchants).allSatisfy(merchant -> assertThat(merchant.cover()).isNotBlank());
+  }
+
+  @Test
   void requiresServiceAndMerchantIdentityForCatalogWrites() {
     HttpHeaders headers = serviceHeaders();
     headers.set("X-Merchant-Id", "2");

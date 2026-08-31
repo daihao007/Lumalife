@@ -38,6 +38,33 @@ class OrderServiceBusinessTest {
     assertThat(response.getStatusCode().value()).isEqualTo(403);
   }
 
+  @Test
+  void addsToCartWithoutOverwritingAnExistingQuantity() {
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", "1");
+
+    http.exchange("/internal/v1/orders/cart/1001", HttpMethod.POST,
+      new HttpEntity<>(Map.of("quantity", 1), headers), Map.class);
+    Map<?, ?> cart = http.exchange("/internal/v1/orders/cart/1001/add", HttpMethod.POST,
+      new HttpEntity<>(Map.of("quantity", 1), headers), Map.class).getBody();
+
+    assertThat(cart.get("1001")).isEqualTo(2);
+  }
+
+  @Test
+  void paysForTheOrderTotalAndReturnsThePaidOrder() {
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", "1");
+    OrderStore.Order order = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", 1, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), headers), OrderStore.Order.class).getBody();
+
+    OrderStore.Order paid = http.exchange("/internal/v1/orders/" + order.id() + "/pay", HttpMethod.POST,
+      new HttpEntity<>(Map.of("amountCent", 0, "clientRequestId", "pay-contract-test"), headers), OrderStore.Order.class).getBody();
+
+    assertThat(paid.status()).isEqualTo("PAID");
+    assertThat(paid.totalCent()).isEqualTo(2680);
+  }
+
   private HttpHeaders serviceHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Luma-Service-Token", "test-internal-token");
