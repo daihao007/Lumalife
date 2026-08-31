@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import Assistant from "./pages/Assistant";
 import Favorites from "./pages/Favorites";
 import { accessDeniedMessage, canAccess, defaultView, parseRoute, routeHash, type AppView } from "./routing";
+import { createPaymentRequestId } from "./utils";
 
 type MerchantProfilePayload = { user: User; merchant: Merchant };
 
@@ -307,7 +308,7 @@ export default function App() {
   }
 
   async function pay(orderId: number) {
-    const clientRequestId = paymentRequestIds.current[orderId] ||= crypto.randomUUID();
+    const clientRequestId = paymentRequestIds.current[orderId] ||= createPaymentRequestId();
     const paid = await api<Order>("/api/v1/payments", { method: "POST", body: JSON.stringify({ orderId, clientRequestId }) });
     await loadOrders();
     delete paymentRequestIds.current[orderId];

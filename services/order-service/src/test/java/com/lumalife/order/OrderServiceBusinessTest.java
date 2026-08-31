@@ -11,11 +11,37 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
   properties = "lumalife.internal.service-token=test-internal-token")
 class OrderServiceBusinessTest {
   @Autowired private TestRestTemplate http;
+
+  @Test
+  void continuesAfterTheHighestPersistedOrderId() {
+    JdbcTemplate jdbc = mock(JdbcTemplate.class);
+    when(jdbc.queryForObject("SELECT COALESCE(MAX(id), 4000) FROM order_record", Long.class)).thenReturn(4007L);
+
+    OrderStore store = new OrderStore(jdbc);
+    OrderStore.Order order = store.create(new OrderStore.CreateOrderRequest(1, 1, 1001, 1, 2680));
+
+    assertThat(order.id()).isEqualTo(4008L);
+  }
+
+  @Test
+  void rejectsPaymentForACancelledOrder() {
+    OrderStore store = new OrderStore();
+    OrderStore.Order order = store.create(new OrderStore.CreateOrderRequest(1, 1, 1001, 1, 2680));
+    store.cancel(1, order.id());
+
+    assertThatThrownBy(() -> store.pay(1, order.id(), 0, "cancelled-order-payment"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("当前订单不可支付");
+  }
 
   @Test
   void ownsOrderCreationAndCancellation() {

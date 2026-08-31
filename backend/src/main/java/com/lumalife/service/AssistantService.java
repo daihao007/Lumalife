@@ -53,11 +53,26 @@ public class AssistantService {
   }
 
   public String askForMerchant(User admin, String question) {
-    Map<String, Object> profile = merchant.merchantProfile(admin);
-    Merchant merchant = (Merchant) profile.get("merchant");
-    Map<String, Object> detail = this.merchant.merchantDetail(merchant.id());
-    List<Product> products = castList(detail.get("products"));
-    List<GroupDeal> deals = castList(detail.get("groupDeals"));
+    Merchant merchant = null;
+    List<Product> products = List.of();
+    List<GroupDeal> deals = List.of();
+    try {
+      Map<String, Object> profile = this.merchant.merchantProfile(admin);
+      merchant = profile == null ? null : asMerchant(profile.get("merchant"));
+      if (merchant != null) {
+        Map<String, Object> detail = this.merchant.merchantDetail(merchant.id());
+        products = asProducts(detail.get("products"));
+        deals = asDeals(detail.get("groupDeals"));
+      }
+    } catch (RuntimeException error) {
+      // An AI answer must remain available while catalog-service is restarting
+      // or a newly migrated merchant has not been materialized in the catalog.
+      log.warn("Merchant context unavailable; using account-only fallback: {}", error.getMessage());
+    }
+    if (merchant == null) {
+      long merchantId = admin.merchantId() == null ? 0 : admin.merchantId();
+      merchant = new Merchant(merchantId, admin.nickname(), 0, "", "", 0, 0, 0, 0, "营业状态待确认", "", "");
+    }
     String safeQuestion = question == null ? "" : question;
     return callAgnes(List.of(
       Map.of("role", "system", "content",
@@ -98,10 +113,14 @@ public class AssistantService {
     List<Product> products = List.of();
     List<GroupDeal> deals = List.of();
     if (merchantId > 0) {
-      Map<String, Object> detail = merchantServiceDetail(merchantId);
-      merchant = (Merchant) detail.get("merchant");
-      products = castList(detail.get("products"));
-      deals = castList(detail.get("groupDeals"));
+      try {
+        Map<String, Object> detail = merchantServiceDetail(merchantId);
+        merchant = asMerchant(detail.get("merchant"));
+        products = asProducts(detail.get("products"));
+        deals = asDeals(detail.get("groupDeals"));
+      } catch (RuntimeException error) {
+        log.warn("Merchant context unavailable for conversation; using generic fallback: {}", error.getMessage());
+      }
     }
 
     List<Map<String, String>> messages = new ArrayList<>();
@@ -156,9 +175,14 @@ public class AssistantService {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private <T> List<T> castList(Object value) {
-    return value instanceof List<?> list ? (List<T>) list : List.of();
+  private List<Product> asProducts(Object value) {
+    if (!(value instanceof List<?> list)) return List.of();
+    return list.stream().map(item -> objectMapper.convertValue(item, Product.class)).toList();
+  }
+
+  private List<GroupDeal> asDeals(Object value) {
+    if (!(value instanceof List<?> list)) return List.of();
+    return list.stream().map(item -> objectMapper.convertValue(item, GroupDeal.class)).toList();
   }
 
   private String merchantContext(Merchant merchant, List<Product> products, List<GroupDeal> deals) {
@@ -224,5 +248,12 @@ public class AssistantService {
 
   private String formatMoney(long priceCent) {
     return "¥" + (priceCent / 100) + "." + String.format("%02d", Math.abs(priceCent % 100));
+  }
+
+  private Merchant asMerchant(Object value) {
+    if (value instanceof Merchant item) return item;
+    if (value == null) return null;
+    try { return objectMapper.convertValue(value, Merchant.class); }
+    catch (IllegalArgumentException ignored) { return null; }
   }
 }

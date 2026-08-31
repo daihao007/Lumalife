@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -17,6 +17,7 @@ const execFileAsync = promisify(execFile);
 let backendProcess;
 let sequence = 0;
 let environmentFailure;
+const temporaryStateFile = path.join(rootDir, "e2e", `.state-${process.pid}.json`);
 const suiteStartedAt = new Date().toISOString();
 
 const sensitiveLogKeys = new Set([
@@ -155,18 +156,6 @@ async function registerUser(label) {
   });
   const body = expectResponse(response, 200, `register failed for ${label}`);
   assert(body.data?.token, `registration returned no token for ${label}`, { response: body });
-  return body.data.token;
-}
-
-async function registerMerchant(label) {
-  const phone = `e2e-merchant-${Date.now()}-${sequence++}`;
-  const response = await request("POST", "/api/v1/auth/register/merchant", undefined, {
-    phone,
-    password: "abc123456",
-    nickname: `E2E ${label}`
-  });
-  const body = expectResponse(response, 200, `register merchant failed for ${label}`);
-  assert(body.data?.token, `merchant registration returned no token for ${label}`, { response: body });
   return body.data.token;
 }
 
@@ -563,7 +552,10 @@ async function uc08CrossRoleCustomerService() {
     responseStatus: 200
   });
 
-  const merchantBToken = await registerMerchant("UC08-B");
+  // Use a seeded merchant for the negative authorization check. Registering a
+  // new merchant here makes a shared Compose/Kubernetes database show a test
+  // shop on the real homepage after the E2E run.
+  const merchantBToken = await login("13800000003", "abc123456");
   const merchantB = expectResponse(
     await request("GET", "/api/v1/auth/me", merchantBToken),
     200,
@@ -626,15 +618,13 @@ async function waitForHealth(maxWaitMs) {
 
 function startBackendProcess() {
   const windows = process.platform === "win32";
-  const command = windows ? "cmd.exe" : "mvn";
-  const springBootArguments = `--server.port=${backendPort} --lumalife.state-file=`;
-  const args = windows
-    ? ["/d", "/s", "/c", `mvn.cmd -q spring-boot:run "-Dspring-boot.run.arguments=${springBootArguments}" -Dspring-boot.run.fork=false`]
-    : ["-q", "spring-boot:run", `-Dspring-boot.run.arguments=${springBootArguments}`, "-Dspring-boot.run.fork=false"];
+  const command = windows ? "mvn.cmd" : "mvn";
+  const args = ["-q", "spring-boot:run", "-Dspring-boot.run.fork=false"];
   backendProcess = spawn(command, args, {
     cwd: path.join(rootDir, "backend"),
-    env: { ...process.env, SERVER_PORT: String(backendPort) },
+    env: { ...process.env, SERVER_PORT: String(backendPort), LUMALIFE_STATE_FILE: temporaryStateFile },
     stdio: ["ignore", "pipe", "pipe"],
+    shell: windows,
     windowsHide: true
   });
   const chunks = [];
@@ -668,6 +658,11 @@ async function stopBackendProcess() {
     backendProcess.kill("SIGTERM");
   }
   await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    await unlink(temporaryStateFile);
+  } catch {
+    // The isolated state file may not have been created if startup failed.
+  }
 }
 
 async function runScenario(name, scenario) {

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.DataAccessException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,7 +19,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Service
 public class OrderStore {
   public record Order(long id, long userId, long merchantId, long productId, int quantity,
-                      long totalCent, String status, Instant createdAt) {}
+                      long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline, String couponCode) {
+    public Order(long id, long userId, long merchantId, long productId, int quantity,
+                 long totalCent, String status, Instant createdAt) {
+      this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt,
+        Map.of(status, createdAt), null);
+    }
+    public Order(long id, long userId, long merchantId, long productId, int quantity,
+                 long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline) {
+      this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt, statusTimeline, null);
+    }
+  }
 
   private final AtomicLong ids = new AtomicLong(4000);
   private final Map<Long, Order> orders = new LinkedHashMap<>();
@@ -30,12 +41,34 @@ public class OrderStore {
   private final Map<Long, String> orderTypes = new HashMap<>();
 
   @Autowired
-  public OrderStore(ObjectProvider<JdbcTemplate> provider) { this.jdbc = provider.getIfAvailable(); }
-  public OrderStore() { this.jdbc = null; }
+  public OrderStore(ObjectProvider<JdbcTemplate> provider) { this(provider.getIfAvailable()); }
+  OrderStore(JdbcTemplate jdbc) {
+    this.jdbc = jdbc;
+    refreshIdSequence();
+  }
+  public OrderStore() { this((JdbcTemplate) null); }
+
+  private void refreshIdSequence() {
+    if (jdbc == null) return;
+    try {
+      Long maxId = jdbc.queryForObject("SELECT COALESCE(MAX(id), 4000) FROM order_record", Long.class);
+      if (maxId != null) ids.updateAndGet(current -> Math.max(current, maxId));
+    } catch (DataAccessException ignored) {
+      // The service can still start before the migration is applied; the
+      // database health/migration workflow reports that separate problem.
+    }
+  }
+
+  private long nextOrderId() {
+    // Re-read before allocation so a restart or an older writer cannot make
+    // this process reuse an ID already present in the durable order table.
+    refreshIdSequence();
+    return ids.incrementAndGet();
+  }
 
   public synchronized Order create(CreateOrderRequest request) {
     if (request.quantity() <= 0) throw new IllegalArgumentException("数量必须大于 0");
-    Order order = new Order(ids.incrementAndGet(), request.userId(), request.merchantId(), request.productId(),
+    Order order = new Order(nextOrderId(), request.userId(), request.merchantId(), request.productId(),
       request.quantity(), request.totalCent(), "PENDING_PAYMENT", Instant.now());
     orders.put(order.id(), order);
     orderTypes.put(order.id(), "DELIVERY");
@@ -98,16 +131,24 @@ public class OrderStore {
     if (jdbc != null) {
       List<Payment> existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, orderId, requestId);
       if (!existing.isEmpty()) return existing.get(0);
+    }
+    if (!"PENDING_PAYMENT".equals(current.status())) {
+      throw new IllegalStateException("当前订单不可支付");
+    }
+    if (jdbc != null) {
       jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
-      jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
+      int updated = jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
+      if (updated != 1) {
+        jdbc.update("DELETE FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", userId, orderId, requestId);
+        throw new IllegalStateException("当前订单不可支付");
+      }
     }
-    if (current != null && current.userId() == userId && "PENDING_PAYMENT".equals(current.status())) {
-      Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt());
-      orders.put(orderId, paid);
-      appendEvent(orderId, userId, "PAID");
-    }
+    String couponCode = "GROUP_BUY".equals(orderType(orderId)) ? String.format("%012d", orderId) : null;
+    Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt(), Map.of("PAID", current.createdAt()), couponCode);
+    orders.put(orderId, paid);
+    appendEvent(orderId, userId, "PAID");
     if (current != null && "GROUP_BUY".equals(orderType(orderId))) {
-      String code = String.format("%012d", orderId);
+      String code = couponCode;
       coupons.putIfAbsent(code, new Coupon(code, orderId, current.merchantId(), "UNUSED"));
       if (jdbc != null) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)", code, orderId, current.merchantId());
     }
@@ -126,9 +167,9 @@ public class OrderStore {
 
   public synchronized Order createGroupOrder(GroupOrderRequest request) {
     if (request.quantity() <= 0 || request.merchantId() <= 0 || request.priceCent() <= 0) {
-      throw new IllegalArgumentException("团购参数不合法");
+      throw new IllegalStateException("团购参数不合法");
     }
-    long id = ids.incrementAndGet();
+    long id = nextOrderId();
     Order order = new Order(id, request.userId(), request.merchantId(), request.dealId(), request.quantity(),
       request.priceCent() * request.quantity(), "PENDING_PAYMENT", Instant.now());
     orders.put(id, order);
@@ -145,7 +186,7 @@ public class OrderStore {
     for (DeliveryLine line : request.lines()) {
       if (line.quantity() <= 0 || line.merchantId() <= 0 || line.priceCent() <= 0) throw new IllegalArgumentException("订单商品参数不合法");
       Order order = grouped.computeIfAbsent(line.merchantId(), merchant -> {
-        long id = ids.incrementAndGet();
+        long id = nextOrderId();
         Order next = new Order(id, request.userId(), merchant, line.productId(), 0, 0, "PENDING_PAYMENT", Instant.now());
         orders.put(id, next);
         orderTypes.put(id, "DELIVERY");
@@ -240,7 +281,10 @@ public class OrderStore {
   }
 
   private void appendEvent(long orderId, long actor, String status) {
-    if (jdbc != null) jdbc.update("INSERT INTO service_order_event(order_id,version,status,actor_id) SELECT ?, COALESCE(MAX(version),0)+1, ?, ? FROM service_order_event WHERE order_id=?", orderId, status, actor, orderId);
+    if (jdbc != null) {
+      Integer nextVersion = jdbc.queryForObject("SELECT COALESCE(MAX(version),0)+1 FROM service_order_event WHERE order_id=?", Integer.class, orderId);
+      jdbc.update("INSERT INTO service_order_event(order_id,version,status,actor_id) VALUES (?,?,?,?)", orderId, nextVersion == null ? 1 : nextVersion, status, actor);
+    }
   }
 
   public record Payment(long userId,long orderId,String clientRequestId,long amountCent,String status) {}
@@ -251,7 +295,16 @@ public class OrderStore {
   public record ReviewRequest(long userId, long orderId, String userName, int score, int tasteScore, int serviceScore, String content) {}
   public record Review(long id, long orderId, long merchantId, String userName, int score, int tasteScore, int serviceScore, String content, LocalDateTime createdAt) {}
 
-  private Order map(java.sql.ResultSet rs, int row) throws java.sql.SQLException { return new Order(rs.getLong(1),rs.getLong(2),rs.getLong(3),rs.getLong(4),rs.getInt(5),rs.getLong(6),rs.getString(7),rs.getTimestamp(8).toInstant()); }
+  private Order map(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+    long id = rs.getLong(1);
+    return new Order(id, rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getInt(5), rs.getLong(6), rs.getString(7), rs.getTimestamp(8).toInstant(), timeline(id));
+  }
+
+  private Map<String, Instant> timeline(long orderId) {
+    if (jdbc == null) return Map.of();
+    return jdbc.query("SELECT status,occurred_at FROM service_order_event WHERE order_id=? ORDER BY version", (rs,n) -> Map.entry(rs.getString(1), rs.getTimestamp(2).toInstant()), orderId)
+      .stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, ignored) -> first, LinkedHashMap::new));
+  }
 
   record CreateOrderRequest(long userId, long merchantId, long productId, int quantity, long totalCent) {}
 }
