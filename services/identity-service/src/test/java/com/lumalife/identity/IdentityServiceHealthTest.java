@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
   properties = {"lumalife.internal.service-token=test-internal-token", "lumalife.identity.state-file="})
@@ -87,6 +89,45 @@ class IdentityServiceHealthTest {
     IdentityStore restarted = new IdentityStore(new BCryptPasswordEncoder(), state);
     assertThat(restarted.byToken(token).phone()).isEqualTo("13900000010");
     assertThat(restarted.addresses(1001)).hasSize(1);
+  }
+
+  @Test
+  void ctRtId07To09MaintainsOnlyTheCurrentUsersAddresses() {
+    String phone = "ct-id-" + UUID.randomUUID();
+    ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
+      new HttpEntity<>(Map.of("phone", phone, "password", "abc123456", "nickname", "契约地址用户", "role", "USER"), serviceHeaders()), Map.class);
+    assertThat(registration.getStatusCode().value()).isEqualTo(200);
+    Map<?, ?> user = (Map<?, ?>) registration.getBody().get("user");
+    long userId = ((Number) user.get("id")).longValue();
+
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", Long.toString(userId));
+    IdentityStore.Address first = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("contactName", "测试用户", "phone", phone, "detail", "契约测试地址一", "defaultAddress", true), headers), IdentityStore.Address.class).getBody();
+    IdentityStore.Address second = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("contactName", "测试用户", "phone", phone, "detail", "契约测试地址二", "defaultAddress", false), headers), IdentityStore.Address.class).getBody();
+
+    IdentityStore.Address defaulted = http.exchange("/internal/v1/users/" + userId + "/addresses/" + second.id() + "/default", HttpMethod.POST,
+      new HttpEntity<>(headers), IdentityStore.Address.class).getBody();
+    IdentityStore.Address[] addresses = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.GET,
+      new HttpEntity<>(headers), IdentityStore.Address[].class).getBody();
+    assertThat(defaulted.defaultAddress()).isTrue();
+    assertThat(Arrays.stream(addresses).filter(IdentityStore.Address::defaultAddress)).hasSize(1);
+    assertThat(Arrays.stream(addresses).filter(IdentityStore.Address::defaultAddress).findFirst().orElseThrow().id()).isEqualTo(second.id());
+
+    HttpHeaders anotherUserHeaders = serviceHeaders();
+    anotherUserHeaders.set("X-User-Id", Long.toString(userId + 1));
+    ResponseEntity<String> denied = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.GET,
+      new HttpEntity<>(anotherUserHeaders), String.class);
+    assertThat(denied.getStatusCode().value()).isEqualTo(403);
+
+    http.exchange("/internal/v1/users/" + userId + "/addresses/" + second.id(), HttpMethod.DELETE,
+      new HttpEntity<>(headers), Void.class);
+    IdentityStore.Address[] afterDelete = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.GET,
+      new HttpEntity<>(headers), IdentityStore.Address[].class).getBody();
+    assertThat(afterDelete).hasSize(1);
+    assertThat(afterDelete[0].id()).isEqualTo(first.id());
+    assertThat(afterDelete[0].defaultAddress()).isTrue();
   }
 
   private HttpHeaders serviceHeaders() {

@@ -25,6 +25,7 @@ public class OrderStore {
   private final JdbcTemplate jdbc;
   private final Map<Long, Map<Long,Integer>> carts = new LinkedHashMap<>();
   private final Map<String, Coupon> coupons = new LinkedHashMap<>();
+  private final Map<String, Payment> payments = new LinkedHashMap<>();
   private final Map<Long, Review> reviews = new LinkedHashMap<>();
   private final Map<Long, Integer> orderVersions = new HashMap<>();
   private final Map<Long, String> orderTypes = new HashMap<>();
@@ -94,10 +95,20 @@ public class OrderStore {
     if (requestId == null || requestId.isBlank()) throw new IllegalArgumentException("clientRequestId 不能为空");
     Order current = findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
     if (current.userId() != userId) throw new IllegalArgumentException("订单不存在");
+    String paymentKey = userId + ":" + orderId + ":" + requestId;
+    Payment cachedPayment = payments.get(paymentKey);
+    if (cachedPayment != null) return cachedPayment;
     long chargedAmount = current.totalCent();
     if (jdbc != null) {
       List<Payment> existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, orderId, requestId);
-      if (!existing.isEmpty()) return existing.get(0);
+      if (!existing.isEmpty()) {
+        payments.put(paymentKey, existing.get(0));
+        return existing.get(0);
+      }
+    }
+    if (!"PENDING_PAYMENT".equals(current.status())) throw new IllegalStateException("当前状态不可支付");
+    if (amount != chargedAmount) throw new IllegalArgumentException("支付金额不匹配");
+    if (jdbc != null) {
       jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
       jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
     }
@@ -111,7 +122,9 @@ public class OrderStore {
       coupons.putIfAbsent(code, new Coupon(code, orderId, current.merchantId(), "UNUSED"));
       if (jdbc != null) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)", code, orderId, current.merchantId());
     }
-    return new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
+    Payment payment = new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
+    payments.put(paymentKey, payment);
+    return payment;
   }
 
   public synchronized Order order(long id) {
