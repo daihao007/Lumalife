@@ -1,0 +1,97 @@
+name: Deploy ECS K3s
+
+on:
+  workflow_run:
+    workflows:
+      - Monolith CI
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "要部署的不可变镜像标签，例如 sha-69d2140；留空时使用当前 main 提交"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lumalife-ecs-k3s
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy validated image to Alibaba Cloud ECS
+    if: >-
+      vars.ECS_DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ecs-production
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+    steps:
+      - name: Resolve immutable image tag
+        id: version
+        shell: bash
+        env:
+          REQUESTED_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [[ -n "${REQUESTED_TAG}" ]]; then
+            image_tag="${REQUESTED_TAG}"
+          else
+            image_tag="sha-${SOURCE_SHA:0:7}"
+          fi
+          echo "tag=${image_tag}" >> "${GITHUB_OUTPUT}"
+          echo "Deploying validated image tag ${image_tag}"
+
+      - name: Deploy through ECS SSH and verify cluster health
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          SOURCE_SHA: ${{ env.SOURCE_SHA }}
+          IMAGE_TAG: ${{ steps.version.outputs.tag }}
+          DEPLOY_PATH: ${{ vars.ECS_DEPLOY_PATH }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        with:
+          host: ${{ secrets.ECS_HOST }}
+          username: ${{ secrets.ECS_USER }}
+          key: ${{ secrets.ECS_SSH_KEY }}
+          fingerprint: ${{ secrets.ECS_SSH_FINGERPRINT }}
+          port: 22
+          envs: SOURCE_SHA,IMAGE_TAG,DEPLOY_PATH,MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD
+          script_stop: true
+          command_timeout: 18m
+          script: |
+            set -Eeuo pipefail
+            test -n "${DEPLOY_PATH}"
+            test -n "${MYSQL_PASSWORD}"
+            test -n "${MYSQL_ROOT_PASSWORD}"
+            cd "${DEPLOY_PATH}"
+            test -d .git
+            test -z "$(git status --porcelain)"
+            git fetch --quiet origin main
+            test "$(git rev-parse origin/main)" = "${SOURCE_SHA}"
+            git checkout --quiet main
+            git pull --ff-only --quiet origin main
+            MYSQL_PASSWORD="${MYSQL_PASSWORD}" MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \
+              bash scripts/deploy-k8s.sh "${IMAGE_TAG}"
+
+      - name: Publish deployment summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Alibaba Cloud ECS K3s deployment"
+            echo
+            echo "- Image tag: \`${{ steps.version.outputs.tag }}\`"
+            echo "- Validated revision: \`${SOURCE_SHA}\`"
+            echo "- Target: ECS K3s via SSH"
+          } >> "${GITHUB_STEP_SUMMARY}"
