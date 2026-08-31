@@ -1,5 +1,5 @@
 server:
-  port: ${IDENTITY_SERVICE_PORT:8081}
+  port: ${LUMALIFE_IDENTITY_PORT:8081}
 spring:
   application:
     name: identity-service
@@ -18,4 +18,5 @@ management:
 info:
   service:
     name: identity-service
+    version: ${SERVICE_VERSION:0.1.0}
     contract-version: v1
