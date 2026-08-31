@@ -29,22 +29,16 @@ public class RemoteMerchantServicePort {
     RestClient client = builder.baseUrl(baseUrl).defaultHeader("X-Internal-Service-Token", token).build();
     InvocationHandler handler = (proxy, method, args) -> {
       if (method.getName().equals("merchants")) {
-        List<Map> rows = client.get().uri(uri -> merchantListUri(uri, args[0], args[1], args[2], args[3], args[4], args[5])).retrieve().body(List.class);
+        List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants").queryParam("keyword", args[0] == null ? "" : args[0]).build()).retrieve().body(List.class);
         return rows.stream().map(row -> mapper.convertValue(row, Merchant.class)).toList();
       }
       if (method.getName().equals("merchantDetail")) {
         Map row = client.get().uri("/internal/v1/merchants/{id}", args[0]).retrieve().body(Map.class);
         Map<?, ?> fallbackMerchant = Map.of();
-        List<?> fallbackProducts = List.of();
-        List<?> fallbackGroupDeals = List.of();
         List<?> reviews = List.of();
         try {
           Map<String, Object> fallbackDetail = fallback.merchantDetail((long) args[0]);
           fallbackMerchant = mapper.convertValue(fallbackDetail.get("merchant"), Map.class);
-          Object fallbackProductData = fallbackDetail.get("products");
-          if (fallbackProductData instanceof List<?> list) fallbackProducts = list;
-          Object fallbackDealData = fallbackDetail.get("groupDeals");
-          if (fallbackDealData instanceof List<?> list) fallbackGroupDeals = list;
           Object fallbackReviews = fallbackDetail.get("reviews");
           if (fallbackReviews instanceof List<?> list) reviews = list;
         } catch (RuntimeException ignored) {
@@ -52,12 +46,10 @@ public class RemoteMerchantServicePort {
         }
         List products = client.get().uri("/internal/v1/merchants/{id}/products", args[0]).retrieve().body(List.class);
         List groupDeals = client.get().uri("/internal/v1/merchants/{id}/deals", args[0]).retrieve().body(List.class);
-        List<?> visibleProducts = products == null || products.isEmpty() ? fallbackProducts : products;
-        List<?> visibleGroupDeals = groupDeals == null || groupDeals.isEmpty() ? fallbackGroupDeals : groupDeals;
-        return normalizeMerchantDetail(row, fallbackMerchant, visibleProducts, visibleGroupDeals, reviews);
+        return normalizeMerchantDetail(row, fallbackMerchant, products, groupDeals, reviews);
       }
       if (method.getName().equals("merchantsForUser")) {
-        List<Map> rows = client.get().uri(uri -> merchantListUri(uri, args[1], args[2], args[3], args[4], args[5], args[6])).retrieve().body(List.class);
+        List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants").queryParam("keyword", args[1] == null ? "" : args[1]).build()).retrieve().body(List.class);
         return rows.stream().map(row -> mapper.convertValue(row, Map.class)).toList();
       }
       if (method.getName().equals("merchantProducts")) {
@@ -126,18 +118,6 @@ public class RemoteMerchantServicePort {
   private static void copyEntries(Map<?, ?> source, Map<String, Object> target) {
     if (source == null) return;
     source.forEach((key, value) -> target.put(String.valueOf(key), value));
-  }
-
-  private static java.net.URI merchantListUri(
-      org.springframework.web.util.UriBuilder uri, Object keyword, Object categoryId, Object sort,
-      Object minPrice, Object maxPrice, Object minScore) {
-    uri.path("/internal/v1/merchants").queryParam("keyword", keyword == null ? "" : keyword);
-    if (categoryId != null) uri.queryParam("categoryId", categoryId);
-    if (sort != null) uri.queryParam("sort", sort);
-    if (minPrice != null) uri.queryParam("minPrice", minPrice);
-    if (maxPrice != null) uri.queryParam("maxPrice", maxPrice);
-    if (minScore != null) uri.queryParam("minScore", minScore);
-    return uri.build();
   }
 
 }

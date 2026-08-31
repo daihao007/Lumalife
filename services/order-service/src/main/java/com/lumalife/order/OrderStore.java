@@ -18,14 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Service
 public class OrderStore {
   public record Order(long id, long userId, long merchantId, long productId, int quantity,
-                      long totalCent, String status, Instant createdAt, String orderType,
-                      String clientRequestId, String couponCode, Long addressId, boolean reviewed) {
-    public Order(long id, long userId, long merchantId, long productId, int quantity,
-                 long totalCent, String status, Instant createdAt) {
-      this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt,
-        "DELIVERY", null, null, null, false);
-    }
-  }
+                      long totalCent, String status, Instant createdAt) {}
 
   private final AtomicLong ids = new AtomicLong(4000);
   private final Map<Long, Order> orders = new LinkedHashMap<>();
@@ -43,7 +36,7 @@ public class OrderStore {
   public synchronized Order create(CreateOrderRequest request) {
     if (request.quantity() <= 0) throw new IllegalArgumentException("数量必须大于 0");
     Order order = new Order(ids.incrementAndGet(), request.userId(), request.merchantId(), request.productId(),
-      request.quantity(), request.totalCent(), "PENDING_PAYMENT", Instant.now(), "DELIVERY", null, null, null, false);
+      request.quantity(), request.totalCent(), "PENDING_PAYMENT", Instant.now());
     orders.put(order.id(), order);
     orderTypes.put(order.id(), "DELIVERY");
     if (jdbc != null) jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at) VALUES (?,?,?,?,?,?,?,?)", order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), order.status(), java.sql.Timestamp.from(order.createdAt()));
@@ -51,7 +44,7 @@ public class OrderStore {
   }
 
   public synchronized List<Order> byUser(long userId) {
-    if (jdbc != null) return jdbc.query(orderSelect("user_id=? ORDER BY id"), this::map, userId);
+    if (jdbc != null) return jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at FROM order_record WHERE user_id=? ORDER BY id", this::map, userId);
     return orders.values().stream().filter(item -> item.userId() == userId).toList();
   }
 
@@ -59,7 +52,7 @@ public class OrderStore {
     Order order = findOrder(id).orElse(null);
     if (order == null || order.userId() != userId) throw new IllegalArgumentException("订单不存在");
     if (!"PENDING_PAYMENT".equals(order.status())) throw new IllegalStateException("当前状态不可取消");
-    Order cancelled = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), "CANCELLED", order.createdAt(), order.orderType(), order.clientRequestId(), order.couponCode(), order.addressId(), order.reviewed());
+    Order cancelled = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), "CANCELLED", order.createdAt());
     orders.put(id, cancelled);
     if (jdbc != null) jdbc.update("UPDATE order_record SET status=? WHERE id=?", "CANCELLED", id);
     appendEvent(id, userId, "CANCELLED");
@@ -99,30 +92,17 @@ public class OrderStore {
 
   public synchronized Payment pay(long userId, long orderId, long amount, String requestId) {
     if (requestId == null || requestId.isBlank()) throw new IllegalArgumentException("clientRequestId 不能为空");
-    Order current = currentOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
+    Order current = findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
     if (current.userId() != userId) throw new IllegalArgumentException("订单不存在");
     long chargedAmount = current.totalCent();
     if (jdbc != null) {
       List<Payment> existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, orderId, requestId);
-      if (existing.isEmpty()) {
-        if (!"PENDING_PAYMENT".equals(current.status())
-            && !("PAID".equals(current.status()) && requestId.equals(current.clientRequestId()))) {
-          throw new IllegalStateException("订单状态不允许支付");
-        }
-        if ("PENDING_PAYMENT".equals(current.status())) current = markPaid(current, userId, requestId);
-        try {
-          jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
-        } catch (org.springframework.dao.DuplicateKeyException duplicate) {
-          existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, orderId, requestId);
-        }
-      } else if ("PENDING_PAYMENT".equals(current.status())) {
-        // Repair databases where an earlier payment write succeeded but the order update did not.
-        current = markPaid(current, userId, requestId);
-      }
       if (!existing.isEmpty()) return existing.get(0);
+      jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
+      jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
     }
     if (current != null && current.userId() == userId && "PENDING_PAYMENT".equals(current.status())) {
-      Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt(), current.orderType(), requestId, current.couponCode(), current.addressId(), current.reviewed());
+      Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt());
       orders.put(orderId, paid);
       appendEvent(orderId, userId, "PAID");
     }
@@ -150,7 +130,7 @@ public class OrderStore {
     }
     long id = ids.incrementAndGet();
     Order order = new Order(id, request.userId(), request.merchantId(), request.dealId(), request.quantity(),
-      request.priceCent() * request.quantity(), "PENDING_PAYMENT", Instant.now(), "GROUP_BUY", null, null, null, false);
+      request.priceCent() * request.quantity(), "PENDING_PAYMENT", Instant.now());
     orders.put(id, order);
     orderTypes.put(id, "GROUP_BUY");
     if (jdbc != null) jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -166,12 +146,12 @@ public class OrderStore {
       if (line.quantity() <= 0 || line.merchantId() <= 0 || line.priceCent() <= 0) throw new IllegalArgumentException("订单商品参数不合法");
       Order order = grouped.computeIfAbsent(line.merchantId(), merchant -> {
         long id = ids.incrementAndGet();
-        Order next = new Order(id, request.userId(), merchant, line.productId(), 0, 0, "PENDING_PAYMENT", Instant.now(), "DELIVERY", null, null, request.addressId(), false);
+        Order next = new Order(id, request.userId(), merchant, line.productId(), 0, 0, "PENDING_PAYMENT", Instant.now());
         orders.put(id, next);
         orderTypes.put(id, "DELIVERY");
         return next;
       });
-      Order updated = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity() + line.quantity(), order.totalCent() + line.priceCent() * line.quantity(), order.status(), order.createdAt(), order.orderType(), order.clientRequestId(), order.couponCode(), request.addressId(), order.reviewed());
+      Order updated = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity() + line.quantity(), order.totalCent() + line.priceCent() * line.quantity(), order.status(), order.createdAt());
       grouped.put(line.merchantId(), updated); orders.put(updated.id(), updated);
       if (jdbc != null) jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,address_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE quantity=VALUES(quantity),total_cent=VALUES(total_cent)", updated.id(), updated.userId(), updated.merchantId(), updated.productId(), updated.quantity(), updated.totalCent(), updated.status(), "DELIVERY", request.addressId(), java.sql.Timestamp.from(updated.createdAt()));
     }
@@ -240,46 +220,19 @@ public class OrderStore {
   }
 
   public synchronized List<Order> merchantOrders(long merchantId) {
-    if (jdbc != null) return jdbc.query(orderSelect("merchant_id=? ORDER BY id DESC"), this::map, merchantId);
+    if (jdbc != null) return jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at FROM order_record WHERE merchant_id=? ORDER BY id DESC", this::map, merchantId);
     return orders.values().stream().filter(o -> o.merchantId() == merchantId).toList();
   }
 
   private Optional<Order> findOrder(long id) {
     Order cached = orders.get(id);
     if (cached != null || jdbc == null) return Optional.ofNullable(cached);
-    var rows = jdbc.query(orderSelect("id=?"), this::map, id);
+    var rows = jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at FROM order_record WHERE id=?", this::map, id);
     return rows.stream().findFirst();
-  }
-
-  private Optional<Order> currentOrder(long id) {
-    if (jdbc == null) return findOrder(id);
-    var rows = jdbc.query(orderSelect("id=?"), this::map, id);
-    return rows.stream().findFirst();
-  }
-
-  private Order markPaid(Order order, long actor, String requestId) {
-    if (jdbc != null) {
-      int updated = jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, order.id(), actor);
-      if (updated == 0) {
-        Order latest = currentOrder(order.id()).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
-        if (!("PAID".equals(latest.status()) && requestId.equals(latest.clientRequestId()))) {
-          throw new IllegalStateException("订单状态不允许支付");
-        }
-        order = latest;
-      }
-    }
-    Order paid = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), "PAID", order.createdAt(), order.orderType(), requestId, order.couponCode(), order.addressId(), order.reviewed());
-    orders.put(order.id(), paid);
-    if (!"PAID".equals(order.status())) appendEvent(order.id(), actor, "PAID");
-    return paid;
-  }
-
-  private String orderSelect(String predicate) {
-    return "SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,client_request_id,coupon_code,address_id,reviewed FROM order_record WHERE " + predicate;
   }
 
   private Order setStatus(Order order, long actor, String status) {
-    Order updated = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), status, order.createdAt(), order.orderType(), order.clientRequestId(), order.couponCode(), order.addressId(), order.reviewed());
+    Order updated = new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), status, order.createdAt());
     orders.put(order.id(), updated);
     if (jdbc != null) jdbc.update("UPDATE order_record SET status=?, version=version+1 WHERE id=? AND status=?", status, order.id(), order.status());
     appendEvent(order.id(), actor, status);
@@ -298,18 +251,7 @@ public class OrderStore {
   public record ReviewRequest(long userId, long orderId, String userName, int score, int tasteScore, int serviceScore, String content) {}
   public record Review(long id, long orderId, long merchantId, String userName, int score, int tasteScore, int serviceScore, String content, LocalDateTime createdAt) {}
 
-  private Order map(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
-    return new Order(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getInt(5),
-      rs.getLong(6), rs.getString(7), rs.getTimestamp(8).toInstant(), rs.getString(9),
-      rs.getString(10), rs.getString(11), nullableLong(rs.getObject(12)), rs.getBoolean(13));
-  }
-
-  private Long nullableLong(Object value) {
-    if (value == null) return null;
-    if (value instanceof Number number) return number.longValue();
-    try { return Long.valueOf(String.valueOf(value)); }
-    catch (NumberFormatException ignored) { return null; }
-  }
+  private Order map(java.sql.ResultSet rs, int row) throws java.sql.SQLException { return new Order(rs.getLong(1),rs.getLong(2),rs.getLong(3),rs.getLong(4),rs.getInt(5),rs.getLong(6),rs.getString(7),rs.getTimestamp(8).toInstant()); }
 
   record CreateOrderRequest(long userId, long merchantId, long productId, int quantity, long totalCent) {}
 }

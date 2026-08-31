@@ -21,7 +21,6 @@
 | --- | --- |
 | `MYSQL_PASSWORD` | 当前 K3s MySQL 应用密码 |
 | `MYSQL_ROOT_PASSWORD` | 当前 K3s MySQL root 密码 |
-| `AGNES_API_KEY` | 可选，Agnes AI 客服接口密钥；留空时使用系统内置的本地客服回退 |
 
 旧的 `ECS_HOST`、`ECS_USER`、`ECS_SSH_KEY`、`ECS_SSH_FINGERPRINT` 不再由工作流使用，确认新流程成功后可以删除。
 
@@ -32,8 +31,6 @@
 | `ECS_DEPLOY_ENABLED` | 保持 `true`；需要紧急停止自动部署时改为 `false` |
 | `ECS_RUNNER_READY` | Runner 注册并验证前不创建或设为 `false`，完成后改为 `true` |
 | `ECS_KUBECONFIG_PATH` | `/home/lumalife-runner/.kube/config` |
-
-如果要启用 AI 客服，只需在同一处新增 `AGNES_API_KEY`。部署脚本会在 ECS 的 `lumalife` 命名空间创建或更新 `lumalife-ai` Secret，后端通过 `AGNES_ENDPOINT` 和 `AGNES_MODEL` 连接 Agnes AI。密钥不会写入仓库、镜像或普通日志；未配置密钥时，平台仍可正常运行并使用本地规则回复。
 
 ## Runner 安全边界
 

@@ -37,21 +37,6 @@ class MerchantServiceBusinessTest {
   }
 
   @Test
-  void exposesCatalogForEverySeededMerchantAndHonorsSortingFilters() {
-    HttpHeaders headers = serviceHeaders();
-    MerchantStore.Merchant[] merchants = http.exchange(
-      "/internal/v1/merchants?sort=distanceAsc&minPrice=25&maxPrice=35&minScore=4.5",
-      HttpMethod.GET, new HttpEntity<>(headers), MerchantStore.Merchant[].class).getBody();
-
-    assertThat(merchants).extracting(MerchantStore.Merchant::id).containsExactly(2L, 3L, 4L);
-    for (long merchantId = 1; merchantId <= 4; merchantId++) {
-      MerchantStore.Product[] products = http.exchange("/internal/v1/merchants/" + merchantId + "/products",
-        HttpMethod.GET, new HttpEntity<>(headers), MerchantStore.Product[].class).getBody();
-      assertThat(products).isNotEmpty();
-    }
-  }
-
-  @Test
   void requiresServiceAndMerchantIdentityForCatalogWrites() {
     HttpHeaders headers = serviceHeaders();
     headers.set("X-Merchant-Id", "2");

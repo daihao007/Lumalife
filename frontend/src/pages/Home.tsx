@@ -1,20 +1,5 @@
-import { useEffect, useState } from "react";
 import { Heart, RotateCcw, Search, SlidersHorizontal, Star } from "lucide-react";
 import type { Category, Merchant } from "../types";
-
-function MerchantCover({ merchant, onClick }: { merchant: Merchant; onClick: () => void }) {
-  const [failed, setFailed] = useState(!merchant.cover);
-
-  useEffect(() => setFailed(!merchant.cover), [merchant.cover]);
-
-  if (failed) {
-    return <div className="merchant-cover-fallback" role="img" aria-label={`${merchant.name}图片占位`} onClick={onClick}>
-      <strong>{merchant.name.slice(0, 1)}</strong>
-      <span>{merchant.categoryName}</span>
-    </div>;
-  }
-  return <img src={merchant.cover} alt={`${merchant.name}店铺图片`} onError={() => setFailed(true)} onClick={onClick} />;
-}
 
 export default function Home(props: any) {
   return <>
@@ -46,7 +31,7 @@ export default function Home(props: any) {
     </div>
     <div className="merchant-grid">{props.merchants.map((m: Merchant) => <article data-testid={`merchant-card-${m.id}`} className="merchant-card" key={m.id}>
       <div className="card-img-wrap">
-        <MerchantCover merchant={m} onClick={() => props.openMerchant(m.id)} />
+        <img src={m.cover} onClick={() => props.openMerchant(m.id)} />
         <button className={`fav-btn ${props.favoriteIds?.includes(m.id) ? "active" : ""}`}
           onClick={(e) => { e.stopPropagation(); props.toggleFavorite(m.id); }}>
           <Heart size={18} fill={props.favoriteIds?.includes(m.id) ? "var(--coral)" : "none"} />

@@ -87,16 +87,6 @@ spec:
               value: http://merchant-service:8082
             - name: ORDER_SERVICE_URL
               value: http://order-service:8083
-            - name: AGNES_ENDPOINT
-              value: https://apihub.agnes-ai.com/v1/chat/completions
-            - name: AGNES_MODEL
-              value: agnes-2.0-flash
-            - name: AGNES_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: lumalife-ai
-                  key: api-key
-                  optional: true
             - name: LUMALIFE_IDENTITY_REMOTE_ENABLED
               value: "true"
             - name: LUMALIFE_IDENTITY_BACKFILL_COMPLETED

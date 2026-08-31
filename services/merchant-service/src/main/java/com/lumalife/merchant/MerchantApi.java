@@ -20,15 +20,7 @@ public class MerchantApi {
   public MerchantApi(MerchantStore store) { this.store = store; }
 
   @GetMapping("/merchants")
-  List<MerchantStore.Merchant> merchants(
-      @RequestParam(required = false) String keyword,
-      @RequestParam(required = false) Long categoryId,
-      @RequestParam(defaultValue = "recommend") String sort,
-      @RequestParam(required = false) Integer minPrice,
-      @RequestParam(required = false) Integer maxPrice,
-      @RequestParam(required = false) Double minScore) {
-    return store.search(keyword, categoryId, sort, minPrice, maxPrice, minScore);
-  }
+  List<MerchantStore.Merchant> merchants(@RequestParam(required = false) String keyword) { return store.search(keyword); }
 
   @GetMapping("/merchants/{id}")
   MerchantStore.Merchant merchant(@PathVariable long id) { return store.merchant(id); }

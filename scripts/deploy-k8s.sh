@@ -39,13 +39,6 @@ kubectl -n "${NAMESPACE}" create secret generic lumalife-mysql \
   --from-literal=password="${MYSQL_PASSWORD}" \
   --from-literal=root-password="${MYSQL_ROOT_PASSWORD}" \
   --dry-run=client -o yaml | kubectl apply -f -
-if [ -n "${AGNES_API_KEY:-}" ]; then
-  kubectl -n "${NAMESPACE}" create secret generic lumalife-ai \
-    --from-literal=api-key="${AGNES_API_KEY}" \
-    --dry-run=client -o yaml | kubectl apply -f -
-else
-  echo "AGNES_API_KEY is not set; AI assistant will use the local fallback."
-fi
 kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-init \
   --from-file=001-baseline.sql=database/migrations/V001__baseline_schema.sql \
   --from-file=002-payment-idempotency.sql=database/migrations/V002__payment_idempotency_scope.sql \

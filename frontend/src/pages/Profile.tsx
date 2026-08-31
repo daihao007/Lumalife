@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Upload, UserRound } from "lucide-react";
 import { api } from "../api";
-import { prepareAvatar } from "../avatar";
 import type { Address, User } from "../types";
 
 export default function Profile({ user, setUser, setMessage }: { user: User; setUser: (value: User) => void; setMessage: (value: string) => void }) {
@@ -9,7 +8,6 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
   const emptyForm = { id: null as number | null, contactName: user.nickname, phone: user.phone, detail: "", defaultAddress: false };
   const [form, setForm] = useState(emptyForm);
   const [profile, setProfile] = useState({ nickname: user.nickname, avatarUrl: user.avatarUrl || "" });
-  const [uploading, setUploading] = useState(false);
 
   async function load() {
     setAddresses(await api<Address[]>("/api/v1/user/addresses"));
@@ -25,13 +23,9 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
   }
 
   async function saveProfile() {
-    try {
-      const next = await api<User>("/api/v1/user/profile", { method: "POST", body: JSON.stringify(profile) });
-      setUser(next);
-      setMessage("个人资料已更新");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "个人资料保存失败，请重试");
-    }
+    const next = await api<User>("/api/v1/user/profile", { method: "POST", body: JSON.stringify(profile) });
+    setUser(next);
+    setMessage("个人资料已更新");
   }
 
   async function makeDefault(id: number) {
@@ -50,18 +44,11 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
     setForm({ id: address.id, contactName: address.contactName, phone: address.phone, detail: address.detail, defaultAddress: address.defaultAddress });
   }
 
-  async function uploadAvatar(file?: File) {
+  function uploadAvatar(file?: File) {
     if (!file) return;
-    setUploading(true);
-    try {
-      const avatarUrl = await prepareAvatar(file);
-      setProfile(current => ({ ...current, avatarUrl }));
-      setMessage("头像已载入，请点击保存资料");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "头像读取失败，请重试");
-    } finally {
-      setUploading(false);
-    }
+    const reader = new FileReader();
+    reader.onload = () => setProfile(current => ({ ...current, avatarUrl: String(reader.result) }));
+    reader.readAsDataURL(file);
   }
 
   return <div className="split">
@@ -71,9 +58,9 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
         <div className="avatar-preview">{profile.avatarUrl ? <img src={profile.avatarUrl} /> : <UserRound />}</div>
         <div className="form-grid">
           <input value={profile.nickname} onChange={e => setProfile({ ...profile, nickname: e.target.value })} placeholder="昵称" />
-          <label className={`upload-button ${uploading ? "disabled" : ""}`}><Upload size={16} /> {uploading ? "处理中…" : "选择头像"}<input type="file" accept="image/*" disabled={uploading} onChange={e => uploadAvatar(e.target.files?.[0])} /></label>
+          <label className="upload-button"><Upload size={16} /> 选择头像<input type="file" accept="image/*" onChange={e => uploadAvatar(e.target.files?.[0])} /></label>
         </div>
-      <button data-testid="profile-save" className="primary" disabled={uploading} onClick={saveProfile}>保存资料</button>
+      <button data-testid="profile-save" className="primary" onClick={saveProfile}>保存资料</button>
       </div>
       <h3>收货地址</h3>
       {addresses.map(a => <div className="line" key={a.id}><span><b>{a.contactName} · {a.phone}</b><small>{a.detail}</small></span><strong>{a.defaultAddress ? "默认" : ""}</strong><button onClick={() => edit(a)}>修改</button><button onClick={() => makeDefault(a.id)}>设默认</button><button onClick={() => remove(a.id)}>删除</button></div>)}
