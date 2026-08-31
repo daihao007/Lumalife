@@ -67,7 +67,6 @@ jobs:
           fingerprint: ${{ secrets.ECS_SSH_FINGERPRINT }}
           port: 22
           envs: SOURCE_SHA,IMAGE_TAG,DEPLOY_PATH,MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD
-          script_stop: true
           command_timeout: 18m
           script: |
             set -Eeuo pipefail
