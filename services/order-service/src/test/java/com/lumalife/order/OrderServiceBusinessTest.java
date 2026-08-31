@@ -65,6 +65,24 @@ class OrderServiceBusinessTest {
     assertThat(paid.totalCent()).isEqualTo(2680);
   }
 
+  @Test
+  void keepsPaymentRetryIdempotentAndReturnsPaidState() {
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", "1");
+    OrderStore.Order order = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", 1, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), headers), OrderStore.Order.class).getBody();
+
+    String request = "pay-retry-contract-test";
+    OrderStore.Order first = http.exchange("/internal/v1/orders/" + order.id() + "/pay", HttpMethod.POST,
+      new HttpEntity<>(Map.of("amountCent", 0, "clientRequestId", request), headers), OrderStore.Order.class).getBody();
+    OrderStore.Order retry = http.exchange("/internal/v1/orders/" + order.id() + "/pay", HttpMethod.POST,
+      new HttpEntity<>(Map.of("amountCent", 0, "clientRequestId", request), headers), OrderStore.Order.class).getBody();
+
+    assertThat(first.status()).isEqualTo("PAID");
+    assertThat(retry.status()).isEqualTo("PAID");
+    assertThat(retry.orderType()).isEqualTo("DELIVERY");
+  }
+
   private HttpHeaders serviceHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Luma-Service-Token", "test-internal-token");

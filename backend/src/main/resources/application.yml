@@ -42,6 +42,6 @@ lumalife:
     username: ${MYSQL_USER:lifeassist}
     password: ${MYSQL_PASSWORD:}
 agnes:
-  endpoint: https://apihub.agnes-ai.com/v1/chat/completions
-  model: agnes-2.0-flash
+  endpoint: ${AGNES_ENDPOINT:https://apihub.agnes-ai.com/v1/chat/completions}
+  model: ${AGNES_MODEL:agnes-2.0-flash}
   api-key: ${AGNES_API_KEY:}

@@ -34,12 +34,12 @@ public class RemoteOrderServicePort {
       if (method.getName().equals("userOrders")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         List<Map> rows = client.get().uri("/internal/v1/orders").header("X-User-Id", String.valueOf(user.id())).retrieve().body(List.class);
-        return rows.stream().map(row -> mapper.convertValue(row, Order.class)).toList();
+        return enrichOrders(rows, merchantClient);
       }
       if (method.getName().equals("cancel")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         Map row = client.post().uri("/internal/v1/orders/{id}/cancel", args[1]).header("X-User-Id", String.valueOf(user.id())).retrieve().body(Map.class);
-        return mapper.convertValue(row, Order.class);
+        return enrichOrder(row, merchantClient);
       }
       if (method.getName().equals("cart") || method.getName().equals("addCart") || method.getName().equals("updateCartItem") || method.getName().equals("removeCartItem") || method.getName().equals("clearCart")) {
         var userId = method.getName().equals("cart") ? (long) args[0] : (long) args[0];
@@ -77,24 +77,24 @@ public class RemoteOrderServicePort {
         }
         Map<String,Object> delivery = new java.util.LinkedHashMap<>(); delivery.put("userId", user.id()); delivery.put("addressId", args[1]); delivery.put("lines", lines);
         List<Map> rows = client.post().uri("/internal/v1/orders/delivery").header("X-User-Id", String.valueOf(user.id())).body(delivery).retrieve().body(List.class);
-        return rows.stream().map(row -> mapper.convertValue(row, Order.class)).toList();
+        return enrichOrders(rows, merchantClient);
       }
       if (method.getName().equals("pay")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         var orderId = (long) args[1];
         Map row = client.post().uri("/internal/v1/orders/{id}/pay", orderId).header("X-User-Id", String.valueOf(user.id())).body(Map.of("amountCent", 0, "clientRequestId", args[2])).retrieve().body(Map.class);
-        return mapper.convertValue(row, Order.class);
+        return enrichOrder(row, merchantClient);
       }
       if (method.getName().equals("receive")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         Map row = client.post().uri("/internal/v1/orders/{id}/receive", args[1]).header("X-User-Id", String.valueOf(user.id())).retrieve().body(Map.class);
-        return mapper.convertValue(row, Order.class);
+        return enrichOrder(row, merchantClient);
       }
       if (method.getName().equals("createGroupOrder")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         Map deal = merchantClient.get().uri("/internal/v1/deals/{id}", args[1]).retrieve().body(Map.class);
         Map row = client.post().uri("/internal/v1/orders/group-buy").header("X-User-Id", String.valueOf(user.id())).body(Map.of("userId", user.id(), "dealId", args[1], "merchantId", deal.get("merchantId"), "priceCent", deal.get("priceCent"), "quantity", args[2])).retrieve().body(Map.class);
-        return mapper.convertValue(row, Order.class);
+        return enrichOrder(row, merchantClient);
       }
       if (method.getName().equals("review")) {
         var user = (com.lumalife.domain.Models.User) args[0];
@@ -104,7 +104,7 @@ public class RemoteOrderServicePort {
       if (method.getName().equals("merchantOrders")) {
         var admin = (com.lumalife.domain.Models.User) args[0];
         List<Map> rows = client.get().uri("/internal/v1/orders/merchant").header("X-Merchant-Id", String.valueOf(admin.merchantId())).retrieve().body(List.class);
-        return rows.stream().map(row -> mapper.convertValue(row, Order.class)).toList();
+        return enrichOrders(rows, merchantClient);
       }
       if (method.getName().equals("merchantReviews")) {
         var admin = (com.lumalife.domain.Models.User) args[0];
@@ -114,12 +114,12 @@ public class RemoteOrderServicePort {
       if (method.getName().equals("transition")) {
         var admin = (com.lumalife.domain.Models.User) args[0];
         Map row = client.post().uri("/internal/v1/orders/{id}/transition", args[1]).header("X-Merchant-Id", String.valueOf(admin.merchantId())).body(Map.of("next", ((OrderStatus) args[2]).name())).retrieve().body(Map.class);
-        return mapper.convertValue(row, Order.class);
+        return enrichOrder(row, merchantClient);
       }
       if (method.getName().equals("verifyCoupon")) {
         var admin = (com.lumalife.domain.Models.User) args[0];
         Map row = client.post().uri("/internal/v1/orders/coupons/verify").header("X-Merchant-Id", String.valueOf(admin.merchantId())).body(Map.of("code", args[1])).retrieve().body(Map.class);
-        return mapper.convertValue(row, Order.class);
+        return enrichOrder(row, merchantClient);
       }
       return method.invoke(fallback, args);
     };
@@ -130,5 +130,47 @@ public class RemoteOrderServicePort {
     List<CartItem> result = new ArrayList<>();
     if (row != null) row.forEach((key, value) -> result.add(new CartItem(Long.parseLong(String.valueOf(key)), ((Number) value).intValue())));
     return result;
+  }
+
+  private List<Order> enrichOrders(List<Map> rows, RestClient merchantClient) {
+    if (rows == null) return List.of();
+    Map<Long, Map> merchantCache = new java.util.HashMap<>();
+    Map<Long, Map> productCache = new java.util.HashMap<>();
+    Map<Long, Map> dealCache = new java.util.HashMap<>();
+    return rows.stream().map(row -> enrichOrder(row, merchantClient, merchantCache, productCache, dealCache)).toList();
+  }
+
+  private Order enrichOrder(Map row, RestClient merchantClient) {
+    return enrichOrder(row, merchantClient, new java.util.HashMap<>(), new java.util.HashMap<>(), new java.util.HashMap<>());
+  }
+
+  private Order enrichOrder(Map row, RestClient merchantClient, Map<Long, Map> merchantCache,
+                            Map<Long, Map> productCache, Map<Long, Map> dealCache) {
+    if (row == null) return new Order();
+    long merchantId = number(row.get("merchantId"));
+    long itemId = number(row.get("productId"));
+    Map merchant = merchantCache.computeIfAbsent(merchantId, id -> getOptional(merchantClient, "/internal/v1/merchants/{id}", id));
+    boolean groupBuy = "GROUP_BUY".equals(String.valueOf(row.getOrDefault("orderType", "")));
+    Map product = groupBuy ? Map.of() : productCache.computeIfAbsent(itemId, id -> getOptional(merchantClient, "/internal/v1/products/{id}", id));
+    Map deal = groupBuy || product.isEmpty() ? dealCache.computeIfAbsent(itemId, id -> getOptional(merchantClient, "/internal/v1/deals/{id}", id)) : Map.of();
+    return RemoteOrderMapper.map(row, merchant, product.isEmpty() ? null : product, deal.isEmpty() ? null : deal);
+  }
+
+  private Map getOptional(RestClient merchantClient, String uri, long id) {
+    try {
+      Map result = merchantClient.get().uri(uri, id).retrieve().body(Map.class);
+      return result == null ? Map.of() : result;
+    } catch (RuntimeException ignored) {
+      return Map.of();
+    }
+  }
+
+  private static long number(Object value) {
+    if (value instanceof Number number) return number.longValue();
+    try {
+      return value == null ? 0 : Long.parseLong(String.valueOf(value));
+    } catch (NumberFormatException ignored) {
+      return 0;
+    }
   }
 }

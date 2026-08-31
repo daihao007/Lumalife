@@ -284,7 +284,7 @@ export default function App() {
     }
 
     try {
-      const paid = await pay(orderId);
+      const paid = await pay(orderId, false);
       delete groupDealOrderIds.current[dealId];
       setMessage(`团购支付成功，券码 ${paid.couponCode}`);
     } catch (paymentError) {
@@ -306,14 +306,35 @@ export default function App() {
     }
   }
 
-  async function pay(orderId: number) {
+  async function pay(orderId: number, reconcileUncertain = true) {
     const clientRequestId = paymentRequestIds.current[orderId] ||= crypto.randomUUID();
-    const paid = await api<Order>("/api/v1/payments", { method: "POST", body: JSON.stringify({ orderId, clientRequestId }) });
-    await loadOrders();
-    delete paymentRequestIds.current[orderId];
-    navigate("orders");
-    setMessage("模拟支付成功");
-    return paid;
+    try {
+      const paid = await api<Order>("/api/v1/payments", { method: "POST", body: JSON.stringify({ orderId, clientRequestId }) });
+      await loadOrders();
+      delete paymentRequestIds.current[orderId];
+      navigate("orders");
+      setMessage("模拟支付成功");
+      return paid;
+    } catch (paymentError) {
+      // The payment may have been committed even if the browser lost the response.
+      // Re-read the order before showing a failure and keep the same idempotency key
+      // when the payment really did fail.
+      if (reconcileUncertain) {
+        try {
+          const currentOrders = await fetchOrders();
+          const currentOrder = currentOrders.find(order => order.id === orderId);
+          if (currentOrder && (currentOrder.status === "PAID" || currentOrder.status === "USED")) {
+            delete paymentRequestIds.current[orderId];
+            navigate("orders");
+            setMessage("支付已确认");
+            return currentOrder;
+          }
+        } catch {
+          // Keep the request id so the next click retries the same payment safely.
+        }
+      }
+      throw paymentError;
+    }
   }
 
   async function cancelOrder(orderId: number) {

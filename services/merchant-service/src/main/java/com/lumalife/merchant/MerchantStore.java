@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,30 +29,39 @@ public class MerchantStore {
   public MerchantStore(ObjectProvider<JdbcTemplate> jdbcProvider) {
     this.jdbc = jdbcProvider.getIfAvailable();
     seedMerchants();
-    products.put(1L, new ArrayList<>(List.of(
-      new Product(1001, 1, "藤椒鸡饭", "麻香鲜亮，适合午餐", 2680, 88, true),
-      new Product(1002, 1, "毛血旺小锅", "课程演示热门搜索菜", 4280, 120, true))));
-    deals.put(1L, new GroupDeal(1, 1, "双人川味套餐", "含招牌菜和饮品", 4880, 50, true));
+    seedCatalog();
   }
 
   public MerchantStore() {
     this.jdbc = null;
     seedMerchants();
-    products.put(1L, new ArrayList<>(List.of(
-      new Product(1001, 1, "藤椒鸡饭", "麻香鲜亮，适合午餐", 2680, 88, true),
-      new Product(1002, 1, "毛血旺小锅", "课程演示热门搜索菜", 4280, 120, true))));
-    deals.put(1L, new GroupDeal(1, 1, "双人川味套餐", "含招牌菜和饮品", 4880, 50, true));
+    seedCatalog();
   }
 
   public synchronized List<Merchant> search(String keyword) {
+    return search(keyword, null, "recommend", null, null, null);
+  }
+
+  public synchronized List<Merchant> search(String keyword, Long categoryId, String sort,
+                                             Integer minPrice, Integer maxPrice, Double minScore) {
     String normalized = keyword == null ? "" : keyword.trim();
+    List<Merchant> available;
     if (jdbc != null) {
       Map<Long, Merchant> merged = new LinkedHashMap<>(merchants);
       jdbc.query("SELECT m.id,m.name,m.category_id,c.name,m.cover_url,m.avg_score,m.avg_price_cent,m.monthly_sales,m.distance_km,m.status,m.address,m.recommend_reason FROM merchant m JOIN category c ON c.id=m.category_id WHERE m.is_deleted=0", this::mapMerchant)
         .forEach(item -> merged.put(item.id(), item));
-      return merged.values().stream().filter(item -> normalized.isBlank() || item.name().contains(normalized)).toList();
+      available = new ArrayList<>(merged.values());
+    } else {
+      available = new ArrayList<>(merchants.values());
     }
-    return merchants.values().stream().filter(item -> normalized.isBlank() || item.name().contains(normalized)).toList();
+    return available.stream()
+      .filter(item -> categoryId == null || item.categoryId() == categoryId)
+      .filter(item -> normalized.isBlank() || item.name().contains(normalized) || catalogContains(item.id(), normalized))
+      .filter(item -> minPrice == null || item.avgPrice() >= minPrice)
+      .filter(item -> maxPrice == null || item.avgPrice() <= maxPrice)
+      .filter(item -> minScore == null || item.avgScore() >= minScore)
+      .sorted(merchantComparator(sort))
+      .toList();
   }
 
   public synchronized Merchant merchant(long id) {
@@ -66,7 +76,12 @@ public class MerchantStore {
 
   public synchronized List<Product> products(long merchantId) {
     merchant(merchantId);
-    if (jdbc != null) return jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,listed FROM merchant_catalog WHERE merchant_id=? ORDER BY id", (rs,n) -> new Product(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getLong(5),rs.getInt(6),rs.getBoolean(7)), merchantId);
+    if (jdbc != null) {
+      List<Product> persisted = jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,listed FROM merchant_catalog WHERE merchant_id=? ORDER BY id", (rs,n) -> new Product(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getLong(5),rs.getInt(6),rs.getBoolean(7)), merchantId);
+      // Older ECS databases may have the service table but no backfilled rows.
+      // Keep the demo catalog visible until the next explicit backfill runs.
+      return persisted.isEmpty() ? new ArrayList<>(products.getOrDefault(merchantId, List.of())) : persisted;
+    }
     return new ArrayList<>(products.getOrDefault(merchantId, List.of()));
   }
 
@@ -140,5 +155,46 @@ public class MerchantStore {
 
   private Merchant mapMerchant(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
     return new Merchant(rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getString(4), rs.getString(5), rs.getDouble(6), rs.getInt(7) / 100, rs.getInt(8), rs.getDouble(9), rs.getString(10), rs.getString(11), rs.getString(12));
+  }
+
+  private boolean catalogContains(long merchantId, String keyword) {
+    if (keyword == null || keyword.isBlank()) return true;
+    boolean seededMatch = products.getOrDefault(merchantId, List.of()).stream()
+      .anyMatch(item -> item.name().contains(keyword) || item.description().contains(keyword));
+    if (seededMatch || jdbc == null) return seededMatch;
+    Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM merchant_catalog WHERE merchant_id=? AND listed=TRUE AND (name LIKE CONCAT('%', ?, '%') OR description LIKE CONCAT('%', ?, '%'))", Integer.class, merchantId, keyword, keyword);
+    return count != null && count > 0;
+  }
+
+  private Comparator<Merchant> merchantComparator(String sort) {
+    return switch (sort == null ? "recommend" : sort) {
+      case "priceAsc" -> Comparator.comparingInt(Merchant::avgPrice);
+      case "priceDesc" -> Comparator.comparingInt(Merchant::avgPrice).reversed();
+      case "scoreAsc" -> Comparator.comparingDouble(Merchant::avgScore);
+      case "scoreDesc" -> Comparator.comparingDouble(Merchant::avgScore).reversed();
+      case "salesAsc" -> Comparator.comparingInt(Merchant::monthlySales);
+      case "salesDesc" -> Comparator.comparingInt(Merchant::monthlySales).reversed();
+      case "distanceAsc", "distance" -> Comparator.comparingDouble(Merchant::distanceKm);
+      case "distanceDesc" -> Comparator.comparingDouble(Merchant::distanceKm).reversed();
+      default -> Comparator.comparingDouble((Merchant item) ->
+        -(0.6 * (item.avgScore() / 5.0) + 0.4 * Math.max(0, 1 - item.distanceKm() / 5.0)));
+    };
+  }
+
+  private void seedCatalog() {
+    products.put(1L, new ArrayList<>(List.of(
+      new Product(1001, 1, "藤椒鸡饭", "麻香鲜亮，适合午餐", 2680, 99, true),
+      new Product(1002, 1, "毛血旺小锅", "课程演示热门菜", 4280, 99, true),
+      new Product(1003, 1, "冰粉", "解辣甜品", 900, 99, true))));
+    products.put(2L, new ArrayList<>(List.of(
+      new Product(1004, 2, "桂花拿铁", "轻甜花香", 2800, 99, true),
+      new Product(1005, 2, "冷萃咖啡", "低酸清爽", 2600, 99, true))));
+    products.put(3L, new ArrayList<>(List.of(
+      new Product(1006, 3, "牛油果鸡胸碗", "高蛋白轻食", 3280, 99, true))));
+    products.put(4L, new ArrayList<>(List.of(
+      new Product(1007, 4, "栗子巴斯克", "招牌切块", 2200, 99, true))));
+    deals.put(1L, new GroupDeal(1, 1, "双人川味到店套餐", "2 道主菜 + 2 杯饮品", 6990, 30, true));
+    deals.put(2L, new GroupDeal(2, 2, "咖啡下午茶券", "任意两杯咖啡 + 甜点", 4990, 45, true));
+    deals.put(3L, new GroupDeal(3, 4, "烘焙分享盒", "6 款切块组合", 5990, 20, true));
   }
 }

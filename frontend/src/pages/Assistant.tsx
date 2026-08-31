@@ -11,21 +11,33 @@ export default function Assistant({ user, initialMerchantId }: { user: User | nu
 function PlatformAssistant() {
   const [question, setQuestion] = useState("为什么不能评价订单？");
   const [answer, setAnswer] = useState("");
+  const [error, setError] = useState("");
+  const [asking, setAsking] = useState(false);
 
   async function ask() {
-    const data = await api<{ answer: string }>("/api/v1/assistant/ask", {
-      method: "POST",
-      body: JSON.stringify({ question })
-    });
-    setAnswer(data.answer);
+    if (!question.trim() || asking) return;
+    setAsking(true);
+    setError("");
+    try {
+      const data = await api<{ answer: string }>("/api/v1/assistant/ask", {
+        method: "POST",
+        body: JSON.stringify({ question: question.trim() })
+      });
+      setAnswer(data.answer);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "客服暂时不可用，请稍后重试");
+    } finally {
+      setAsking(false);
+    }
   }
 
   return <div className="panel">
     <Coffee />
     <h2>AI 客服</h2>
     <input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} />
-    <button className="primary" onClick={ask}>提问</button>
+    <button className="primary" disabled={asking || !question.trim()} onClick={ask}>{asking ? "生成中…" : "提问"}</button>
     {answer && <p className="answer">{answer}</p>}
+    {error && <p className="form-error" role="alert">{error}</p>}
   </div>;
 }
 
