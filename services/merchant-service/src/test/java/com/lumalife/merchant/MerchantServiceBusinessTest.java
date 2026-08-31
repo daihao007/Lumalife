@@ -39,6 +39,21 @@ class MerchantServiceBusinessTest {
   }
 
   @Test
+  void ctRtMer04To05And09ReadsProductDealAndMerchantDeals() {
+    HttpHeaders headers = serviceHeaders();
+    MerchantStore.Product product = http.exchange("/internal/v1/products/1001", HttpMethod.GET,
+      new HttpEntity<>(headers), MerchantStore.Product.class).getBody();
+    MerchantStore.GroupDeal deal = http.exchange("/internal/v1/deals/1", HttpMethod.GET,
+      new HttpEntity<>(headers), MerchantStore.GroupDeal.class).getBody();
+    MerchantStore.GroupDeal[] merchantDeals = http.exchange("/internal/v1/merchants/1/deals", HttpMethod.GET,
+      new HttpEntity<>(headers), MerchantStore.GroupDeal[].class).getBody();
+
+    assertThat(product).extracting(MerchantStore.Product::merchantId, MerchantStore.Product::listed).containsExactly(1L, true);
+    assertThat(deal).extracting(MerchantStore.GroupDeal::merchantId, MerchantStore.GroupDeal::active).containsExactly(1L, true);
+    assertThat(merchantDeals).anySatisfy(item -> assertThat(item.id()).isEqualTo(deal.id()));
+  }
+
+  @Test
   void requiresServiceAndMerchantIdentityForCatalogWrites() {
     HttpHeaders headers = serviceHeaders();
     headers.set("X-Merchant-Id", "2");

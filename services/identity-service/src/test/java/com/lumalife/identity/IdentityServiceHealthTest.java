@@ -79,6 +79,15 @@ class IdentityServiceHealthTest {
   }
 
   @Test
+  void ctRtId03FindsOnlySafeUserDataByPhone() {
+    ResponseEntity<Map> response = http.exchange("/internal/v1/users/by-phone?phone=13800000001", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), Map.class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody()).containsEntry("id", 1).containsEntry("phone", "13800000001").doesNotContainKey("passwordHash");
+  }
+
+  @Test
   void persistsAccountsTokensAndAddressesAcrossRestart() {
     Path state = tempDir.resolve("identity-state.json");
     IdentityStore first = new IdentityStore(new BCryptPasswordEncoder(), state);
