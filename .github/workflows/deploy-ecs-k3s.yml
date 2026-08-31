@@ -30,7 +30,7 @@ jobs:
       - linux
       - x64
       - lumalife-ecs
-    timeout-minutes: 20
+    timeout-minutes: 60
     environment: ecs-production
     env:
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -67,6 +67,8 @@ jobs:
         env:
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          IMAGE_PULL_TIMEOUT: 1800s
+          ROLLOUT_TIMEOUT: 900s
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
