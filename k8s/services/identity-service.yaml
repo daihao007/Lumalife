@@ -95,6 +95,10 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: identity-data
+              mountPath: /app/data
       volumes:
         - name: tmp
+          emptyDir: {}
+        - name: identity-data
           emptyDir: {}
