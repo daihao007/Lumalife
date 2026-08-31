@@ -6,15 +6,9 @@ on:
       - Monolith CI
     types:
       - completed
-  workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "要部署的不可变镜像标签，例如 sha-69d2140；留空时使用当前 main 提交"
-        required: false
-        default: ""
-        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -23,108 +17,63 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy validated image to Alibaba Cloud ECS
+    name: Deploy validated image on Alibaba Cloud ECS
     if: >-
       vars.ECS_DEPLOY_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.head_repository.full_name == github.repository))
-    runs-on: ubuntu-latest
+      vars.ECS_RUNNER_READY == 'true' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - lumalife-ecs
     timeout-minutes: 20
     environment: ecs-production
     env:
-      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      BUNDLE_PATH: ${{ runner.temp }}/lumalife-ecs-${{ github.run_id }}-${{ github.run_attempt }}
+      KUBECONFIG: ${{ vars.ECS_KUBECONFIG_PATH }}
 
     steps:
-      - name: Resolve immutable image tag
-        id: version
-        shell: bash
-        env:
-          REQUESTED_TAG: ${{ inputs.image_tag }}
-        run: |
-          if [[ -n "${REQUESTED_TAG}" ]]; then
-            image_tag="${REQUESTED_TAG}"
-          else
-            image_tag="sha-${SOURCE_SHA:0:7}"
-          fi
-          echo "tag=${image_tag}" >> "${GITHUB_OUTPUT}"
-          echo "Deploying validated image tag ${image_tag}"
+      - name: Download validated deployment bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: ecs-deploy-bundle
+          path: ${{ env.BUNDLE_PATH }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Deploy through ECS SSH and verify cluster health
+      - name: Resolve immutable image tag and verify bundle
         shell: bash
-        env:
-          ECS_HOST: ${{ secrets.ECS_HOST }}
-          ECS_USER: ${{ secrets.ECS_USER }}
-          ECS_SSH_KEY: ${{ secrets.ECS_SSH_KEY }}
-          ECS_SSH_FINGERPRINT: ${{ secrets.ECS_SSH_FINGERPRINT }}
-          SOURCE_SHA: ${{ env.SOURCE_SHA }}
-          IMAGE_TAG: ${{ steps.version.outputs.tag }}
-          DEPLOY_PATH: ${{ vars.ECS_DEPLOY_PATH }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
         run: |
           set -Eeuo pipefail
-          test -n "${ECS_HOST}"
-          test -n "${ECS_USER}"
-          test -n "${ECS_SSH_KEY}"
-          test -n "${ECS_SSH_FINGERPRINT}"
-          test -n "${DEPLOY_PATH}"
+          image_tag="sha-${SOURCE_SHA:0:7}"
+          echo "IMAGE_TAG=${image_tag}" >> "${GITHUB_ENV}"
+          test "$(cat "${BUNDLE_PATH}/ecs-source-sha.txt")" = "${SOURCE_SHA}"
+          test -f "${BUNDLE_PATH}/scripts/deploy-k8s.sh"
+          test -f "${BUNDLE_PATH}/k8s/kustomization.yaml"
+          test -f "${BUNDLE_PATH}/database/migrations/V001__baseline_schema.sql"
+          test -n "${KUBECONFIG}"
+          test -r "${KUBECONFIG}"
+          kubectl cluster-info
+
+      - name: Deploy versioned images and verify cluster health
+        shell: bash
+        working-directory: ${{ env.BUNDLE_PATH }}
+        env:
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -Eeuo pipefail
           test -n "${MYSQL_PASSWORD}"
           test -n "${MYSQL_ROOT_PASSWORD}"
-
-          install -m 700 -d "${RUNNER_TEMP}/lumalife-ssh"
-          key_file="${RUNNER_TEMP}/lumalife-ssh/id_ed25519"
-          known_hosts_file="${RUNNER_TEMP}/lumalife-ssh/known_hosts"
-          printf '%s\n' "${ECS_SSH_KEY}" > "${key_file}"
-          chmod 600 "${key_file}"
-
-          ssh-keyscan -T 15 -p 22 -t ed25519 "${ECS_HOST}" > "${known_hosts_file}" 2>/dev/null
-          actual_fingerprint="$(ssh-keygen -lf "${known_hosts_file}" -E sha256 | awk 'NR == 1 { print $2 }')"
-          if [[ "${actual_fingerprint}" != "${ECS_SSH_FINGERPRINT}" ]]; then
-            echo "::error::ECS ED25519 host fingerprint mismatch. Actual: ${actual_fingerprint}"
-            exit 1
-          fi
-
-          encode() {
-            printf '%s' "$1" | base64 -w 0
-          }
-          printf -v remote_command 'bash -s -- %q %q %q %q %q' \
-            "${SOURCE_SHA}" \
-            "${IMAGE_TAG}" \
-            "$(encode "${DEPLOY_PATH}")" \
-            "$(encode "${MYSQL_PASSWORD}")" \
-            "$(encode "${MYSQL_ROOT_PASSWORD}")"
-
-          ssh \
-            -i "${key_file}" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="${known_hosts_file}" \
-            -o ConnectTimeout=30 \
-            "${ECS_USER}@${ECS_HOST}" \
-            "${remote_command}" <<'REMOTE_SCRIPT'
-            set -Eeuo pipefail
-            SOURCE_SHA="$1"
-            IMAGE_TAG="$2"
-            DEPLOY_PATH="$(printf '%s' "$3" | base64 -d)"
-            MYSQL_PASSWORD="$(printf '%s' "$4" | base64 -d)"
-            MYSQL_ROOT_PASSWORD="$(printf '%s' "$5" | base64 -d)"
-            test -n "${DEPLOY_PATH}"
-            test -n "${MYSQL_PASSWORD}"
-            test -n "${MYSQL_ROOT_PASSWORD}"
-            cd "${DEPLOY_PATH}"
-            test -d .git
-            test -z "$(git status --porcelain)"
-            git fetch --quiet origin main
-            test "$(git rev-parse origin/main)" = "${SOURCE_SHA}"
-            git checkout --quiet main
-            git pull --ff-only --quiet origin main
-            MYSQL_PASSWORD="${MYSQL_PASSWORD}" MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \
-              bash scripts/deploy-k8s.sh "${IMAGE_TAG}"
-          REMOTE_SCRIPT
+          bash scripts/deploy-k8s.sh "${IMAGE_TAG}"
 
       - name: Publish deployment summary
         if: always()
@@ -133,7 +82,7 @@ jobs:
           {
             echo "## Alibaba Cloud ECS K3s deployment"
             echo
-            echo "- Image tag: \`${{ steps.version.outputs.tag }}\`"
+            echo "- Image tag: \`${IMAGE_TAG:-unresolved}\`"
             echo "- Validated revision: \`${SOURCE_SHA}\`"
-            echo "- Target: ECS K3s via SSH"
+            echo "- Target: ECS-local self-hosted runner"
           } >> "${GITHUB_STEP_SUMMARY}"
