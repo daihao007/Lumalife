@@ -240,7 +240,8 @@ jobs:
           grep -q '"productId":1001' <<< "$backend_cart_response"
           test "$(tail -n 1 <<< "$backend_cart_response")" = 200
 
-          cart_rows=$(docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM service_cart_item WHERE user_id=1 AND product_id=1001 AND quantity=2"' | tr -d '\r')
+          # The direct request sets quantity to 2; the public add-to-cart endpoint then adds 2 more.
+          cart_rows=$(docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM service_cart_item WHERE user_id=1 AND product_id=1001 AND quantity=4"' | tr -d '\r')
           test "$cart_rows" -eq 1
           # The production backend may persist a state snapshot during startup;
           # assert the table is queryable without assuming it stays empty.
