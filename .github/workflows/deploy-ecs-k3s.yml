@@ -34,7 +34,7 @@ jobs:
     environment: ecs-production
     env:
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
-      BUNDLE_PATH: ${{ runner.temp }}/lumalife-ecs-${{ github.run_id }}-${{ github.run_attempt }}
+      BUNDLE_PATH: ${{ github.workspace }}/.ecs-deploy-bundle-${{ github.run_id }}-${{ github.run_attempt }}
       KUBECONFIG: ${{ vars.ECS_KUBECONFIG_PATH }}
 
     steps:
