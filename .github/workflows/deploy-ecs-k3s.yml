@@ -38,12 +38,6 @@ jobs:
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
     steps:
-      - name: Check out validated revision
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SOURCE_SHA }}
-          fetch-depth: 1
-
       - name: Resolve immutable image tag
         id: version
         shell: bash
@@ -96,31 +90,20 @@ jobs:
           encode() {
             printf '%s' "$1" | base64 -w 0
           }
-          release_path="${DEPLOY_PATH}.releases/${SOURCE_SHA}"
-          printf -v upload_command 'set -Eeuo pipefail; install -d %q; tar -xf - -C %q' \
-            "${release_path}" \
-            "${release_path}"
-
-          ssh_options=(
-            -i "${key_file}"
-            -o BatchMode=yes
-            -o IdentitiesOnly=yes
-            -o StrictHostKeyChecking=yes
-            -o UserKnownHostsFile="${known_hosts_file}"
-            -o ConnectTimeout=30
-          )
-
-          git archive --format=tar "${SOURCE_SHA}" | \
-            ssh "${ssh_options[@]}" "${ECS_USER}@${ECS_HOST}" "${upload_command}"
-
           printf -v remote_command 'bash -s -- %q %q %q %q %q' \
             "${SOURCE_SHA}" \
             "${IMAGE_TAG}" \
-            "$(encode "${release_path}")" \
+            "$(encode "${DEPLOY_PATH}")" \
             "$(encode "${MYSQL_PASSWORD}")" \
             "$(encode "${MYSQL_ROOT_PASSWORD}")"
 
-          ssh "${ssh_options[@]}" \
+          ssh \
+            -i "${key_file}" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="${known_hosts_file}" \
+            -o ConnectTimeout=30 \
             "${ECS_USER}@${ECS_HOST}" \
             "${remote_command}" <<'REMOTE_SCRIPT'
             set -Eeuo pipefail
@@ -133,8 +116,12 @@ jobs:
             test -n "${MYSQL_PASSWORD}"
             test -n "${MYSQL_ROOT_PASSWORD}"
             cd "${DEPLOY_PATH}"
-            test -x scripts/deploy-k8s.sh
-            test -f k8s/kustomization.yaml
+            test -d .git
+            test -z "$(git status --porcelain)"
+            git fetch --quiet origin main
+            test "$(git rev-parse origin/main)" = "${SOURCE_SHA}"
+            git checkout --quiet main
+            git pull --ff-only --quiet origin main
             MYSQL_PASSWORD="${MYSQL_PASSWORD}" MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \
               bash scripts/deploy-k8s.sh "${IMAGE_TAG}"
           REMOTE_SCRIPT
