@@ -86,7 +86,8 @@ public class RemoteOrderServicePort {
       if (method.getName().equals("pay")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         var orderId = (long) args[1];
-        Map row = client.post().uri("/internal/v1/orders/{id}/pay", orderId).header("X-User-Id", String.valueOf(user.id())).body(Map.of("amountCent", 0, "clientRequestId", args[2])).retrieve().body(Map.class);
+        Map current = client.get().uri("/internal/v1/orders/{id}", orderId).header("X-User-Id", String.valueOf(user.id())).retrieve().body(Map.class);
+        Map row = client.post().uri("/internal/v1/orders/{id}/pay", orderId).header("X-User-Id", String.valueOf(user.id())).body(Map.of("amountCent", number(current.get("totalCent")), "clientRequestId", args[2])).retrieve().body(Map.class);
         return mapper.convertValue(enrichOrder(row, merchantClient), Order.class);
       }
       if (method.getName().equals("receive")) {
@@ -148,17 +149,22 @@ public class RemoteOrderServicePort {
     long merchantId = number(row.get("merchantId"));
     long productId = number(row.get("productId"));
     Map<?, ?> merchant = fetchMap(merchantClient, "/internal/v1/merchants/{id}", merchantId);
-    Map<?, ?> product = fetchMap(merchantClient, "/internal/v1/products/{id}", productId);
     if (string(row.get("merchantName")).isBlank()) row.put("merchantName", string(merchant.get("name")));
-    if (string(row.get("type")).isBlank()) row.put("type", "DELIVERY");
+    String type = string(row.get("type"));
+    boolean groupBuy = "GROUP_BUY".equals(type) || "GROUP_BUY".equals(string(row.get("orderType")));
+    row.put("type", groupBuy ? "GROUP_BUY" : "DELIVERY");
     Object existingLines = row.get("lines");
     if (!(existingLines instanceof List<?> lines) || lines.isEmpty()) {
       int quantity = (int) number(row.get("quantity"));
-      long price = number(product.get("priceCent"));
+      Map<?, ?> item = groupBuy
+        ? fetchMap(merchantClient, "/internal/v1/deals/{id}", productId)
+        : fetchMap(merchantClient, "/internal/v1/products/{id}", productId);
+      long price = number(item.get("priceCent"));
       if (price <= 0 && quantity > 0) price = number(row.get("totalCent")) / quantity;
+      String name = groupBuy ? string(item.get("title")) : string(item.get("name"));
       row.put("lines", List.of(Map.of(
         "itemId", productId,
-        "name", string(product.get("name")).isBlank() ? "商品" : product.get("name"),
+        "name", name.isBlank() ? (groupBuy ? "团购套餐" : "商品") : name,
         "quantity", quantity,
         "priceCent", price)));
     }

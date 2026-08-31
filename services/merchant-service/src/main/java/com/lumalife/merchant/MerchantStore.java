@@ -146,20 +146,28 @@ public class MerchantStore {
   }
 
   public synchronized GroupDeal saveDeal(long merchantId, DealRequest request) {
-    if (request.priceCent() <= 0 || request.stock() < 0) throw new IllegalArgumentException("套餐价格和库存必须合法");
+    merchant(merchantId);
+    if (request.title() == null || request.title().isBlank() || request.priceCent() <= 0 || request.stock() < 0) {
+      throw new IllegalArgumentException("套餐名称、价格和库存必须合法");
+    }
     long id = request.id() == null ? ids.incrementAndGet() : request.id();
     GroupDeal deal = new GroupDeal(id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());
+    if (jdbc != null) jdbc.update("INSERT INTO group_deal(id,merchant_id,title,description,price_cent,stock,is_active,is_deleted) VALUES (?,?,?,?,?,?,?,0) ON DUPLICATE KEY UPDATE merchant_id=VALUES(merchant_id),title=VALUES(title),description=VALUES(description),price_cent=VALUES(price_cent),stock=VALUES(stock),is_active=VALUES(is_active),is_deleted=0",
+      id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());
     deals.put(id, deal); return deal;
   }
 
   public synchronized GroupDeal toggleDeal(long merchantId, long id) {
     GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐");
     GroupDeal updated = new GroupDeal(old.id(), old.merchantId(), old.title(), old.description(), old.priceCent(), old.stock(), !old.active());
+    if (jdbc != null) jdbc.update("UPDATE group_deal SET is_active=? WHERE id=? AND merchant_id=? AND is_deleted=0", updated.active(), id, merchantId);
     deals.put(id, updated); return updated;
   }
 
   public synchronized void deleteDeal(long merchantId, long id) {
-    GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐"); deals.remove(id);
+    GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐");
+    if (jdbc != null) jdbc.update("UPDATE group_deal SET is_deleted=1 WHERE id=? AND merchant_id=?", id, merchantId);
+    deals.remove(id);
   }
 
   public synchronized Product toggleProduct(long merchantId, long id) {
