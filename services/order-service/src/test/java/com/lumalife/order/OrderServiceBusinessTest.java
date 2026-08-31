@@ -103,6 +103,12 @@ class OrderServiceBusinessTest {
     assertThat(paid.status()).isEqualTo("PAID");
     assertThat(replayed.status()).isEqualTo("PAID");
 
+    OrderStore.Order anotherOrder = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", 1, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), headers), OrderStore.Order.class).getBody();
+    ResponseEntity<String> reusedForAnotherOrder = http.exchange("/internal/v1/orders/" + anotherOrder.id() + "/pay", HttpMethod.POST,
+      new HttpEntity<>(Map.of("amountCent", 2680, "clientRequestId", "ct-paid-" + runId), headers), String.class);
+    assertThat(reusedForAnotherOrder.getStatusCode().value()).isEqualTo(409);
+
     OrderStore.Order cancelled = http.exchange("/internal/v1/orders", HttpMethod.POST,
       new HttpEntity<>(Map.of("userId", 1, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), headers), OrderStore.Order.class).getBody();
     http.exchange("/internal/v1/orders/" + cancelled.id() + "/cancel", HttpMethod.POST, new HttpEntity<>(headers), OrderStore.Order.class);
@@ -118,6 +124,10 @@ class OrderServiceBusinessTest {
     assertThat(orders).anySatisfy(order -> {
       assertThat(order.id()).isEqualTo(cancelled.id());
       assertThat(order.status()).isEqualTo("CANCELLED");
+    });
+    assertThat(orders).anySatisfy(order -> {
+      assertThat(order.id()).isEqualTo(anotherOrder.id());
+      assertThat(order.status()).isEqualTo("PENDING_PAYMENT");
     });
   }
 

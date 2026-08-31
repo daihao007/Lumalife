@@ -16,6 +16,8 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V002__payment_idempotency_scope.sql");
   private static final Path BUSINESS_STATE_MIGRATION =
     Path.of("..", "database", "migrations", "V003__business_state_store.sql");
+  private static final Path SERVICE_PAYMENT_KEY_MIGRATION =
+    Path.of("..", "database", "migrations", "V007__service_payment_global_idempotency.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
 
@@ -39,11 +41,13 @@ class DatabaseAssetsTest {
   @Test
   void paymentMigrationEnforcesUserScopedIdempotencyAndProcessingState() throws IOException {
     String sql = Files.readString(PAYMENT_CONTRACT_MIGRATION);
+    String serviceSql = Files.readString(SERVICE_PAYMENT_KEY_MIGRATION);
     String bootstrap = Files.readString(DATABASE_BOOTSTRAP);
 
     assertThat(sql).contains("UNIQUE KEY uk_payment_request (user_id, client_request_id)");
     assertThat(sql).contains("status IN ('PROCESSING', 'SUCCESS', 'FAILED')");
     assertThat(sql).doesNotContain("user_id, order_id, client_request_id");
+    assertThat(serviceSql).contains("UNIQUE KEY uk_service_payment_request (user_id, client_request_id)");
     assertThat(bootstrap).contains("for migration in /database/migrations/V[0-9][0-9][0-9]__*.sql");
     assertThat(bootstrap).doesNotContain("schema_file=/database/migrations/V001__baseline_schema.sql");
   }

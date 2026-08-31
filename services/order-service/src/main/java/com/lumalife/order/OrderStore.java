@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Order-owned transactional slice. The user/merchant ids are references only. */
 @Service
@@ -31,7 +32,13 @@ public class OrderStore {
   private final Map<Long, String> orderTypes = new HashMap<>();
 
   @Autowired
-  public OrderStore(ObjectProvider<JdbcTemplate> provider) { this.jdbc = provider.getIfAvailable(); }
+  public OrderStore(ObjectProvider<JdbcTemplate> provider) {
+    this.jdbc = provider.getIfAvailable();
+    if (jdbc != null) {
+      Long greatestPersistedId = jdbc.queryForObject("SELECT COALESCE(MAX(id), 4000) FROM order_record", Long.class);
+      ids.accumulateAndGet(greatestPersistedId == null ? 4000 : greatestPersistedId, Math::max);
+    }
+  }
   public OrderStore() { this.jdbc = null; }
 
   public synchronized Order create(CreateOrderRequest request) {
@@ -91,40 +98,57 @@ public class OrderStore {
     if (jdbc != null) jdbc.update("DELETE FROM service_cart_item WHERE user_id=?", userId);
   }
 
+  @Transactional
   public synchronized Payment pay(long userId, long orderId, long amount, String requestId) {
     if (requestId == null || requestId.isBlank()) throw new IllegalArgumentException("clientRequestId 不能为空");
-    Order current = findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
+    Order current = jdbc == null
+      ? findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"))
+      : lockedOrder(orderId);
     if (current.userId() != userId) throw new IllegalArgumentException("订单不存在");
-    String paymentKey = userId + ":" + orderId + ":" + requestId;
+    String paymentKey = userId + ":" + requestId;
     Payment cachedPayment = payments.get(paymentKey);
-    if (cachedPayment != null) return cachedPayment;
+    if (cachedPayment != null) return replayPayment(current, orderId, amount, cachedPayment);
     long chargedAmount = current.totalCent();
     if (jdbc != null) {
-      List<Payment> existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND order_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, orderId, requestId);
+      List<Payment> existing = jdbc.query("SELECT user_id,order_id,client_request_id,amount_cent,status FROM service_payment WHERE user_id=? AND client_request_id=?", (rs,n) -> new Payment(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getLong(4),rs.getString(5)), userId, requestId);
       if (!existing.isEmpty()) {
         payments.put(paymentKey, existing.get(0));
-        return existing.get(0);
+        return replayPayment(current, orderId, amount, existing.get(0));
       }
+      List<Long> requestOwners = jdbc.query("SELECT id FROM order_record WHERE user_id=? AND client_request_id=? FOR UPDATE", (rs,n) -> rs.getLong(1), userId, requestId);
+      if (!requestOwners.isEmpty()) throw new IllegalStateException("clientRequestId 已用于其他订单");
     }
     if (!"PENDING_PAYMENT".equals(current.status())) throw new IllegalStateException("当前状态不可支付");
     if (amount != chargedAmount) throw new IllegalArgumentException("支付金额不匹配");
+    boolean groupBuy = "GROUP_BUY".equals(orderType(orderId));
+    String couponCode = groupBuy ? String.format("%012d", orderId) : null;
     if (jdbc != null) {
       jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
-      jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
-    }
-    if (current != null && current.userId() == userId && "PENDING_PAYMENT".equals(current.status())) {
-      Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt());
-      orders.put(orderId, paid);
+      int updated = jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
+      if (updated != 1) throw new IllegalStateException("订单状态已变化，支付未完成");
+      if (groupBuy) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)", couponCode, orderId, current.merchantId());
       appendEvent(orderId, userId, "PAID");
     }
-    if (current != null && "GROUP_BUY".equals(orderType(orderId))) {
-      String code = String.format("%012d", orderId);
-      coupons.putIfAbsent(code, new Coupon(code, orderId, current.merchantId(), "UNUSED"));
-      if (jdbc != null) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)", code, orderId, current.merchantId());
-    }
+    Order paid = new Order(current.id(), current.userId(), current.merchantId(), current.productId(), current.quantity(), current.totalCent(), "PAID", current.createdAt());
+    orders.put(orderId, paid);
+    if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
     Payment payment = new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
     payments.put(paymentKey, payment);
     return payment;
+  }
+
+  private Payment replayPayment(Order current, long requestedOrderId, long amount, Payment existing) {
+    if (existing.orderId() != requestedOrderId) throw new IllegalStateException("clientRequestId 已用于其他订单");
+    if (existing.amountCent() != amount) throw new IllegalStateException("clientRequestId 请求金额不一致");
+    if (!"SUCCESS".equals(existing.status())) throw new IllegalStateException("支付记录状态异常");
+    if (!"PAID".equals(current.status())) throw new IllegalStateException("支付记录与订单状态不一致");
+    return existing;
+  }
+
+  private Order lockedOrder(long id) {
+    List<Order> rows = jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at FROM order_record WHERE id=? FOR UPDATE", this::map, id);
+    if (rows.isEmpty()) throw new IllegalArgumentException("订单不存在");
+    return rows.get(0);
   }
 
   public synchronized Order order(long id) {

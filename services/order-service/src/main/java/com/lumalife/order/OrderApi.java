@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DuplicateKeyException;
 
 @RestController
 @RequestMapping("/internal/v1/orders")
@@ -94,6 +95,9 @@ public class OrderApi {
 
   @ExceptionHandler(IllegalStateException.class)
   org.springframework.http.ResponseEntity<String> conflict(IllegalStateException e) { return org.springframework.http.ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
+
+  @ExceptionHandler(DuplicateKeyException.class)
+  org.springframework.http.ResponseEntity<String> duplicateKey(DuplicateKeyException e) { return org.springframework.http.ResponseEntity.status(HttpStatus.CONFLICT).body("幂等键冲突"); }
 
   record CartRequest(int quantity) {}
   record PayRequest(long amountCent, String clientRequestId) {}
