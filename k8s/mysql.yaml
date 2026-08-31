@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: lumalife
+  labels:
+    app.kubernetes.io/name: lumalife-mysql
+    app.kubernetes.io/part-of: lumalife
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: lumalife-mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: lumalife
+  labels:
+    app.kubernetes.io/name: lumalife-mysql
+    app.kubernetes.io/part-of: lumalife
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lumalife-mysql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lumalife-mysql
+        app.kubernetes.io/part-of: lumalife
+    spec:
+      securityContext:
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: root-password
+          startupProbe:
+            exec:
+              command: ["sh", "-ec", "MYSQL_PWD=$MYSQL_PASSWORD mysqladmin ping -h 127.0.0.1 -u$MYSQL_USER --silent"]
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            exec:
+              command: ["sh", "-ec", "MYSQL_PWD=$MYSQL_PASSWORD mysqladmin ping -h 127.0.0.1 -u$MYSQL_USER --silent"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: init
+          configMap:
+            name: lumalife-mysql-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

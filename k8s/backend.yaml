@@ -23,13 +23,15 @@ metadata:
     app.kubernetes.io/name: lumalife-backend
     app.kubernetes.io/part-of: lumalife
 spec:
-  replicas: 2
+  # The domain aggregate remains in-process while its durable state lives in
+  # normalized MySQL tables. Recreate prevents an old in-memory snapshot from
+  # overwriting writes made by a concurrent backend during a rolling update.
+  replicas: 1
   revisionHistoryLimit: 3
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    # Keep exactly one writer until persistence uses operation/table-level
+    # transactions that reload the latest state while holding the DB lock.
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: lumalife-backend
@@ -56,6 +58,47 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
+            - name: LUMALIFE_PERSISTENCE
+              value: mysql
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: username
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: password
+            - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
+              value: compose-internal-token
+            - name: IDENTITY_SERVICE_URL
+              value: http://identity-service:8081
+            - name: MERCHANT_SERVICE_URL
+              value: http://merchant-service:8082
+            - name: ORDER_SERVICE_URL
+              value: http://order-service:8083
+            - name: LUMALIFE_IDENTITY_REMOTE_ENABLED
+              value: "true"
+            - name: LUMALIFE_IDENTITY_BACKFILL_COMPLETED
+              value: "true"
+            - name: LUMALIFE_MERCHANT_REMOTE_ENABLED
+              value: "true"
+            - name: LUMALIFE_MERCHANT_BACKFILL_COMPLETED
+              value: "true"
+            - name: LUMALIFE_ORDER_REMOTE_ENABLED
+              value: "true"
+            - name: LUMALIFE_ORDER_BACKFILL_COMPLETED
+              value: "true"
           startupProbe:
             httpGet:
               path: /actuator/health/liveness

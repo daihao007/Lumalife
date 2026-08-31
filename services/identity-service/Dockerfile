@@ -1,11 +1,9 @@
-FROM maven:3.9.9-eclipse-temurin-17 AS build
-WORKDIR /workspace
+FROM --platform=$BUILDPLATFORM maven:3.9.9-eclipse-temurin-17 AS build
+WORKDIR /src
 
-COPY pom.xml ./pom.xml
-COPY identity-service/pom.xml identity-service/pom.xml
-COPY identity-service/src identity-service/src
+COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -ntp -f identity-service/pom.xml -DskipTests package
+    mvn -B -ntp -pl identity-service -am -DskipTests package
 
 FROM eclipse-temurin:17-jre
 ARG SERVICE_VERSION=0.1.0
@@ -13,7 +11,7 @@ LABEL org.opencontainers.image.title="LumaLife Identity Service" \
       org.opencontainers.image.version="${SERVICE_VERSION}"
 WORKDIR /app
 RUN useradd --system --uid 10001 --create-home lumalife
-COPY --from=build /workspace/identity-service/target/identity-service-*.jar app.jar
+COPY --from=build /src/identity-service/target/identity-service-*.jar app.jar
 USER 10001
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

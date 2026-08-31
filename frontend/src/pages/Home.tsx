@@ -3,7 +3,7 @@ import type { Category, Merchant } from "../types";
 
 export default function Home(props: any) {
   return <>
-    <div className="searchbar"><Search /><input value={props.keyword} onChange={(e) => props.setKeyword(e.target.value)} placeholder="请输入商品名称或商家名称" /><button onClick={() => props.searchMerchants()}>搜索</button></div>
+    <div className="searchbar"><Search /><input data-testid="merchant-search" value={props.keyword} onChange={(e) => props.setKeyword(e.target.value)} placeholder="请输入商品名称或商家名称" /><button data-testid="merchant-search-submit" onClick={() => props.searchMerchants()}>搜索</button></div>
     <div className="discover-controls">
       <label><span>排序方式</span><select value={props.sort} onChange={(e) => props.setSort(e.target.value)}>
         <option value="recommend">智能推荐</option>
@@ -29,7 +29,7 @@ export default function Home(props: any) {
       {props.activeCategoryId && <button className="reset-chip" onClick={props.clearMerchantFilter}><RotateCcw size={16} /> 返回全部商铺</button>}
       {props.categories.map((c: Category) => <button className={props.activeCategoryId === c.id ? "active" : ""} key={c.id} onClick={() => props.filterByCategory(c.id)}>{c.name}</button>)}
     </div>
-    <div className="merchant-grid">{props.merchants.map((m: Merchant) => <article className="merchant-card" key={m.id}>
+    <div className="merchant-grid">{props.merchants.map((m: Merchant) => <article data-testid={`merchant-card-${m.id}`} className="merchant-card" key={m.id}>
       <div className="card-img-wrap">
         <img src={m.cover} onClick={() => props.openMerchant(m.id)} />
         <button className={`fav-btn ${props.favoriteIds?.includes(m.id) ? "active" : ""}`}

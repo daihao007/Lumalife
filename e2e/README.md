@@ -29,3 +29,7 @@ npm test
 | `E2E_REPORT_DIR` | `e2e/reports` | 报告输出目录 |
 
 测试账号使用每次运行生成的唯一用户名；种子账号仅用于跨角色校验。失败时报告会记录场景、接口、期望/实际状态和响应摘要，便于复现。若后端启动失败，仍会生成四种报告，并在环境字段中记录启动错误和后端日志。
+
+## UC08 跨角色客服闭环
+
+`runner.mjs` also executes a dedicated UC08 scenario after CR-01~CR-06. It records the user-send, merchant-read, merchant-human-reply and user-re-read steps, including actor IDs, merchant ID, message IDs, sender roles, timestamps, HTTP statuses and the user-to-merchant authorization boundary. The generated `e2e-report.json` and `e2e-raw.log` are uploaded by CI with the API E2E artifact.

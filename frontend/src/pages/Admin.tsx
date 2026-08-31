@@ -63,7 +63,7 @@ export default function Admin() {
   return <div className="admin">
     <div className="admin-health" data-testid="admin-health">
       <span className={`health-indicator ${health?.status === "UP" ? "up" : "down"}`} aria-hidden="true" />
-      <span><b>系统健康</b><small>{health?.status || "UNKNOWN"}</small></span>
+      <span><b>系统健康</b><small>{health?.status || "UNKNOWN"}{health?.source === "/actuator/health" ? " · Actuator" : ""}</small></span>
       <span><b>待处理订单</b><small>{health?.pendingOrders ?? (activeOrders || []).length}</small></span>
     </div>
 

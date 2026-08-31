@@ -14,6 +14,8 @@ class DatabaseAssetsTest {
   private static final Path SEED_FILE = Path.of("..", "database", "seeds", "demo-data.sql");
   private static final Path PAYMENT_CONTRACT_MIGRATION =
     Path.of("..", "database", "migrations", "V002__payment_idempotency_scope.sql");
+  private static final Path BUSINESS_STATE_MIGRATION =
+    Path.of("..", "database", "migrations", "V003__business_state_store.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
 
@@ -44,6 +46,15 @@ class DatabaseAssetsTest {
     assertThat(sql).doesNotContain("user_id, order_id, client_request_id");
     assertThat(bootstrap).contains("for migration in /database/migrations/V[0-9][0-9][0-9]__*.sql");
     assertThat(bootstrap).doesNotContain("schema_file=/database/migrations/V001__baseline_schema.sql");
+  }
+
+  @Test
+  void businessStateMigrationPreservesLegacyImportSource() throws IOException {
+    String sql = Files.readString(BUSINESS_STATE_MIGRATION);
+
+    assertThat(sql).contains("CREATE TABLE IF NOT EXISTS business_state");
+    assertThat(sql).contains("payload JSON NOT NULL");
+    assertThat(sql).contains("PRIMARY KEY (state_key)");
   }
 
   private String passwordHash(String sql, String phone) {

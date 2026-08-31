@@ -119,8 +119,8 @@ function MerchantChat({ user, initialMerchantId }: { user: User; initialMerchant
         {!messages.length && <p className="hint">可以询问营业时间、菜品库存、配送进度或订单问题。</p>}
       </div>
       <div className="chat-input">
-        <input value={content} onChange={e => setContent(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="输入要咨询店家的问题" />
-        <button className="primary" onClick={send} disabled={!merchantId || sending}><Send size={16} /> {sending ? "发送中" : "发送"}</button>
+        <input data-testid="user-chat-input" value={content} onChange={e => setContent(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }} placeholder="输入要咨询店家的问题" />
+        <button data-testid="user-chat-send" className="primary" onClick={send} disabled={!merchantId || sending}><Send size={16} /> {sending ? "发送中" : "发送"}</button>
       </div>
     </section>
   </div>;

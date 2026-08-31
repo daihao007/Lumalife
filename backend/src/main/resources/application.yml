@@ -15,6 +15,32 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
+lumalife:
+  internal:
+    service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
+  migration:
+    identity:
+      enabled: ${LUMALIFE_IDENTITY_REMOTE_ENABLED:false}
+      backfill-completed: ${LUMALIFE_IDENTITY_BACKFILL_COMPLETED:false}
+    merchant:
+      enabled: ${LUMALIFE_MERCHANT_REMOTE_ENABLED:false}
+      backfill-completed: ${LUMALIFE_MERCHANT_BACKFILL_COMPLETED:false}
+    order:
+      enabled: ${LUMALIFE_ORDER_REMOTE_ENABLED:false}
+      backfill-completed: ${LUMALIFE_ORDER_BACKFILL_COMPLETED:false}
+  services:
+    identity:
+      base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+    merchant:
+      base-url: ${MERCHANT_SERVICE_URL:http://localhost:8082}
+    order:
+      base-url: ${ORDER_SERVICE_URL:http://localhost:8083}
+  persistence: ${LUMALIFE_PERSISTENCE:file}
+  state-file: ${LUMALIFE_STATE_FILE:./data/lumalife-state.json}
+  mysql:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USER:lifeassist}
+    password: ${MYSQL_PASSWORD:}
 agnes:
   endpoint: https://apihub.agnes-ai.com/v1/chat/completions
   model: agnes-2.0-flash

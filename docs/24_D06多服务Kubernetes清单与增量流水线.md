@@ -19,7 +19,7 @@
 - `app.kubernetes.io/version` 版本标签和 `SERVICE_VERSION` 运行时版本
 
 应用可通过 `/actuator/info` 查询服务名、应用版本和契约版本。端口覆盖变量使用
-`LUMALIFE_IDENTITY_PORT`、`LUMALIFE_MERCHANT_PORT`、`LUMALIFE_ORDER_PORT`，避免与 Kubernetes
+`LUMALIFE_IDENTITY_HTTP_PORT`、`LUMALIFE_MERCHANT_HTTP_PORT`、`LUMALIFE_ORDER_HTTP_PORT`，避免与 Kubernetes
 自动生成的 `*_SERVICE_PORT` 环境变量冲突；Pod 同时关闭了旧式 Service Link 注入。
 
 ## 增量选择规则
