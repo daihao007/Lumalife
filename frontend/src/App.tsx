@@ -216,7 +216,8 @@ export default function App() {
   async function register(phone: string, password: string, nickname: string, role: Role) {
     try {
       const path = role === "MERCHANT_ADMIN" ? "/api/v1/auth/register/merchant" : "/api/v1/auth/register";
-      const data = await api<{ token: string; user: User }>(path, { method: "POST", body: JSON.stringify({ phone, password, nickname, role }) });
+      // 身份由网关按注册端点决定；冻结契约禁止客户端提交可导致提权的 role。
+      const data = await api<{ token: string; user: User }>(path, { method: "POST", body: JSON.stringify({ phone, password, nickname }) });
       localStorage.setItem("lumalife-token", data.token);
       setUser(data.user);
       setMessage(`${data.user.nickname} 注册并登录成功`);
