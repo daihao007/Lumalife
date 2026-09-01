@@ -627,13 +627,13 @@ async function waitForHealth(maxWaitMs) {
 function startBackendProcess() {
   const windows = process.platform === "win32";
   const command = windows ? "cmd.exe" : "mvn";
-  const springBootArguments = `--server.port=${backendPort} --lumalife.state-file=`;
+  const springBootArguments = `--server.port=${backendPort}`;
   const args = windows
-    ? ["/d", "/s", "/c", `mvn.cmd -q spring-boot:run "-Dspring-boot.run.arguments=${springBootArguments}" -Dspring-boot.run.fork=false`]
+    ? ["/d", "/s", "/c", `mvn.cmd -q spring-boot:run -Dspring-boot.run.arguments=${springBootArguments} -Dspring-boot.run.fork=false`]
     : ["-q", "spring-boot:run", `-Dspring-boot.run.arguments=${springBootArguments}`, "-Dspring-boot.run.fork=false"];
   backendProcess = spawn(command, args, {
     cwd: path.join(rootDir, "backend"),
-    env: { ...process.env, SERVER_PORT: String(backendPort) },
+    env: { ...process.env, SERVER_PORT: String(backendPort), LUMALIFE_STATE_FILE: "" },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true
   });

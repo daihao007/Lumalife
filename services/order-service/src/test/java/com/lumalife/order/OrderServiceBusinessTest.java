@@ -65,6 +65,14 @@ class OrderServiceBusinessTest {
     assertThat(paid.totalCent()).isEqualTo(2680);
   }
 
+  @Test
+  void exposesMerchantReviewProjectionAtTheFrozenInternalPath() {
+    ResponseEntity<OrderStore.Review[]> response = http.exchange("/internal/v1/merchants/1/reviews", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), OrderStore.Review[].class);
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody()).isNotNull();
+  }
+
   private HttpHeaders serviceHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Luma-Service-Token", "test-internal-token");

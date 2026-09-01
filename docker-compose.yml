@@ -62,9 +62,18 @@ services:
       context: ./services
       dockerfile: identity-service/Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     ports:
       - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/actuator/health"]
       interval: 5s
