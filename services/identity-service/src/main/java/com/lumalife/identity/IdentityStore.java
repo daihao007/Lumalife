@@ -96,6 +96,7 @@ public class IdentityStore {
     } else if (stateFile != null && !Files.exists(stateFile)) {
       persistState();
     }
+    ensureDemoMerchantAccounts();
   }
 
   public synchronized Map<String, Object> login(String phone, String password) {
@@ -408,6 +409,19 @@ public class IdentityStore {
   private Session session(JsonNode node) {
     Long revokedAt = node.hasNonNull("revokedAtEpochSecond") ? node.path("revokedAtEpochSecond").asLong() : null;
     return new Session(node.path("userId").asLong(), node.path("expiresAtEpochSecond").asLong(), revokedAt);
+  }
+
+  /** Add newly introduced demo accounts without overwriting real accounts in a persistent state file. */
+  private void ensureDemoMerchantAccounts() {
+    boolean changed = seedIfMissing("13800000004", 4, "绿盒轻食", 3L)
+      | seedIfMissing("13800000005", 5, "栗香烘焙室", 4L);
+    if (changed) persistState();
+  }
+
+  private boolean seedIfMissing(String phone, long id, String nickname, long merchantId) {
+    if (users.containsKey(phone)) return false;
+    seed(id, phone, "abc123456", nickname, "MERCHANT_ADMIN", merchantId);
+    return true;
   }
 
   private synchronized void persistState() {

@@ -15,7 +15,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.beans.factory.annotation.Value;
+import com.lumalife.common.BusinessException;
 
 /** Routes the migrated catalog slice to merchant-service; unsupported capabilities remain safely on the monolith. */
 @Configuration
@@ -28,8 +31,15 @@ public class RemoteMerchantServicePort {
       @Value("${lumalife.internal.service-token:}") String token) {
     RestClient client = builder.baseUrl(baseUrl).defaultHeader("X-Internal-Service-Token", token).build();
     InvocationHandler handler = (proxy, method, args) -> {
+      try {
       if (method.getName().equals("merchants")) {
-        List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants").queryParam("keyword", args[0] == null ? "" : args[0]).build()).retrieve().body(List.class);
+        List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants")
+          .queryParam("keyword", args[0] == null ? "" : args[0])
+          .queryParam("categoryId", args[1] == null ? "" : args[1])
+          .queryParam("sort", args[2] == null ? "recommend" : args[2])
+          .queryParam("minPrice", args[3] == null ? "" : args[3])
+          .queryParam("maxPrice", args[4] == null ? "" : args[4])
+          .queryParam("minScore", args[5] == null ? "" : args[5]).build()).retrieve().body(List.class);
         return rows.stream().map(row -> mapper.convertValue(row, Merchant.class)).toList();
       }
       if (method.getName().equals("merchantDetail")) {
@@ -49,7 +59,13 @@ public class RemoteMerchantServicePort {
         return normalizeMerchantDetail(row, fallbackMerchant, products, groupDeals, reviews);
       }
       if (method.getName().equals("merchantsForUser")) {
-        List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants").queryParam("keyword", args[1] == null ? "" : args[1]).build()).retrieve().body(List.class);
+        List<Map> rows = client.get().uri(uri -> uri.path("/internal/v1/merchants")
+          .queryParam("keyword", args[1] == null ? "" : args[1])
+          .queryParam("categoryId", args[2] == null ? "" : args[2])
+          .queryParam("sort", args[3] == null ? "recommend" : args[3])
+          .queryParam("minPrice", args[4] == null ? "" : args[4])
+          .queryParam("maxPrice", args[5] == null ? "" : args[5])
+          .queryParam("minScore", args[6] == null ? "" : args[6]).build()).retrieve().body(List.class);
         return rows.stream().map(row -> mapper.convertValue(row, Map.class)).toList();
       }
       if (method.getName().equals("merchantProducts")) {
@@ -89,7 +105,32 @@ public class RemoteMerchantServicePort {
         Map row = client.post().uri("/internal/v1/merchants/{id}/deals/{dealId}/toggle", merchantId, dealId).header("X-Merchant-Id", String.valueOf(merchantId)).retrieve().body(Map.class);
         return mapper.convertValue(row, com.lumalife.domain.Models.GroupDeal.class);
       }
+      if (method.getName().equals("sendUserMessage")) {
+        // Conversations still live in the compatibility store until their own
+        // service slice is migrated. Keep the local reply callback bounded so
+        // a catalog/AI context failure cannot reject the user's message.
+        Object[] forwarded = args.clone();
+        fallback.ensureExternalUser((com.lumalife.domain.Models.User) args[0]);
+        java.util.function.Function responder = (java.util.function.Function) args[3];
+        forwarded[3] = (java.util.function.Function<Object, String>) history -> {
+          try {
+            return (String) responder.apply(history);
+          } catch (RuntimeException error) {
+            return "您好，店家客服已收到您的消息，稍后会为您处理。";
+          }
+        };
+        return method.invoke(fallback, forwarded);
+      }
       return method.invoke(fallback, args);
+      } catch (java.lang.reflect.InvocationTargetException error) {
+        Throwable cause = error.getCause();
+        if (cause instanceof RuntimeException runtime) throw runtime;
+        throw error;
+      } catch (RestClientResponseException error) {
+        throw remoteError(error);
+      } catch (RestClientException error) {
+        throw new BusinessException(50300, "商家服务暂时不可用", "MERCHANT_SERVICE_UNAVAILABLE");
+      }
     };
     return (MerchantServicePort) Proxy.newProxyInstance(MerchantServicePort.class.getClassLoader(), new Class[]{MerchantServicePort.class}, handler);
   }
@@ -118,6 +159,27 @@ public class RemoteMerchantServicePort {
   private static void copyEntries(Map<?, ?> source, Map<String, Object> target) {
     if (source == null) return;
     source.forEach((key, value) -> target.put(String.valueOf(key), value));
+  }
+
+  private static BusinessException remoteError(RestClientResponseException error) {
+    int status = error.getStatusCode().value();
+    int code = switch (status) {
+      case 400 -> 40000;
+      case 401 -> 40100;
+      case 403 -> 40300;
+      case 404 -> 40400;
+      case 409 -> 40900;
+      default -> status >= 500 ? 50300 : 50000;
+    };
+    String message = switch (status) {
+      case 400 -> "商家请求参数错误";
+      case 401 -> "商家服务认证失败";
+      case 403 -> "商家操作未授权";
+      case 404 -> "商家资源不存在";
+      case 409 -> "商家资源冲突";
+      default -> "商家服务暂时不可用";
+    };
+    return new BusinessException(code, message, code == 50300 ? "MERCHANT_SERVICE_UNAVAILABLE" : "MERCHANT_REMOTE_ERROR");
   }
 
 }

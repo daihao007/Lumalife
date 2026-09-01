@@ -64,6 +64,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const successfulEnvelope = envelope && (envelope.code === 200 || envelope.code === response.status);
   if (response.ok && successfulEnvelope) return envelope.data as T;
 
-  const message = envelope?.message || `网关请求失败（HTTP ${response.status}）`;
+  const message = envelope?.message
+    || (response.status === 413 ? "请求内容过大，请压缩头像后重试" : `网关请求失败（HTTP ${response.status}）`);
   throw new GatewayApiError(message, response.status, envelope?.code, responseRequestId, envelope?.reason, envelope?.details);
 }
