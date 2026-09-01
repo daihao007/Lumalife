@@ -15,8 +15,14 @@ readonly MYSQL_DATABASE="${MYSQL_DATABASE:-life_assistant}"
 readonly MYSQL_USER="${MYSQL_USER:-lifeassist}"
 readonly MYSQL_PASSWORD="${MYSQL_PASSWORD:-lumalife-ci-password}"
 readonly MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-lumalife-ci-root-password}"
+readonly BACKFILL_PATH="database/backfill-services.sql"
 
 source scripts/lib/legacy-migrations.sh
+
+if [[ ! -f "${BACKFILL_PATH}" ]]; then
+  echo "Required database backfill is missing: ${BACKFILL_PATH}" >&2
+  exit 1
+fi
 
 prefetch_pods=()
 
@@ -176,7 +182,7 @@ for migration in database/migrations/V[0-9][0-9][0-9]__*.sql; do
   fi
 done
 kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
-  'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < database/backfill-services.sql
+  'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < "${BACKFILL_PATH}"
 
 apply_versioned_manifests
 

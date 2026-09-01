@@ -466,6 +466,7 @@ jobs:
             scripts/deploy-k8s.sh
             scripts/lib/legacy-migrations.sh
             k8s
+            database/backfill-services.sql
             database/init
             database/migrations
           if-no-files-found: error
