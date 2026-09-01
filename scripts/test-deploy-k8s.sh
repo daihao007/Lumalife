@@ -8,6 +8,9 @@ test -f scripts/lib/legacy-migrations.sh
 test -f database/backfill-services.sql
 test -f database/bin/provision-service-databases.sh
 test -f database/bin/backfill-service-databases.sh
+# V009 is already deployed in production; keep its checksum immutable.
+readonly V009_CHECKSUM="158f94739fbd78e04f93018410af2dea60ec0f6cde57066e093a3cc74ee05b12"
+test "$(sha256sum database/migrations/V009__microservice_durability_fixes.sql | awk '{print $1}')" = "${V009_CHECKSUM}"
 
 grep -q 'readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"' "${SCRIPT_PATH}"
 grep -q 'readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"' "${SCRIPT_PATH}"
