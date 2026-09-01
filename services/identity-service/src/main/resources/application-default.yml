@@ -1,0 +1,7 @@
+spring:
+  # Kind smoke tests run the service without MySQL. Production explicitly
+  # enables application-prod.yml and therefore keeps the JDBC datasource.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
