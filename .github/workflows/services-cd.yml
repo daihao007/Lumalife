@@ -8,7 +8,7 @@ on:
       - "k8s/services/**"
       - "k8s/healthcheck/**"
       - "scripts/detect-changed-services.sh"
-      - "scripts/deploy-services-k8s.sh"
+      - "scripts/smoke-services-k8s.sh"
       - ".github/workflows/services-cd.yml"
   push:
     branches: [main]
@@ -17,7 +17,7 @@ on:
       - "k8s/services/**"
       - "k8s/healthcheck/**"
       - "scripts/detect-changed-services.sh"
-      - "scripts/deploy-services-k8s.sh"
+      - "scripts/smoke-services-k8s.sh"
       - ".github/workflows/services-cd.yml"
   workflow_dispatch:
 
@@ -182,47 +182,4 @@ jobs:
 
           kind load docker-image --name lumalife-services-ci "${images[@]}"
           HEALTHCHECK_IMAGE="lumalife-healthcheck:${image_tag}" \
-            bash scripts/deploy-services-k8s.sh "${image_tag}" "${services[@]}"
-
-  deploy:
-    name: Deploy affected services
-    needs: [changes, images, kind-smoke]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.has-services == 'true' }}
-    runs-on: ubuntu-latest
-    environment: kubernetes
-    concurrency:
-      group: lumalife-microservices-production
-      cancel-in-progress: false
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.31.4
-
-      - name: Configure cluster credentials
-        shell: bash
-        env:
-          KUBE_CONFIG_BASE64: ${{ secrets.KUBE_CONFIG_BASE64 }}
-        run: |
-          if [[ -z "${KUBE_CONFIG_BASE64}" ]]; then
-            echo "::error::Configure KUBE_CONFIG_BASE64 in the kubernetes environment."
-            exit 1
-          fi
-          kubeconfig="${RUNNER_TEMP}/kubeconfig"
-          printf '%s' "${KUBE_CONFIG_BASE64}" | base64 --decode > "${kubeconfig}"
-          chmod 600 "${kubeconfig}"
-          echo "KUBECONFIG=${kubeconfig}" >> "${GITHUB_ENV}"
-
-      - name: Roll out only affected services and verify probes
-        shell: bash
-        env:
-          SERVICES_CSV: ${{ needs.changes.outputs.services-csv }}
-        run: |
-          IFS=',' read -r -a services <<<"${SERVICES_CSV}"
-          bash scripts/deploy-services-k8s.sh "sha-${GITHUB_SHA::7}" "${services[@]}"
+            bash scripts/smoke-services-k8s.sh "${image_tag}" "${services[@]}"

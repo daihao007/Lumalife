@@ -25,24 +25,30 @@
 ## 增量选择规则
 
 流水线 `.github/workflows/services-cd.yml` 先执行 `scripts/detect-changed-services.sh`，再把返回的 JSON
-数组作为 GitHub Actions 动态 matrix。因此构建和部署使用同一份服务列表，不会产生“构建了 A、却部署 B”的漂移。
+数组作为 GitHub Actions 动态 matrix。因此镜像构建和临时 Kind 冒烟测试使用同一份服务列表，不会产生
+“构建了 A、却验证 B”的漂移。
 
 | 变化路径 | 受影响服务 |
 |---|---|
 | `services/identity-service/**`、`k8s/services/identity-service.yaml` | identity-service |
 | `services/merchant-service/**`、`k8s/services/merchant-service.yaml` | merchant-service |
 | `services/order-service/**`、`k8s/services/order-service.yaml` | order-service |
-| `services/pom.xml`、`k8s/healthcheck/**`、增量流水线或其检测/部署脚本 | 全部三个服务 |
-| 前端或普通文档等无关路径 | 无，不构建也不部署微服务 |
+| `services/pom.xml`、`k8s/healthcheck/**`、增量流水线或其检测/冒烟脚本 | 全部三个服务 |
+| 前端、正式生产清单 `k8s/services.yaml` 或普通文档等无关路径 | 无，不运行微服务增量作业 |
 
 Pull Request 只构建受影响镜像而不推送，并在一次性 Kind 集群执行相同服务的 smoke test。Kind 健康检查
 镜像固定使用 `linux/amd64`、关闭 provenance 并以 `--load` 载入本机，避免多架构 manifest list 在
 side-load 到 containerd 时出现缺失 digest。合入 `main` 后，受影响镜像以不可变的 `sha-<7位提交号>`
-标签推送到 GHCR，只有 Kind smoke 成功后才会部署相同服务。
+标签推送到 GHCR；该工作流不连接或修改生产集群。
 
-部署脚本不会先应用 `0.1.0` 再执行 `kubectl set image`。它为每个服务创建临时 Kustomize overlay，提前写入
+冒烟脚本不会先应用 `0.1.0` 再执行 `kubectl set image`。它为每个服务创建临时 Kustomize overlay，提前写入
 目标镜像、`SERVICE_VERSION` 和 Service/Deployment/Pod 版本标签，核对渲染镜像后一次性 `kubectl apply -k`。
-因此首次创建和后续升级都只产生目标版本的 ReplicaSet。
+因此首次创建和后续升级都只产生目标版本的 ReplicaSet。`k8s/services/*.yaml` 使用临时存储和测试配置，
+只供 Kind 冒烟测试使用；脚本会拒绝任何非 `kind-*` 的 kubectl context。
+
+生产部署仍由主流水线统一负责：`Monolith CI` 生成并上传部署包，随后 `Deploy ECS K3s` 在 ECS 自托管
+Runner 上调用 `scripts/deploy-k8s.sh`，应用正式的 `k8s/services.yaml`。增量验证工作流不再维护第二套
+`KUBE_CONFIG_BASE64` 凭据或覆盖同名生产 Deployment。
 
 ## 本地实操
 
@@ -65,6 +71,7 @@ printf 'services/identity-service/src/main/java/App.java\n' \
 ```bash
 mvn -B -ntp -f services/pom.xml verify
 kubectl kustomize k8s > rendered-k8s.yaml
+kubectl kustomize k8s/services > rendered-services-smoke.yaml
 ```
 
 ### 3. 独立构建镜像
@@ -92,22 +99,21 @@ docker buildx build \
 kind load docker-image --name lumalife-ci lumalife-healthcheck:kind
 ```
 
-### 5. 部署指定服务
+### 5. 在临时 Kind 集群验证指定服务
 
-例如只部署 identity 和 order：
+当前 kubectl context 必须是 `kind-*`。例如只验证 identity 和 order：
 
 ```bash
 IMAGE_REGISTRY=ghcr.io/daihao007 \
-  bash scripts/deploy-services-k8s.sh sha-abcdef0 identity-service order-service
+  bash scripts/smoke-services-k8s.sh sha-abcdef0 identity-service order-service
 ```
 
-生产环境需要在 GitHub 的 `kubernetes` Environment 中配置 `KUBE_CONFIG_BASE64`；工作流不会在
-Pull Request 中部署，也不会在没有受影响服务时运行镜像或部署 Job。
+此命令仅用于一次性 Kind 集群。生产发布不要调用该脚本，应使用主流水线的 ECS K3s 部署链路。
 
 ## 2026-08-31 验收记录
 
 - `actionlint .github/workflows/services-cd.yml`：通过。
-- `bash scripts/test-detect-changed-services.sh`：6 组路径映射全部通过。
+- `bash scripts/test-detect-changed-services.sh`：8 组路径映射全部通过。
 - `mvn -B -ntp -f services/pom.xml verify`：3 个服务健康测试全部通过，0 失败。
 - `kubectl kustomize k8s`：成功渲染，包括 3 个新增 Deployment 和 3 个新增 Service。
 - 三个 Dockerfile 均完成真实镜像构建；三个容器本地 readiness 均为 `UP`，`/actuator/info` 返回对应服务名和 `0.1.0`。
@@ -122,5 +128,5 @@ Pull Request 中部署，也不会在没有受影响服务时运行镜像或部�
 identity-service   2/2   ghcr.io/daihao007/lumalife-identity-service:issue45
 merchant-service   2/2   ghcr.io/daihao007/lumalife-merchant-service:issue45
 order-service      2/2   ghcr.io/daihao007/lumalife-order-service:issue45
-Incremental rollout passed for: identity-service merchant-service order-service (issue45).
+Kind smoke test passed for: identity-service merchant-service order-service (issue45).
 ```

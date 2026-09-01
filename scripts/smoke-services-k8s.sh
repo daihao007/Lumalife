@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# These manifests deliberately use ephemeral storage and smoke-test settings.
+# Refuse non-Kind contexts so they cannot overwrite the production deployments
+# managed by scripts/deploy-k8s.sh and k8s/services.yaml.
+readonly CURRENT_CONTEXT="$(kubectl config current-context)"
+if [[ ! "${CURRENT_CONTEXT}" =~ ^kind- ]]; then
+  echo "Refusing to apply smoke manifests to non-Kind context: ${CURRENT_CONTEXT}" >&2
+  echo "Production deployment is managed by scripts/deploy-k8s.sh." >&2
+  exit 2
+fi
+
 readonly NAMESPACE="lumalife"
-readonly IMAGE_TAG="${1:?usage: deploy-services-k8s.sh <image-tag> <service> [service...]}"
+readonly IMAGE_TAG="${1:?usage: smoke-services-k8s.sh <image-tag> <service> [service...]}"
 shift
 if [[ "$#" -eq 0 ]]; then
   echo "At least one service is required." >&2
@@ -40,7 +50,7 @@ service_port() {
 }
 
 diagnostics() {
-  echo "::group::Kubernetes microservice deployment diagnostics"
+  echo "::group::Kubernetes microservice smoke-test diagnostics"
   for service in "${SERVICES[@]}"; do
     kubectl -n "${NAMESPACE}" describe deployment "${service}" || true
     kubectl -n "${NAMESPACE}" get pods -l "app.kubernetes.io/name=${service}" -o wide || true
@@ -112,4 +122,4 @@ EOF
     -o custom-columns='KIND:.kind,NAME:.metadata.name,VERSION:.metadata.labels.app\.kubernetes\.io/version,IMAGE:.spec.template.spec.containers[*].image'
 done
 
-echo "Incremental rollout passed for: ${SERVICES[*]} (${IMAGE_TAG})."
+echo "Kind smoke test passed for: ${SERVICES[*]} (${IMAGE_TAG})."
