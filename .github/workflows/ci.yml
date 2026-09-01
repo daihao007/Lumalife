@@ -237,9 +237,9 @@ jobs:
             local query="$2"
             docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
           }
-          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 15
-          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 15
-          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 15
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 16
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 16
+          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 16
           test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM user_account")" -eq 6
           test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM merchant_catalog")" -eq 7
 
