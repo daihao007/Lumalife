@@ -59,7 +59,7 @@ class OrderServiceBusinessTest {
     assertThat(order.lines()).extracting(OrderStore.OrderLine::quantity).containsExactly(1, 2);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::name).containsExactly("藤椒鸡饭", "毛血旺小锅");
     assertThat(order.addressSnapshot()).isEqualTo("测试用户 13800000001 契约测试地址");
-    assertThat(order.merchantName()).isEqualTo("商家 #1");
+    assertThat(order.merchantName()).isEqualTo("巷口川味研究所");
   }
 
   @Test
