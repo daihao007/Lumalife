@@ -224,7 +224,7 @@ jobs:
           mysql_count() {
             local database="$1"
             local query="$2"
-            docker compose exec -T mysql sh -c "MYSQL_PWD=\"\$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"\$MYSQL_USER\" --database=\"${database}\" --batch --skip-column-names --execute=\"${query}\"" | tr -d '\r'
+            docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
           }
           test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 11
           test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 11
