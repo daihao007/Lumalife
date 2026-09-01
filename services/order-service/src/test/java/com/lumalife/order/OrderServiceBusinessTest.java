@@ -13,11 +13,49 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
   properties = "lumalife.internal.service-token=test-internal-token")
 class OrderServiceBusinessTest {
   @Autowired private TestRestTemplate http;
+
+  @Test
+  void continuesAfterTheHighestPersistedOrderId() {
+    JdbcTemplate jdbc = mock(JdbcTemplate.class);
+    when(jdbc.queryForObject("SELECT COALESCE(MAX(id), 4000) FROM order_record", Long.class)).thenReturn(4007L);
+
+    OrderStore store = new OrderStore(jdbc);
+    OrderStore.Order order = store.create(new OrderStore.CreateOrderRequest(1, 1, 1001, 1, 2680));
+
+    assertThat(order.id()).isEqualTo(4008L);
+  }
+
+  @Test
+  void rejectsPaymentForACancelledOrder() {
+    OrderStore store = new OrderStore();
+    OrderStore.Order order = store.create(new OrderStore.CreateOrderRequest(1, 1, 1001, 1, 2680));
+    store.cancel(1, order.id());
+
+    assertThatThrownBy(() -> store.pay(1, order.id(), 0, "cancelled-order-payment"))
+      .isInstanceOf(IllegalStateException.class)
+      .hasMessage("当前订单不可支付");
+  }
+
+  @Test
+  void preservesEveryLineWhenCreatingAMultiProductDeliveryOrder() {
+    OrderStore store = new OrderStore();
+    OrderStore.Order order = store.createDeliveryOrders(new OrderStore.DeliveryRequest(1, 2101L,
+      List.of(new OrderStore.DeliveryLine(1001, 1, 2680, 1), new OrderStore.DeliveryLine(1002, 1, 4280, 2)))).get(0);
+
+    assertThat(order.quantity()).isEqualTo(3);
+    assertThat(order.totalCent()).isEqualTo(11240);
+    assertThat(order.lines()).extracting(OrderStore.OrderLine::itemId).containsExactly(1001L, 1002L);
+    assertThat(order.lines()).extracting(OrderStore.OrderLine::quantity).containsExactly(1, 2);
+  }
 
   @Test
   void ownsOrderCreationAndCancellation() {

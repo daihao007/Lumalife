@@ -18,6 +18,9 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V003__business_state_store.sql");
   private static final Path SERVICE_PAYMENT_KEY_MIGRATION =
     Path.of("..", "database", "migrations", "V007__service_payment_global_idempotency.sql");
+  private static final Path SERVICE_ORDER_LINES_MIGRATION =
+    Path.of("..", "database", "migrations", "V008__service_order_lines.sql");
+  private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
 
@@ -59,6 +62,17 @@ class DatabaseAssetsTest {
     assertThat(sql).contains("CREATE TABLE IF NOT EXISTS business_state");
     assertThat(sql).contains("payload JSON NOT NULL");
     assertThat(sql).contains("PRIMARY KEY (state_key)");
+  }
+
+  @Test
+  void serviceOrderLinesPreserveMultiItemBackfill() throws IOException {
+    String migration = Files.readString(SERVICE_ORDER_LINES_MIGRATION);
+    String backfill = Files.readString(SERVICE_BACKFILL);
+
+    assertThat(migration).contains("CREATE TABLE IF NOT EXISTS service_order_line");
+    assertThat(backfill).contains("INSERT INTO service_order_line");
+    assertThat(backfill).contains("SUM(oi.quantity)");
+    assertThat(backfill).contains("oi.item_name_snapshot");
   }
 
   private String passwordHash(String sql, String phone) {

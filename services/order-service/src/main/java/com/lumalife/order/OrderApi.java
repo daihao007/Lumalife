@@ -30,6 +30,13 @@ public class OrderApi {
   @GetMapping
   List<OrderStore.Order> orders(@RequestHeader("X-User-Id") long userId) { return store.byUser(userId); }
 
+  @GetMapping("/{id}")
+  OrderStore.Order order(@PathVariable long id, @RequestHeader("X-User-Id") long userId) {
+    OrderStore.Order order = store.order(id);
+    if (order.userId() != userId) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
+    return order;
+  }
+
   @PostMapping("/{id}/cancel")
   OrderStore.Order cancel(@PathVariable long id, @RequestHeader("X-User-Id") long userId) { return store.cancel(userId, id); }
 
@@ -73,7 +80,13 @@ public class OrderApi {
   OrderStore.Order transition(@PathVariable long id, @RequestHeader("X-Merchant-Id") long merchantId, @RequestBody TransitionRequest request) { return store.transition(merchantId, id, request.next()); }
 
   @PostMapping("/coupons/verify")
-  OrderStore.Order verifyCoupon(@RequestHeader("X-Merchant-Id") long merchantId, @RequestBody CouponRequest request) { return store.verifyCoupon(merchantId, request.code()); }
+  OrderStore.Order verifyCoupon(@RequestHeader("X-Merchant-Id") long merchantId, @RequestBody CouponRequest request) {
+    try {
+      return store.verifyCoupon(merchantId, request.code());
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage());
+    }
+  }
 
   @PostMapping("/reviews")
   OrderStore.Review review(@RequestHeader("X-User-Id") long userId, @RequestBody ReviewRequest request) {

@@ -49,9 +49,12 @@ public class IdentityStore {
     seed(1, "13800000001", "abc123456", "林夏", "USER", null);
     seed(2, "13800000002", "abc123456", "巷口川味研究所", "MERCHANT_ADMIN", 1L);
     seed(3, "13800000003", "abc123456", "晨雾咖啡局", "MERCHANT_ADMIN", 2L);
+    seed(4, "13800000004", "abc123456", "绿盒轻食", "MERCHANT_ADMIN", 3L);
+    seed(5, "13800000005", "abc123456", "栗香烘焙室", "MERCHANT_ADMIN", 4L);
     addresses.put(1L, new ArrayList<>(List.of(
       new Address(2101, 1, "林夏", "13800000001", "梧桐路 18 号 2 单元 601", true))));
     loadPersistentState();
+    ensureDemoMerchantAccounts();
     if (stateFile != null && !Files.exists(stateFile)) persistState();
   }
 
@@ -197,6 +200,19 @@ public class IdentityStore {
     } catch (IOException error) {
       throw new IllegalStateException("Failed to load identity state from " + stateFile, error);
     }
+  }
+
+  /** Add newly introduced demo accounts without overwriting real accounts in a persistent state file. */
+  private void ensureDemoMerchantAccounts() {
+    boolean changed = seedIfMissing("13800000004", 4, "绿盒轻食", 3L)
+      | seedIfMissing("13800000005", 5, "栗香烘焙室", 4L);
+    if (changed) persistState();
+  }
+
+  private boolean seedIfMissing(String phone, long id, String nickname, long merchantId) {
+    if (users.containsKey(phone)) return false;
+    seed(id, phone, "abc123456", nickname, "MERCHANT_ADMIN", merchantId);
+    return true;
   }
 
   private synchronized void persistState() {

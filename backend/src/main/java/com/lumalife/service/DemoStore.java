@@ -1007,6 +1007,17 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
       .toList();
   }
 
+  /**
+   * Register the identity-service user reference needed by legacy relational
+   * tables. Authentication remains owned by identity-service; this local row
+   * only satisfies foreign keys for business data such as chat messages.
+   */
+  public synchronized void ensureExternalUser(User user) {
+    if (user == null || user.role() != UserRole.USER || user.phone() == null || user.phone().isBlank()) return;
+    users.putIfAbsent(user.phone(), new User(user.id(), user.phone(), "external-user-reference",
+      user.nickname(), user.avatarUrl(), user.role(), user.merchantId()));
+  }
+
   public List<ChatMessage> userConversation(User user, long merchantId) {
     if (user.role() != UserRole.USER) throw new BusinessException(40300, "仅用户账号可联系客服");
     if (!merchants.containsKey(merchantId)) throw new BusinessException(40400, "商家不存在");

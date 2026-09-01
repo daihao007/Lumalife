@@ -130,18 +130,52 @@ kubectl -n "${NAMESPACE}" create secret generic lumalife-mysql \
   --from-literal=root-password="${MYSQL_ROOT_PASSWORD}" \
   --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-init \
-  --from-file=001-baseline.sql=database/migrations/V001__baseline_schema.sql \
-  --from-file=002-payment-idempotency.sql=database/migrations/V002__payment_idempotency_scope.sql \
-  --from-file=003-business-state.sql=database/migrations/V003__business_state_store.sql \
-  --from-file=004-service-owned.sql=database/migrations/V004__service_owned_catalog_orders.sql \
-  --from-file=005-order-domain-service-tables.sql=database/migrations/V005__order_domain_service_tables.sql \
-  --from-file=006-order-domain-state.sql=database/migrations/V006__order_domain_state_and_indexes.sql \
+  --from-file=10-bootstrap.sh=database/init/10-bootstrap.sh \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
+  --from-file=V001__baseline_schema.sql=database/migrations/V001__baseline_schema.sql \
+  --from-file=V002__payment_idempotency_scope.sql=database/migrations/V002__payment_idempotency_scope.sql \
+  --from-file=V003__business_state_store.sql=database/migrations/V003__business_state_store.sql \
+  --from-file=V004__service_owned_catalog_orders.sql=database/migrations/V004__service_owned_catalog_orders.sql \
+  --from-file=V005__order_domain_service_tables.sql=database/migrations/V005__order_domain_service_tables.sql \
+  --from-file=V006__order_domain_state_and_indexes.sql=database/migrations/V006__order_domain_state_and_indexes.sql \
+  --from-file=V007__service_payment_global_idempotency.sql=database/migrations/V007__service_payment_global_idempotency.sql \
+  --from-file=V008__service_order_lines.sql=database/migrations/V008__service_order_lines.sql \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images
 apply_versioned_manifests
 
 kubectl -n "${NAMESPACE}" rollout status statefulset/mysql --timeout="${ROLLOUT_TIMEOUT}"
+
+# Existing MySQL PVCs do not rerun /docker-entrypoint-initdb.d. Apply the
+# versioned migrations and idempotent service backfill on every deployment so
+# a code rollout cannot leave the service-owned tables behind the images.
+mysql_exec_remote() {
+  kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
+    'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4 "$@"' \
+    sh "$@"
+}
+mysql_exec_remote --execute='CREATE TABLE IF NOT EXISTS schema_migration (version VARCHAR(64) NOT NULL, description VARCHAR(255) NOT NULL, checksum CHAR(64) NOT NULL, installed_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), PRIMARY KEY (version)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;'
+for migration in database/migrations/V[0-9][0-9][0-9]__*.sql; do
+  [ -f "${migration}" ] || continue
+  filename=$(basename "${migration}")
+  version=${filename%%__*}
+  description=${filename#*__}
+  description=${description%.sql}
+  checksum=$(sha256sum "${migration}" | awk '{print $1}')
+  applied_checksum=$(mysql_exec_remote --batch --skip-column-names --execute="SELECT checksum FROM schema_migration WHERE version='${version}'")
+  if [ -n "${applied_checksum}" ]; then
+    test "${applied_checksum}" = "${checksum}"
+  else
+    kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
+      'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < "${migration}"
+    mysql_exec_remote --execute="INSERT INTO schema_migration(version,description,checksum) VALUES ('${version}','${description}','${checksum}')"
+  fi
+done
+kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
+  'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < database/backfill-services.sql
+
 kubectl -n "${NAMESPACE}" rollout status deployment/backend --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/identity-service --timeout="${ROLLOUT_TIMEOUT}"
