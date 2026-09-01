@@ -20,7 +20,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 
-@SpringBootTest(properties = "lumalife.state-file=")
+@SpringBootTest(properties = {
+  "spring.profiles.active=monolith",
+  "lumalife.state-file="
+})
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ApiSecurityIntegrationTest {
