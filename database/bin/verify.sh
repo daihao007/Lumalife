@@ -27,6 +27,6 @@ assert_query 'demo products' '7' 'SELECT COUNT(*) FROM product'
 assert_query 'fixed product ids' '7' 'SELECT COUNT(*) FROM product WHERE id BETWEEN 1001 AND 1007'
 assert_query 'demo group deals' '3' 'SELECT COUNT(*) FROM group_deal'
 assert_query 'BCrypt hashes only' '6' "SELECT COUNT(*) FROM user_account WHERE password_hash REGEXP '^[$]2[aby][$][0-9]{2}[$]'"
-assert_query 'avatar storage capacity' 'MEDIUMTEXT' "SELECT DATA_TYPE FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name='user_account' AND column_name='avatar_url'"
+assert_query 'avatar storage capacity' 'mediumtext' "SELECT LOWER(DATA_TYPE) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name='user_account' AND column_name='avatar_url'"
 
 echo 'Database schema and demo data verification passed.'
