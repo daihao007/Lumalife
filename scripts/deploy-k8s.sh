@@ -114,7 +114,8 @@ apply_versioned_manifests() {
     -e "s|image: ghcr.io/daihao007/lumalife-frontend:main|image: ${FRONTEND_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-identity-service:main|image: ${IDENTITY_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-merchant-service:main|image: ${MERCHANT_IMAGE}:${IMAGE_TAG}|" \
-    -e "s|image: ghcr.io/daihao007/lumalife-order-service:main|image: ${ORDER_IMAGE}:${IMAGE_TAG}|")"
+    -e "s|image: ghcr.io/daihao007/lumalife-order-service:main|image: ${ORDER_IMAGE}:${IMAGE_TAG}|" \
+    -e "s|value: main|value: ${IMAGE_TAG}|g")"
 
   for image in "${expected_images[@]}"; do
     grep -Fq "image: ${image}" <<<"${manifests}" || {
@@ -124,6 +125,10 @@ apply_versioned_manifests() {
   done
   if grep -Eq 'image: ghcr\.io/daihao007/lumalife-[^:]+:main' <<<"${manifests}"; then
     echo "Rendered manifest still contains a mutable LumaLife :main image." >&2
+    return 1
+  fi
+  if grep -Eq '^ *value: main$' <<<"${manifests}"; then
+    echo "Rendered manifest still contains a mutable service version." >&2
     return 1
   fi
 

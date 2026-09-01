@@ -27,4 +27,5 @@ management:
 info:
   service:
     name: identity-service
+    version: ${SERVICE_VERSION:0.1.0}
     contract-version: v1
