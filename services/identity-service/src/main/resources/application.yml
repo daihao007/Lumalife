@@ -15,6 +15,11 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,identityState
   endpoints:
     web:
       exposure:
@@ -25,4 +30,7 @@ management:
 info:
   service:
     name: identity-service
+    version: ${SERVICE_VERSION:dev}
     contract-version: v1
+  git:
+    commit: ${GIT_COMMIT:unknown}

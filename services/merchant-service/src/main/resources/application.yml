@@ -17,6 +17,11 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
   endpoints:
     web:
       exposure:
@@ -27,4 +32,7 @@ management:
 info:
   service:
     name: merchant-service
+    version: ${SERVICE_VERSION:dev}
     contract-version: v1
+  git:
+    commit: ${GIT_COMMIT:unknown}

@@ -30,6 +30,20 @@ class IdentityServiceHealthTest {
     assertThat(http.getForObject("/actuator/health", String.class)).contains("\"status\":\"UP\"");
     assertThat(http.getForObject("/actuator/health/liveness", String.class)).contains("\"status\":\"UP\"");
     assertThat(http.getForObject("/actuator/health/readiness", String.class)).contains("\"status\":\"UP\"");
+    assertThat(http.getForObject("/actuator/info", String.class))
+      .contains("\"name\":\"identity-service\"")
+      .contains("\"version\":\"dev\"")
+      .contains("\"contract-version\":\"v1\"")
+      .contains("\"commit\":\"unknown\"");
+  }
+
+  @Test
+  void echoesAValidRequestIdOnSuccessfulProbeResponses() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("X-Request-Id", "d07-identity-001");
+    ResponseEntity<String> response = http.exchange("/actuator/health/readiness", HttpMethod.GET,
+      new HttpEntity<>(headers), String.class);
+    assertThat(response.getHeaders().getFirst("X-Request-Id")).isEqualTo("d07-identity-001");
   }
 
   @Test

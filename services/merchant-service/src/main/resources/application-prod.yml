@@ -5,3 +5,9 @@ spring:
     url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USER:lifeassist}
     password: ${MYSQL_PASSWORD:}
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db

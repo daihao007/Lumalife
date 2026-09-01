@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 readonly NAMESPACE="lumalife"
 readonly IMAGE_TAG="${1:?usage: deploy-k8s.sh <image-tag>}"
+readonly SOURCE_SHA="${SOURCE_SHA:-${GITHUB_SHA:-${IMAGE_TAG}}}"
 readonly BACKEND_IMAGE="${BACKEND_IMAGE:-ghcr.io/daihao007/lumalife-backend}"
 readonly FRONTEND_IMAGE="${FRONTEND_IMAGE:-ghcr.io/daihao007/lumalife-frontend}"
 readonly IDENTITY_IMAGE="${IDENTITY_IMAGE:-ghcr.io/daihao007/lumalife-identity-service}"
@@ -28,14 +29,15 @@ cleanup_prefetch() {
 diagnostics() {
   echo "::group::Kubernetes deployment diagnostics"
   kubectl -n "${NAMESPACE}" get deployments,statefulsets,pods,services,persistentvolumeclaims -o wide || true
-  kubectl -n "${NAMESPACE}" describe deployment backend frontend || true
+  kubectl -n "${NAMESPACE}" describe deployment backend frontend identity-service merchant-service order-service || true
   kubectl -n "${NAMESPACE}" describe pods || true
   echo "Recent container logs (including the previous crashed instance):"
   kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 \
     -l 'app.kubernetes.io/part-of=lumalife' || true
-  for app in identity-service merchant-service order-service; do
-    kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app=${app}" || true
-    kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 --previous -l "app=${app}" || true
+  for app in lumalife-backend lumalife-frontend identity-service merchant-service order-service; do
+    kubectl -n "${NAMESPACE}" rollout history "deployment/${app/lumalife-/}" || true
+    kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app.kubernetes.io/name=${app}" || true
+    kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 --previous -l "app.kubernetes.io/name=${app}" || true
   done
   kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp || true
   echo "::endgroup::"
@@ -106,7 +108,10 @@ apply_versioned_manifests() {
     -e "s|image: ghcr.io/daihao007/lumalife-frontend:main|image: ${FRONTEND_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-identity-service:main|image: ${IDENTITY_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-merchant-service:main|image: ${MERCHANT_IMAGE}:${IMAGE_TAG}|" \
-    -e "s|image: ghcr.io/daihao007/lumalife-order-service:main|image: ${ORDER_IMAGE}:${IMAGE_TAG}|")"
+    -e "s|image: ghcr.io/daihao007/lumalife-order-service:main|image: ${ORDER_IMAGE}:${IMAGE_TAG}|" \
+    -e "s|app.kubernetes.io/version: main|app.kubernetes.io/version: ${IMAGE_TAG}|g" \
+    -e "s|value: main|value: ${IMAGE_TAG}|g" \
+    -e "s|value: unknown|value: ${SOURCE_SHA}|g")"
 
   for image in "${expected_images[@]}"; do
     grep -Fq "image: ${image}" <<<"${manifests}" || {
@@ -116,6 +121,10 @@ apply_versioned_manifests() {
   done
   if grep -Eq 'image: ghcr\.io/daihao007/lumalife-[^:]+:main' <<<"${manifests}"; then
     echo "Rendered manifest still contains a mutable LumaLife :main image." >&2
+    return 1
+  fi
+  if grep -Fq 'app.kubernetes.io/version: main' <<<"${manifests}" || grep -Eq '^ *value: (main|unknown)$' <<<"${manifests}"; then
+    echo "Rendered manifest still contains a runtime version placeholder." >&2
     return 1
   fi
 
@@ -188,11 +197,25 @@ kubectl -n "${NAMESPACE}" delete pod "${healthcheck_name}" --ignore-not-found
 kubectl -n "${NAMESPACE}" run "${healthcheck_name}" \
   --rm --attach --restart=Never \
   --image="${HEALTHCHECK_IMAGE}" \
+  --env="EXPECTED_VERSION=${IMAGE_TAG}" \
+  --env="EXPECTED_SHA=${SOURCE_SHA}" \
   --command -- sh -ec '
-    curl --fail --silent --show-error --retry 12 --retry-delay 2 http://backend:8080/actuator/health/readiness | grep -q "\"status\":\"UP\""
+    check_java_service() {
+      service="$1"; port="$2"
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${service}:${port}/actuator/health/liveness" | grep -q "\"status\":\"UP\""
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${service}:${port}/actuator/health/readiness" | grep -q "\"status\":\"UP\""
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${service}:${port}/actuator/info" | grep -q "\"version\":\"${EXPECTED_VERSION}\""
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${service}:${port}/actuator/info" | grep -q "\"commit\":\"${EXPECTED_SHA}\""
+    }
+    check_java_service backend 8080
+    check_java_service identity-service 8081
+    check_java_service merchant-service 8082
+    check_java_service order-service 8083
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/healthz | grep -q "^ok$"
-    curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/actuator/health/readiness | grep -q "\"status\":\"UP\""
+    curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/version.json | grep -q "\"version\":\"${EXPECTED_VERSION}\""
+    curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/version.json | grep -q "\"gitCommit\":\"${EXPECTED_SHA}\""
   '
 
+kubectl -n "${NAMESPACE}" get deployments -o custom-columns='NAME:.metadata.name,VERSION:.metadata.labels.app\.kubernetes\.io/version,IMAGE:.spec.template.spec.containers[*].image,READY:.status.readyReplicas'
 kubectl -n "${NAMESPACE}" get deployments,statefulsets,pods,services,persistentvolumeclaims -o wide
 echo "Kubernetes rollout and in-cluster health checks passed for image tag ${IMAGE_TAG}."

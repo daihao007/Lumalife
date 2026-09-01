@@ -81,4 +81,15 @@ class ServiceBoundaryContractTest {
       .andExpect(jsonPath("$.merchant").value("monolith"))
       .andExpect(jsonPath("$.order").value("monolith"));
   }
+
+  @Test
+  void successfulRequestsEchoCorrelationIdAndInvalidValuesAreReplaced() throws Exception {
+    mvc.perform(get("/internal/migration/status").header("X-Request-Id", "d07-backend-001"))
+      .andExpect(status().isOk())
+      .andExpect(header().string("X-Request-Id", "d07-backend-001"));
+
+    mvc.perform(get("/internal/migration/status").header("X-Request-Id", "invalid request id with spaces"))
+      .andExpect(status().isOk())
+      .andExpect(header().string("X-Request-Id", org.hamcrest.Matchers.matchesPattern("[0-9a-f-]{36}")));
+  }
 }

@@ -546,6 +546,11 @@ jobs:
             type=raw,value=main,enable=${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
             type=ref,event=pr
 
+      - name: Generate runtime version
+        id: version
+        shell: bash
+        run: echo "version=sha-${GITHUB_SHA::7}" >> "${GITHUB_OUTPUT}"
+
       - name: Build and optionally publish image
         uses: docker/build-push-action@v7
         with:
@@ -555,6 +560,9 @@ jobs:
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SERVICE_VERSION=${{ steps.version.outputs.version }}
+            GIT_COMMIT=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
@@ -569,7 +577,7 @@ jobs:
   kubernetes-smoke:
     name: Kubernetes rollout smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs:
       - images
     steps:
@@ -586,11 +594,11 @@ jobs:
         run: |
           image_tag="ci-${GITHUB_SHA::7}"
           retry_build() { for attempt in 1 2 3; do "$@" && return 0; echo "build retry ${attempt}"; sleep 10; done; return 1; }
-          retry_build docker build --provenance=false --tag "lumalife-backend:${image_tag}" backend
-          retry_build docker build --provenance=false --tag "lumalife-frontend:${image_tag}" frontend
-          retry_build docker build --provenance=false --tag "lumalife-identity-service:${image_tag}" -f services/identity-service/Dockerfile services
-          retry_build docker build --provenance=false --tag "lumalife-merchant-service:${image_tag}" -f services/merchant-service/Dockerfile services
-          retry_build docker build --provenance=false --tag "lumalife-order-service:${image_tag}" -f services/order-service/Dockerfile services
+          retry_build docker build --provenance=false --build-arg "SERVICE_VERSION=${image_tag}" --build-arg "GIT_COMMIT=${GITHUB_SHA}" --tag "lumalife-backend:${image_tag}" backend
+          retry_build docker build --provenance=false --build-arg "SERVICE_VERSION=${image_tag}" --build-arg "GIT_COMMIT=${GITHUB_SHA}" --tag "lumalife-frontend:${image_tag}" frontend
+          retry_build docker build --provenance=false --build-arg "SERVICE_VERSION=${image_tag}" --build-arg "GIT_COMMIT=${GITHUB_SHA}" --tag "lumalife-identity-service:${image_tag}" -f services/identity-service/Dockerfile services
+          retry_build docker build --provenance=false --build-arg "SERVICE_VERSION=${image_tag}" --build-arg "GIT_COMMIT=${GITHUB_SHA}" --tag "lumalife-merchant-service:${image_tag}" -f services/merchant-service/Dockerfile services
+          retry_build docker build --provenance=false --build-arg "SERVICE_VERSION=${image_tag}" --build-arg "GIT_COMMIT=${GITHUB_SHA}" --tag "lumalife-order-service:${image_tag}" -f services/order-service/Dockerfile services
           kind load docker-image --name lumalife-ci \
             "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}" \
             "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}"
@@ -605,6 +613,18 @@ jobs:
           ORDER_IMAGE: lumalife-order-service
           ROLLOUT_TIMEOUT: 120s
         run: bash scripts/deploy-k8s.sh "ci-${GITHUB_SHA::7}"
+
+      - name: Exercise deployment failure diagnostics and recovery
+        shell: bash
+        run: bash scripts/test-deployment-observability-k8s.sh "${RUNNER_TEMP}/d07-deployment-failure"
+
+      - name: Upload deployment failure evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: d07-deployment-failure-evidence
+          path: ${{ runner.temp }}/d07-deployment-failure
+          if-no-files-found: warn
 
   kubernetes-deploy:
     name: Deploy Kubernetes

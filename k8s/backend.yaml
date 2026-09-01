@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: lumalife-backend
     app.kubernetes.io/part-of: lumalife
+    app.kubernetes.io/version: main
 spec:
   selector:
     app.kubernetes.io/name: lumalife-backend
@@ -22,6 +23,7 @@ metadata:
   labels:
     app.kubernetes.io/name: lumalife-backend
     app.kubernetes.io/part-of: lumalife
+    app.kubernetes.io/version: main
 spec:
   # The domain aggregate remains in-process while its durable state lives in
   # normalized MySQL tables. Recreate prevents an old in-memory snapshot from
@@ -40,6 +42,7 @@ spec:
       labels:
         app.kubernetes.io/name: lumalife-backend
         app.kubernetes.io/part-of: lumalife
+        app.kubernetes.io/version: main
     spec:
       securityContext:
         runAsNonRoot: true
@@ -56,6 +59,10 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            - name: SERVICE_VERSION
+              value: main
+            - name: GIT_COMMIT
+              value: unknown
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: LUMALIFE_PERSISTENCE

@@ -8,10 +8,25 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
   endpoints:
     web:
       exposure:
         include: health,info
+  info:
+    env:
+      enabled: true
+info:
+  service:
+    name: lumalife-backend
+    version: ${SERVICE_VERSION:dev}
+    contract-version: ${CONTRACT_VERSION:v1}
+  git:
+    commit: ${GIT_COMMIT:unknown}
 springdoc:
   swagger-ui:
     path: /swagger-ui/index.html

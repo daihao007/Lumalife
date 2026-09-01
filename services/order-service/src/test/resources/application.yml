@@ -1,4 +1,30 @@
 spring:
+  application:
+    name: order-service
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true
+info:
+  service:
+    name: order-service
+    version: ${SERVICE_VERSION:dev}
+    contract-version: v1
+  git:
+    commit: ${GIT_COMMIT:unknown}
