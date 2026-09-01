@@ -5,15 +5,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.HttpEntity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = "lumalife.internal.service-token=assistant-test-token")
+@AutoConfigureMockMvc
 class AssistantAnswerServiceTest {
   @Autowired private TestRestTemplate http;
+  @Autowired private MockMvc mockMvc;
 
   @Test
   void answersWithoutProviderCredentialsUsingOwnedFallback() {
@@ -27,8 +34,10 @@ class AssistantAnswerServiceTest {
 
   @Test
   void rejectsUnauthenticatedInternalCalls() {
-    var request = new AssistantAnswerService.AssistantRequest("PLATFORM", "你好", "", List.of());
-    var response = http.postForEntity("/internal/v1/assistant/answer", request, String.class);
-    assertThat(response.getStatusCode().value()).isEqualTo(401);
+    mockMvc.perform(post("/internal/v1/assistant/answer")
+            .contentType("application/json")
+            .content("{\"mode\":\"PLATFORM\",\"question\":\"你好\",\"context\":\"\",\"history\":[]}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(content().string("服务调用未认证"));
   }
 }

@@ -24,6 +24,8 @@ lumalife:
       queue: ${LUMALIFE_EVENTS_MERCHANT_QUEUE:merchant-inventory-events}
 management:
   health:
+    defaults:
+      enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
     rabbit:
       enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
   endpoint:
