@@ -8,6 +8,11 @@ spring:
     # production fallback. Compose/Kubernetes explicitly activate prod,remote.
     default: monolith
 management:
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
   endpoint:
     health:
       probes:
