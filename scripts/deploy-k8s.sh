@@ -8,6 +8,7 @@ readonly FRONTEND_IMAGE="${FRONTEND_IMAGE:-ghcr.io/daihao007/lumalife-frontend}"
 readonly IDENTITY_IMAGE="${IDENTITY_IMAGE:-ghcr.io/daihao007/lumalife-identity-service}"
 readonly MERCHANT_IMAGE="${MERCHANT_IMAGE:-ghcr.io/daihao007/lumalife-merchant-service}"
 readonly ORDER_IMAGE="${ORDER_IMAGE:-ghcr.io/daihao007/lumalife-order-service}"
+readonly ASSISTANT_IMAGE="${ASSISTANT_IMAGE:-ghcr.io/daihao007/lumalife-assistant-service}"
 readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"
 readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"
 readonly HEALTHCHECK_IMAGE="${HEALTHCHECK_IMAGE:-curlimages/curl:8.12.1}"
@@ -44,7 +45,7 @@ diagnostics() {
   echo "Recent container logs (including the previous crashed instance):"
   kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 \
     -l 'app.kubernetes.io/part-of=lumalife' || true
-  for app in identity-service merchant-service order-service; do
+  for app in identity-service merchant-service order-service assistant-service; do
     kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app=${app}" || true
     kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 --previous -l "app=${app}" || true
   done
@@ -68,6 +69,7 @@ prefetch_images() {
     "${IDENTITY_IMAGE}:${IMAGE_TAG}"
     "${MERCHANT_IMAGE}:${IMAGE_TAG}"
     "${ORDER_IMAGE}:${IMAGE_TAG}"
+    "${ASSISTANT_IMAGE}:${IMAGE_TAG}"
   )
   local -a pod_targets=()
   local safe_tag run_suffix pod_name image index
@@ -110,6 +112,7 @@ apply_versioned_manifests() {
     "${IDENTITY_IMAGE}:${IMAGE_TAG}"
     "${MERCHANT_IMAGE}:${IMAGE_TAG}"
     "${ORDER_IMAGE}:${IMAGE_TAG}"
+    "${ASSISTANT_IMAGE}:${IMAGE_TAG}"
   )
 
   manifests="$(kubectl kustomize k8s | sed \
@@ -118,6 +121,7 @@ apply_versioned_manifests() {
     -e "s|image: ghcr.io/daihao007/lumalife-identity-service:main|image: ${IDENTITY_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-merchant-service:main|image: ${MERCHANT_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-order-service:main|image: ${ORDER_IMAGE}:${IMAGE_TAG}|" \
+    -e "s|image: ghcr.io/daihao007/lumalife-assistant-service:main|image: ${ASSISTANT_IMAGE}:${IMAGE_TAG}|" \
     -e "s|value: main|value: ${IMAGE_TAG}|g")"
 
   for image in "${expected_images[@]}"; do
@@ -165,6 +169,7 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V011__order_address_snapshot.sql=database/migrations/V011__order_address_snapshot.sql \
   --from-file=V012__inventory_reservation_saga.sql=database/migrations/V012__inventory_reservation_saga.sql \
   --from-file=V013__order_merchant_name_snapshot.sql=database/migrations/V013__order_merchant_name_snapshot.sql \
+  --from-file=V014__event_bus_inbox.sql=database/migrations/V014__event_bus_inbox.sql \
   --from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh \
   --from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -
@@ -210,9 +215,11 @@ apply_versioned_manifests
 
 kubectl -n "${NAMESPACE}" rollout status deployment/backend --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout="${ROLLOUT_TIMEOUT}"
+kubectl -n "${NAMESPACE}" rollout status deployment/rabbitmq --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/identity-service --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/merchant-service --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/order-service --timeout="${ROLLOUT_TIMEOUT}"
+kubectl -n "${NAMESPACE}" rollout status deployment/assistant-service --timeout="${ROLLOUT_TIMEOUT}"
 
 healthcheck_name="deployment-health-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 healthcheck_name="${healthcheck_name:0:63}"

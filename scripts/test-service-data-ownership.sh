@@ -37,7 +37,7 @@ assert_no_cross_service_sql() {
 
 assert_manifest_tables identity-service user_account user_address auth_session
 assert_manifest_tables merchant-service category merchant merchant_catalog group_deal \
-  merchant_favorite chat_message inventory_reservation inventory_reservation_item
+  merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event
 assert_manifest_tables order-service order_record service_order_line service_order_event \
   service_cart_item service_payment service_coupon service_review service_outbox_event
 

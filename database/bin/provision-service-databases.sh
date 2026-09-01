@@ -80,7 +80,7 @@ for table_name in schema_migration user_account user_address auth_session; do
   copy_table "$MYSQL_IDENTITY_DATABASE" "$table_name"
 done
 
-for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item; do
+for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event; do
   copy_table "$MYSQL_MERCHANT_DATABASE" "$table_name"
 done
 

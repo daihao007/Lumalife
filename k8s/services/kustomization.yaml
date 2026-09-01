@@ -5,3 +5,4 @@ resources:
   - identity-service.yaml
   - merchant-service.yaml
   - order-service.yaml
+  - assistant-service.yaml

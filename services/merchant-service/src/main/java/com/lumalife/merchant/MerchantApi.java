@@ -89,7 +89,7 @@ public class MerchantApi {
   @PostMapping("/users/{userId}/conversations/{merchantId}/messages")
   List<MerchantStore.ChatMessage> userMessage(@PathVariable long userId, @PathVariable long merchantId, @RequestHeader("X-User-Id") long actor, @RequestBody MessageRequest request) {
     if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能操作其他用户的会话");
-    return store.sendUserMessage(userId, merchantId, request.content(), null);
+    return store.sendUserMessage(userId, merchantId, request.content(), request.assistantAnswer() == null ? null : ignored -> request.assistantAnswer());
   }
 
   @GetMapping("/merchants/{merchantId}/conversations")
@@ -212,7 +212,7 @@ public class MerchantApi {
 
   record ProfileRequest(String name) {}
   record ProvisionRequest(String name) {}
-  record MessageRequest(String content) {}
+  record MessageRequest(String content, String assistantAnswer) {}
 
   private <T> T readResource(java.util.function.Supplier<T> operation) {
     try {

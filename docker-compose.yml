@@ -22,6 +22,17 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-lumalife}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-lumalife-ci-password}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   backend:
     build: ./backend
     restart: unless-stopped
@@ -40,9 +51,13 @@ services:
       LUMALIFE_MERCHANT_BACKFILL_COMPLETED: ${LUMALIFE_MERCHANT_BACKFILL_COMPLETED:-true}
       LUMALIFE_ORDER_REMOTE_ENABLED: ${LUMALIFE_ORDER_REMOTE_ENABLED:-true}
       LUMALIFE_ORDER_BACKFILL_COMPLETED: ${LUMALIFE_ORDER_BACKFILL_COMPLETED:-true}
+      LUMALIFE_ASSISTANT_REMOTE_ENABLED: ${LUMALIFE_ASSISTANT_REMOTE_ENABLED:-true}
+      LUMALIFE_ASSISTANT_BACKFILL_COMPLETED: ${LUMALIFE_ASSISTANT_BACKFILL_COMPLETED:-true}
+      LUMALIFE_COMPATIBILITY_STORE_ENABLED: ${LUMALIFE_COMPATIBILITY_STORE_ENABLED:-false}
       MERCHANT_SERVICE_URL: http://merchant-service:8082
       ORDER_SERVICE_URL: http://order-service:8083
       IDENTITY_SERVICE_URL: http://identity-service:8081
+      ASSISTANT_SERVICE_URL: http://assistant-service:8084
       LUMALIFE_EVENTS_PUBLISHER_ENABLED: ${LUMALIFE_EVENTS_PUBLISHER_ENABLED:-false}
       LUMALIFE_EVENTS_SINK_URL: ${LUMALIFE_EVENTS_SINK_URL:-}
     ports:
@@ -55,6 +70,8 @@ services:
       order-service:
         condition: service_healthy
       identity-service:
+        condition: service_healthy
+      assistant-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
@@ -96,10 +113,17 @@ services:
       MYSQL_DATABASE: ${MYSQL_MERCHANT_DATABASE:-life_assistant_merchant}
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      LUMALIFE_EVENTS_BROKER_ENABLED: ${LUMALIFE_EVENTS_BROKER_ENABLED:-true}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-lumalife}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-lumalife-ci-password}
     ports:
       - "8082:8082"
     depends_on:
       mysql:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/actuator/health"]
@@ -119,6 +143,11 @@ services:
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
       MERCHANT_SERVICE_URL: http://merchant-service:8082
+      LUMALIFE_EVENTS_BROKER_ENABLED: ${LUMALIFE_EVENTS_BROKER_ENABLED:-true}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-lumalife}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-lumalife-ci-password}
       LUMALIFE_EVENTS_PUBLISHER_ENABLED: ${LUMALIFE_EVENTS_PUBLISHER_ENABLED:-false}
       LUMALIFE_EVENTS_SINK_URL: ${LUMALIFE_EVENTS_SINK_URL:-}
     ports:
@@ -126,8 +155,27 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8083/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  assistant-service:
+    build:
+      context: ./services
+      dockerfile: assistant-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      AGNES_ENDPOINT: ${AGNES_ENDPOINT:-https://apihub.agnes-ai.com/v1/chat/completions}
+      AGNES_MODEL: ${AGNES_MODEL:-agnes-2.0-flash}
+      AGNES_API_KEY: ${AGNES_API_KEY:-}
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8084/actuator/health"]
       interval: 5s
       timeout: 5s
       retries: 20

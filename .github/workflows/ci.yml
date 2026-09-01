@@ -131,6 +131,7 @@ jobs:
           - identity-service
           - merchant-service
           - order-service
+          - assistant-service
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -196,7 +197,7 @@ jobs:
         run: docker compose down --volumes --remove-orphans
 
   compose-stack:
-    name: Three-container smoke test
+    name: Compose stack smoke test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -210,7 +211,7 @@ jobs:
           echo "MYSQL_USER=lifeassist" >> "$GITHUB_ENV"
           echo "MYSQL_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
-      - name: Build and start the clean three-container stack
+      - name: Build and start the clean service stack
         run: docker compose up --detach --build --wait
 
       - name: Seed and backfill service-owned data
@@ -222,12 +223,12 @@ jobs:
         shell: bash
         run: |
           mapfile -t running_services < <(docker compose ps --services --status running | sort)
-          expected_services=(backend frontend identity-service merchant-service mysql order-service)
+          expected_services=(assistant-service backend frontend identity-service merchant-service mysql order-service rabbitmq)
           test "${running_services[*]}" = "${expected_services[*]}"
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\")"' | grep -qx 13
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\")"' | grep -qx 14
           MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
           MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
           MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
@@ -236,9 +237,9 @@ jobs:
             local query="$2"
             docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
           }
-          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 13
-          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 13
-          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 13
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 14
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 14
+          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 14
           test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM user_account")" -eq 6
           test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM merchant_catalog")" -eq 7
 
@@ -561,6 +562,10 @@ jobs:
             context: ./services
             file: ./services/order-service/Dockerfile
             image: ghcr.io/daihao007/lumalife-order-service
+          - component: assistant-service
+            context: ./services
+            file: ./services/assistant-service/Dockerfile
+            image: ghcr.io/daihao007/lumalife-assistant-service
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -631,9 +636,10 @@ jobs:
           retry_build docker build --provenance=false --tag "lumalife-identity-service:${image_tag}" -f services/identity-service/Dockerfile services
           retry_build docker build --provenance=false --tag "lumalife-merchant-service:${image_tag}" -f services/merchant-service/Dockerfile services
           retry_build docker build --provenance=false --tag "lumalife-order-service:${image_tag}" -f services/order-service/Dockerfile services
+          retry_build docker build --provenance=false --tag "lumalife-assistant-service:${image_tag}" -f services/assistant-service/Dockerfile services
           kind load docker-image --name lumalife-ci \
             "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}" \
-            "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}"
+            "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}" "lumalife-assistant-service:${image_tag}"
 
       - name: Deploy and verify probes in the disposable cluster
         shell: bash
@@ -643,6 +649,7 @@ jobs:
           IDENTITY_IMAGE: lumalife-identity-service
           MERCHANT_IMAGE: lumalife-merchant-service
           ORDER_IMAGE: lumalife-order-service
+          ASSISTANT_IMAGE: lumalife-assistant-service
           ROLLOUT_TIMEOUT: 120s
         run: bash scripts/deploy-k8s.sh "ci-${GITHUB_SHA::7}"
 
@@ -694,6 +701,7 @@ jobs:
             "ghcr.io/daihao007/lumalife-identity-service:${image_tag}"
             "ghcr.io/daihao007/lumalife-merchant-service:${image_tag}"
             "ghcr.io/daihao007/lumalife-order-service:${image_tag}"
+            "ghcr.io/daihao007/lumalife-assistant-service:${image_tag}"
           )
           for image in "${images[@]}"; do docker pull "$image"; done
           kind load docker-image --name lumalife "${images[@]}"

@@ -1,0 +1,22 @@
+package com.lumalife.assistant;
+
+import java.util.Map;
+import org.springframework.boot.actuate.health.HealthComponent;
+import org.springframework.boot.actuate.health.HealthEndpoint;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ProbeController {
+  private final HealthEndpoint health;
+  public ProbeController(HealthEndpoint health) { this.health = health; }
+
+  @GetMapping("/actuator/health")
+  HealthComponent health() { return health.health(); }
+
+  @GetMapping("/actuator/health/liveness")
+  Map<String, String> liveness() { return Map.of("status", health.health().getStatus().getCode()); }
+
+  @GetMapping("/actuator/health/readiness")
+  Map<String, String> readiness() { return Map.of("status", health.health().getStatus().getCode()); }
+}

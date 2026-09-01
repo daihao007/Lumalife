@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -98,29 +99,36 @@ public class OrderStore {
   private final Map<Long, String> orderTypes = new HashMap<>();
   private final MerchantInventoryClient inventoryClient;
   private final ObjectMapper objectMapper;
+  private final boolean eventDrivenInventory;
 
   @Autowired
   public OrderStore(ObjectProvider<JdbcTemplate> provider, ObjectProvider<MerchantInventoryClient> inventoryProvider,
-                    ObjectProvider<ObjectMapper> objectMapperProvider) {
-    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable(), objectMapperProvider.getIfAvailable(ObjectMapper::new));
+                    ObjectProvider<ObjectMapper> objectMapperProvider,
+                    @Value("${lumalife.events.broker.enabled:false}") boolean eventDrivenInventory) {
+    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable(), objectMapperProvider.getIfAvailable(ObjectMapper::new), eventDrivenInventory);
   }
 
   OrderStore(JdbcTemplate jdbc) {
-    this(jdbc, null, new ObjectMapper());
+    this(jdbc, null, new ObjectMapper(), false);
   }
 
   OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient) {
-    this(jdbc, inventoryClient, new ObjectMapper());
+    this(jdbc, inventoryClient, new ObjectMapper(), false);
   }
 
   OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper) {
+    this(jdbc, inventoryClient, objectMapper, false);
+  }
+
+  OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper, boolean eventDrivenInventory) {
     this.jdbc = jdbc;
     this.inventoryClient = inventoryClient;
     this.objectMapper = objectMapper == null ? new ObjectMapper() : objectMapper;
+    this.eventDrivenInventory = eventDrivenInventory;
     refreshIdSequence();
   }
 
-  public OrderStore() { this((JdbcTemplate) null, null, new ObjectMapper()); }
+  public OrderStore() { this((JdbcTemplate) null, null, new ObjectMapper(), false); }
 
   private void refreshIdSequence() {
     if (jdbc == null) return;
@@ -300,7 +308,7 @@ public class OrderStore {
     Order order = findOrder(id).orElse(null);
     if (order == null || order.userId() != userId) throw new IllegalArgumentException("订单不存在");
     if (!"PENDING_PAYMENT".equals(order.status())) throw new IllegalStateException("当前状态不可取消");
-    if (jdbc != null && inventoryClient != null) inventoryClient.releaseIfPresent(order, "cancel-" + order.id());
+    if (jdbc != null && inventoryClient != null && !eventDrivenInventory) inventoryClient.releaseIfPresent(order, "cancel-" + order.id());
     Order cancelled = withStatus(order, "CANCELLED");
     orders.put(id, cancelled);
     if (jdbc != null) jdbc.update("UPDATE order_record SET status=? WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", "CANCELLED", id, userId);
@@ -386,7 +394,11 @@ public class OrderStore {
       Order paid = withStatusAndCoupon(current, "PAID", couponCode);
       orders.put(orderId, paid);
       if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
-      if (remoteInventory) inventoryClient.confirm(current, requestId);
+      if (remoteInventory && eventDrivenInventory) {
+        appendIntegrationEvent(orderId, current.merchantId(), "inventory.confirm.requested", outboxPayload(orderId, userId, "PAID", Instant.now()));
+      } else if (remoteInventory) {
+        inventoryClient.confirm(current, requestId);
+      }
       Payment payment = new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
       payments.put(paymentKey, payment);
       return payment;
@@ -616,6 +628,13 @@ public class OrderStore {
         "ORDER", orderId, "order.status.changed", outboxPayload(orderId, actor, status, occurredAt),
         java.sql.Timestamp.from(occurredAt));
     }
+  }
+
+  private void appendIntegrationEvent(long aggregateId, long actor, String eventType, String payload) {
+    if (jdbc == null) return;
+    Instant occurredAt = Instant.now();
+    jdbc.update("INSERT INTO service_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
+        "ORDER", aggregateId, eventType, payload, java.sql.Timestamp.from(occurredAt));
   }
 
   private String outboxPayload(long orderId, long actor, String status, Instant occurredAt) {

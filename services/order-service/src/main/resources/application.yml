@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: order-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:lumalife}
+    password: ${RABBITMQ_PASSWORD:lumalife-ci-password}
 lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
@@ -15,6 +20,10 @@ lumalife:
       enabled: ${LUMALIFE_EVENTS_PUBLISHER_ENABLED:false}
       fixed-delay-ms: ${LUMALIFE_EVENTS_PUBLISHER_FIXED_DELAY_MS:5000}
     sink-url: ${LUMALIFE_EVENTS_SINK_URL:}
+    broker:
+      enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
+      exchange: ${LUMALIFE_EVENTS_EXCHANGE:lumalife.events}
+      queue: ${LUMALIFE_EVENTS_ORDER_QUEUE:order-events}
 management:
   endpoint:
     health:
