@@ -126,7 +126,7 @@ docker compose --profile db-tools run --rm db-clean
 ```text
 LumaLife/
   backend/      Spring Boot API 服务
-  services/     identity、merchant、order 三服务的独立构建与健康检查骨架
+  services/     identity、merchant、order 三服务的独立构建、内部 API 与健康检查
   database/     MySQL 版本迁移、显式演示 seed、清理和验证脚本
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
   e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
@@ -145,7 +145,7 @@ LumaLife/
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
-- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离，当前由 `DemoStore` 承接领域规则，并通过可替换的 `BusinessStateRepository` 完成持久化。
+- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离。三项独立服务已提供 9/12/17 个内部业务接口，backend 仍保留兼容网关和未迁移能力的 `DemoStore` fallback；当前边界、数据归属和需求追溯见 [D07 服务接口、数据归属与需求追溯](docs/28_D07服务接口数据归属与需求追溯.md)。
 - 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前实测 76 个后端测试（43 个业务规则测试 + 25 个接口集成测试 + 4 个服务边界契约测试 + 4 个数据库资产测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
 - MySQL Schema、V001～V004 版本迁移、演示 seed、清理机制和关系表业务读写已落地，见 `docs/06_数据库设计.md`；V004 还为渐进切流后的 merchant/order 服务提供自有表。CI 会直接检查购物车关系行，并在重启后端后通过 API 验证恢复结果。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
