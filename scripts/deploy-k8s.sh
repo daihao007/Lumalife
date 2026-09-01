@@ -16,6 +16,8 @@ readonly MYSQL_USER="${MYSQL_USER:-lifeassist}"
 readonly MYSQL_PASSWORD="${MYSQL_PASSWORD:-lumalife-ci-password}"
 readonly MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-lumalife-ci-root-password}"
 
+source scripts/lib/legacy-migrations.sh
+
 prefetch_pods=()
 
 cleanup_prefetch() {
@@ -144,8 +146,7 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images
-apply_versioned_manifests
-
+kubectl apply -f k8s/mysql.yaml
 kubectl -n "${NAMESPACE}" rollout status statefulset/mysql --timeout="${ROLLOUT_TIMEOUT}"
 
 # Existing MySQL PVCs do not rerun /docker-entrypoint-initdb.d. Apply the
@@ -157,6 +158,7 @@ mysql_exec_remote() {
     sh "$@"
 }
 mysql_exec_remote --execute='CREATE TABLE IF NOT EXISTS schema_migration (version VARCHAR(64) NOT NULL, description VARCHAR(255) NOT NULL, checksum CHAR(64) NOT NULL, installed_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), PRIMARY KEY (version)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;'
+adopt_legacy_migrations database/migrations
 for migration in database/migrations/V[0-9][0-9][0-9]__*.sql; do
   [ -f "${migration}" ] || continue
   filename=$(basename "${migration}")
@@ -175,6 +177,8 @@ for migration in database/migrations/V[0-9][0-9][0-9]__*.sql; do
 done
 kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
   'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < database/backfill-services.sql
+
+apply_versioned_manifests
 
 kubectl -n "${NAMESPACE}" rollout status deployment/backend --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout="${ROLLOUT_TIMEOUT}"

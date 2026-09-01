@@ -440,8 +440,10 @@ jobs:
       - name: Render Kustomize manifests
         run: kubectl kustomize k8s > "${RUNNER_TEMP}/lumalife-k8s.yaml"
 
-      - name: Verify deployment prefetch and timeout safeguards
-        run: bash scripts/test-deploy-k8s.sh
+      - name: Verify deployment and legacy migration safeguards
+        run: |
+          bash scripts/test-deploy-k8s.sh
+          bash scripts/test-legacy-migrations.sh
 
       - name: Upload rendered manifests
         uses: actions/upload-artifact@v4
@@ -462,6 +464,7 @@ jobs:
           path: |
             ecs-source-sha.txt
             scripts/deploy-k8s.sh
+            scripts/lib/legacy-migrations.sh
             k8s
             database/init
             database/migrations
