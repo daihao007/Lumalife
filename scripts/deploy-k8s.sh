@@ -209,10 +209,9 @@ kubectl -n "${NAMESPACE}" run "${healthcheck_name}" \
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://backend:8080/actuator/health/readiness | grep -q "\"status\":\"UP\""
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/healthz | grep -q "^ok$"
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/actuator/health/readiness | grep -q "\"status\":\"UP\""
-    curl --fail --silent --show-error --retry 12 --retry-delay 2 \
-      -H "Content-Type: application/json" \
-      -d "{\"phone\":\"13800000001\",\"password\":\"abc123456\"}" \
-      http://backend:8080/api/v1/auth/login | grep -q "\"code\":200"
+    # The disposable cluster deliberately has no demo-data seed. Backend
+    # readiness includes the identity dependency, so a fixed demo login would
+    # make a healthy deployment fail with 401 for the wrong reason.
   '
 
 kubectl -n "${NAMESPACE}" get deployments,statefulsets,pods,services,persistentvolumeclaims -o wide
