@@ -1,6 +1,6 @@
 # 三服务机器可读契约
 
-本目录承接 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的 `draft-2026-08-26` 契约候选，并作为 Issue [#33](https://github.com/daihao007/Lumalife/issues/33) 的接口机器可读附件：
+本目录承接 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的契约候选，并作为 Issue [#33](https://github.com/daihao007/Lumalife/issues/33) 的接口机器可读附件。identity-service 的 v1 契约已在 Issue [#43](https://github.com/daihao007/Lumalife/issues/43) 中冻结；merchant/order 契约仍按后续服务迁移门逐步落地：
 
 | 文件 | 所有者 | 内容 |
 |---|---|---|
@@ -9,7 +9,7 @@
 | `order-service.openapi.yaml` | order-service | 18 个外部 API、评价查询和支付状态内部 API |
 | `domain-events.asyncapi.yaml` | 三服务 | 11 个版本化领域事件、公共信封和载荷约束（含商家注册 Saga） |
 
-规范文件是迁移目标，不表示当前单体已经实现内部 API、JWT、数据库、Outbox/Inbox 或事件总线。现有行为与目标差异记录在 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
+除 identity-service 本次实现的内部账号、会话和地址切片外，其余规范文件仍是迁移目标，不表示当前单体已经实现全部内部 API、JWT、独立数据库、Outbox/Inbox 或事件总线。现有行为与目标差异记录在 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
 
 ## 校验
 

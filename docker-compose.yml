@@ -63,6 +63,9 @@ services:
       dockerfile: identity-service/Dockerfile
     environment:
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      LUMALIFE_IDENTITY_STATE_FILE: /app/data/identity-state.json
+    volumes:
+      - identity_data:/app/data
     ports:
       - "8081:8081"
     healthcheck:
@@ -194,3 +197,4 @@ services:
 
 volumes:
   mysql_data:
+  identity_data:

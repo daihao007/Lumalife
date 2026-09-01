@@ -34,6 +34,13 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 
 所有 `/internal/v1/**` 请求都必须携带 `X-Luma-Service-Token`，该值由 `LUMALIFE_INTERNAL_SERVICE_TOKEN` 配置。涉及用户或商家写入的请求还必须携带与路径/请求体一致的 `X-User-Id` 或 `X-Merchant-Id`，避免仅凭路径参数越权。
 
+身份服务的当前独立边界如下：
+
+- `identity-service` 独占账号、密码哈希、角色、会话和收货地址；状态文件只写入服务自有数据，`sessions` 的 key 为 access token 的 SHA-256 哈希，另存过期时间和撤销时间，不落盘原始 bearer token。
+- `LUMALIFE_IDENTITY_BACKFILL_SOURCE_FILE` 仅在身份服务状态文件不存在时执行一次性历史快照回填；回填完成后由 `LUMALIFE_IDENTITY_STATE_FILE` 继续持有身份数据，写入采用临时文件加原子替换。
+- 除服务令牌外，内部请求必须带 `X-Request-Id`、合法 W3C `traceparent` 和 `X-Caller-Service`。身份服务提供 `POST /internal/v1/tokens/introspect` 供令牌校验，并提供 `GET /internal/v1/users/{userId}/addresses/{addressId}` 供订单服务读取归属地址快照。
+- 地址由身份服务校验用户归属、默认地址唯一性和每用户最多 5 条；BFF 只通过 `RemoteIdentityServicePort` 调用这些接口，不直接读写身份状态。
+
 业务契约入口：
 
 - identity-service：`/internal/v1/auth/*`、`/internal/v1/users/*`

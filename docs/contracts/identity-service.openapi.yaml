@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LumaLife Identity Service API
-  version: 0.1.0-draft
-  description: Issue #23 contract candidate. External v1 paths remain gateway-compatible.
-x-contract-status: draft-2026-08-26
+  version: 1.0.0
+  description: Issue #43 identity contract. External v1 paths remain gateway-compatible while the BFF routes identity operations to the independently deployable service.
+x-contract-status: frozen-v1-2026-09-01
 x-service-owner: identity-service
 servers:
   - url: /api/v1
@@ -192,7 +192,7 @@ paths:
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
-    serviceAuth: {type: mutualTLS}
+    serviceAuth: {type: apiKey, in: header, name: X-Luma-Service-Token, description: Shared internal service token; transport-level mTLS remains a deployment concern.}
   parameters:
     AddressId: {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}

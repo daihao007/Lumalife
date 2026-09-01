@@ -11,11 +11,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -149,9 +152,36 @@ public class RemoteIdentityServicePort implements IdentityServicePort {
 
   private RestClient.RequestHeadersSpec<?> secure(RestClient.RequestHeadersSpec<?> request, String bearer, Long userId) {
     request.header("X-Luma-Service-Token", serviceToken);
+    request.header("X-Request-Id", requestId());
+    request.header("traceparent", traceparent());
+    request.header("X-Caller-Service", "api-gateway");
     if (bearer != null) request.header("Authorization", "Bearer " + bearer);
     if (userId != null) request.header("X-User-Id", String.valueOf(userId));
     return request;
+  }
+
+  private String requestId() {
+    String requestId = incomingHeader("X-Request-Id");
+    return requestId == null || requestId.isBlank() || requestId.length() > 128
+      ? UUID.randomUUID().toString() : requestId;
+  }
+
+  private String traceparent() {
+    String traceparent = incomingHeader("traceparent");
+    if (traceparent != null && traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}")
+        && !traceparent.substring(3, 35).equals("00000000000000000000000000000000")
+        && !traceparent.substring(36, 52).equals("0000000000000000")) {
+      return traceparent;
+    }
+    return "00-" + UUID.randomUUID().toString().replace("-", "") + "-"
+      + UUID.randomUUID().toString().replace("-", "").substring(0, 16) + "-01";
+  }
+
+  private String incomingHeader(String name) {
+    if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
+      return attributes.getRequest().getHeader(name);
+    }
+    return null;
   }
 
   private <T> T execute(Supplier<T> operation) {
