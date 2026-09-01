@@ -218,6 +218,19 @@ jobs:
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
           docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\")"' | grep -qx 11
+          MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
+          MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
+          MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
+          mysql_count() {
+            local database="$1"
+            local query="$2"
+            docker compose exec -T mysql sh -c "MYSQL_PWD=\"\$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"\$MYSQL_USER\" --database=\"${database}\" --batch --skip-column-names --execute=\"${query}\"" | tr -d '\r'
+          }
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 11
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 11
+          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 11
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM user_account")" -eq 6
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM merchant_catalog")" -eq 7
 
       - name: Verify relational business persistence across backend restart
         shell: bash
@@ -246,7 +259,7 @@ jobs:
           test "$(tail -n 1 <<< "$backend_cart_response")" = 200
 
           # The direct request sets quantity to 2; the public add-to-cart endpoint then adds 2 more.
-          cart_rows=$(docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM service_cart_item WHERE user_id=1 AND product_id=1001 AND quantity=4"' | tr -d '\r')
+          cart_rows=$(mysql_count "$MYSQL_ORDER_DATABASE" 'SELECT COUNT(*) FROM service_cart_item WHERE user_id=1 AND product_id=1001 AND quantity=4')
           test "$cart_rows" -eq 1
           # The production backend may persist a state snapshot during startup;
           # assert the table is queryable without assuming it stays empty.

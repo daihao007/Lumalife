@@ -12,6 +12,9 @@ readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"
 readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"
 readonly HEALTHCHECK_IMAGE="${HEALTHCHECK_IMAGE:-curlimages/curl:8.12.1}"
 readonly MYSQL_DATABASE="${MYSQL_DATABASE:-life_assistant}"
+readonly MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-life_assistant_identity}"
+readonly MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-life_assistant_merchant}"
+readonly MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-life_assistant_order}"
 readonly MYSQL_USER="${MYSQL_USER:-lifeassist}"
 readonly MYSQL_PASSWORD="${MYSQL_PASSWORD:-lumalife-ci-password}"
 readonly MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-lumalife-ci-root-password}"
@@ -138,6 +141,9 @@ apply_versioned_manifests() {
 kubectl apply -f k8s/namespace.yaml
 kubectl -n "${NAMESPACE}" create secret generic lumalife-mysql \
   --from-literal=database="${MYSQL_DATABASE}" \
+  --from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}" \
+  --from-literal=merchant-database="${MYSQL_MERCHANT_DATABASE}" \
+  --from-literal=order-database="${MYSQL_ORDER_DATABASE}" \
   --from-literal=username="${MYSQL_USER}" \
   --from-literal=password="${MYSQL_PASSWORD}" \
   --from-literal=root-password="${MYSQL_ROOT_PASSWORD}" \
@@ -157,6 +163,8 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V009__microservice_durability_fixes.sql=database/migrations/V009__microservice_durability_fixes.sql \
   --from-file=V010__order_main_payment_projection.sql=database/migrations/V010__order_main_payment_projection.sql \
   --from-file=V011__order_address_snapshot.sql=database/migrations/V011__order_address_snapshot.sql \
+  --from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh \
+  --from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images
@@ -189,8 +197,11 @@ for migration in database/migrations/V[0-9][0-9][0-9]__*.sql; do
     mysql_exec_remote --execute="INSERT INTO schema_migration(version,description,checksum) VALUES ('${version}','${description}','${checksum}')"
   fi
 done
+kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
+  'MYSQL_SOCKET=/var/run/mysqld/mysqld.sock sh /database/migrations/provision-service-databases.sh'
 kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
   'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < "${BACKFILL_PATH}"
+kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh /database/migrations/backfill-service-databases.sh
 
 apply_versioned_manifests
 

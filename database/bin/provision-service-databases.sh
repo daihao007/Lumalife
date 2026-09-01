@@ -1,0 +1,86 @@
+#!/bin/sh
+set -eu
+
+: "${MYSQL_DATABASE:?MYSQL_DATABASE is required}"
+: "${MYSQL_USER:?MYSQL_USER is required}"
+: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}"
+
+MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
+MYSQL_PORT="${MYSQL_PORT:-3306}"
+MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
+MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
+MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
+
+validate_identifier() {
+  value=$1
+  label=$2
+  case "$value" in
+    ''|*[!A-Za-z0-9_]*)
+      echo "${label} may contain only letters, digits and underscores." >&2
+      exit 2
+      ;;
+  esac
+}
+
+validate_identifier "$MYSQL_DATABASE" MYSQL_DATABASE
+validate_identifier "$MYSQL_IDENTITY_DATABASE" MYSQL_IDENTITY_DATABASE
+validate_identifier "$MYSQL_MERCHANT_DATABASE" MYSQL_MERCHANT_DATABASE
+validate_identifier "$MYSQL_ORDER_DATABASE" MYSQL_ORDER_DATABASE
+validate_identifier "$MYSQL_USER" MYSQL_USER
+
+mysql_root() {
+  MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql \
+    --protocol=TCP \
+    --host="$MYSQL_HOST" \
+    --port="$MYSQL_PORT" \
+    --user=root \
+    --default-character-set=utf8mb4 \
+    "$@"
+}
+
+if [ -n "${MYSQL_SOCKET:-}" ]; then
+  mysql_root() {
+    MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql \
+      --protocol=socket \
+      --socket="$MYSQL_SOCKET" \
+      --user=root \
+      --default-character-set=utf8mb4 \
+      "$@"
+  }
+fi
+
+mysql_root --execute="
+CREATE DATABASE IF NOT EXISTS ${MYSQL_IDENTITY_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS ${MYSQL_MERCHANT_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS ${MYSQL_ORDER_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+GRANT ALL PRIVILEGES ON ${MYSQL_IDENTITY_DATABASE}.* TO '${MYSQL_USER}'@'%';
+GRANT ALL PRIVILEGES ON ${MYSQL_MERCHANT_DATABASE}.* TO '${MYSQL_USER}'@'%';
+GRANT ALL PRIVILEGES ON ${MYSQL_ORDER_DATABASE}.* TO '${MYSQL_USER}'@'%';
+FLUSH PRIVILEGES;
+"
+
+copy_table() {
+  target_database=$1
+  table_name=$2
+  mysql_root --execute="CREATE TABLE IF NOT EXISTS ${target_database}.${table_name} LIKE ${MYSQL_DATABASE}.${table_name}"
+}
+
+# Each service receives only the tables it owns. CREATE TABLE ... LIKE copies
+# columns and indexes without copying cross-service foreign keys.
+for table_name in schema_migration user_account user_address auth_session; do
+  copy_table "$MYSQL_IDENTITY_DATABASE" "$table_name"
+done
+
+for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message; do
+  copy_table "$MYSQL_MERCHANT_DATABASE" "$table_name"
+done
+
+for table_name in schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event; do
+  copy_table "$MYSQL_ORDER_DATABASE" "$table_name"
+done
+
+for target_database in "$MYSQL_IDENTITY_DATABASE" "$MYSQL_MERCHANT_DATABASE" "$MYSQL_ORDER_DATABASE"; do
+  mysql_root --execute="INSERT INTO ${target_database}.schema_migration(version,description,checksum,installed_at) SELECT version,description,checksum,installed_at FROM ${MYSQL_DATABASE}.schema_migration ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum),installed_at=VALUES(installed_at)"
+done
+
+echo "Provisioned isolated service databases: ${MYSQL_IDENTITY_DATABASE}, ${MYSQL_MERCHANT_DATABASE}, ${MYSQL_ORDER_DATABASE}."

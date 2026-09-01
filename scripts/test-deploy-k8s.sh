@@ -6,6 +6,8 @@ readonly SCRIPT_PATH="${1:-scripts/deploy-k8s.sh}"
 bash -n "${SCRIPT_PATH}"
 test -f scripts/lib/legacy-migrations.sh
 test -f database/backfill-services.sql
+test -f database/bin/provision-service-databases.sh
+test -f database/bin/backfill-service-databases.sh
 
 grep -q 'readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"' "${SCRIPT_PATH}"
 grep -q 'readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"' "${SCRIPT_PATH}"
@@ -24,6 +26,13 @@ grep -q -- '--from-file=V008__service_order_lines.sql=database/migrations/V008__
 grep -q -- '--from-file=V009__microservice_durability_fixes.sql=database/migrations/V009__microservice_durability_fixes.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V010__order_main_payment_projection.sql=database/migrations/V010__order_main_payment_projection.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V011__order_address_snapshot.sql=database/migrations/V011__order_address_snapshot.sql' "${SCRIPT_PATH}"
+grep -q -- '--from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh' "${SCRIPT_PATH}"
+grep -q -- '--from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh' "${SCRIPT_PATH}"
+grep -q -- '--from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}"' "${SCRIPT_PATH}"
+grep -q -- '--from-literal=merchant-database="${MYSQL_MERCHANT_DATABASE}"' "${SCRIPT_PATH}"
+grep -q -- '--from-literal=order-database="${MYSQL_ORDER_DATABASE}"' "${SCRIPT_PATH}"
+grep -q 'provision-service-databases.sh' "${SCRIPT_PATH}"
+grep -q 'backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q 'version IN (.*V011' .github/workflows/ci.yml
 grep -q '^            database/init$' .github/workflows/ci.yml
 grep -q '^            scripts/lib/legacy-migrations.sh$' .github/workflows/ci.yml
@@ -35,6 +44,9 @@ grep -q 'readiness includes the identity dependency' "${SCRIPT_PATH}"
 
 grep -q 'mountPath: /database/migrations' k8s/mysql.yaml
 grep -q 'name: lumalife-mysql-migrations' k8s/mysql.yaml
+grep -q 'key: identity-database' k8s/services.yaml
+grep -q 'key: merchant-database' k8s/services.yaml
+grep -q 'key: order-database' k8s/services.yaml
 
 prefetch_call_line="$(grep -n '^prefetch_images$' "${SCRIPT_PATH}" | cut -d: -f1)"
 apply_call_line="$(grep -n '^apply_versioned_manifests$' "${SCRIPT_PATH}" | cut -d: -f1)"

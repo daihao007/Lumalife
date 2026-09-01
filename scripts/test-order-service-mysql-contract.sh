@@ -4,6 +4,7 @@ set -Eeuo pipefail
 readonly BASE_URL="${ORDER_SERVICE_URL:-http://localhost:8083}"
 readonly SERVICE_TOKEN="${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}"
 readonly USER_ID="${ORDER_CONTRACT_TEST_USER_ID:-92001}"
+readonly ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE:-life_assistant}_order}"
 readonly REQUEST_ID="ct-mysql-${GITHUB_RUN_ID:-local}-$(date +%s%N)"
 
 request_json() {
@@ -37,9 +38,9 @@ status="$(curl --silent --show-error --output "${response_file}" --write-out '%{
   "${BASE_URL}/internal/v1/orders/${second_id}/pay")"
 test "${status}" = 409
 
-payment_rows="$(docker compose exec -T mysql sh -c "MYSQL_PWD=\"\$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"\$MYSQL_USER\" --database=\"\$MYSQL_DATABASE\" --batch --skip-column-names --execute=\"SELECT COUNT(*) FROM service_payment WHERE user_id=${USER_ID} AND client_request_id='${REQUEST_ID}'\"" | tr -d '\r')"
+payment_rows="$(docker compose exec -T mysql sh -c "MYSQL_PWD=\"\$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"\$MYSQL_USER\" --database=\"${ORDER_DATABASE}\" --batch --skip-column-names --execute=\"SELECT COUNT(*) FROM service_payment WHERE user_id=${USER_ID} AND client_request_id='${REQUEST_ID}'\"" | tr -d '\r')"
 test "${payment_rows}" -eq 1
-second_status="$(docker compose exec -T mysql sh -c "MYSQL_PWD=\"\$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"\$MYSQL_USER\" --database=\"\$MYSQL_DATABASE\" --batch --skip-column-names --execute=\"SELECT status FROM order_record WHERE id=${second_id}\"" | tr -d '\r')"
+second_status="$(docker compose exec -T mysql sh -c "MYSQL_PWD=\"\$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"\$MYSQL_USER\" --database=\"${ORDER_DATABASE}\" --batch --skip-column-names --execute=\"SELECT status FROM order_record WHERE id=${second_id}\"" | tr -d '\r')"
 test "${second_status}" = 'PENDING_PAYMENT'
 
 echo "MySQL payment idempotency contract passed for request ${REQUEST_ID}."

@@ -52,6 +52,21 @@ spec:
                 secretKeyRef:
                   name: lumalife-mysql
                   key: database
+            - name: MYSQL_IDENTITY_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: identity-database
+            - name: MYSQL_MERCHANT_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: merchant-database
+            - name: MYSQL_ORDER_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-mysql
+                  key: order-database
             - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:

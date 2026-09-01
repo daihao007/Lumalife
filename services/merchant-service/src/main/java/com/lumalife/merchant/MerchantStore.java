@@ -327,7 +327,6 @@ public class MerchantStore {
     products.getOrDefault(merchantId, List.of()).removeIf(item -> item.id() == id);
     if (jdbc != null) {
       jdbc.update("DELETE FROM merchant_catalog WHERE id=? AND merchant_id=?", id, merchantId);
-      jdbc.update("UPDATE product SET is_deleted=1,is_listed=0 WHERE id=? AND merchant_id=?", id, merchantId);
     }
   }
 

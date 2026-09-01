@@ -4,4 +4,5 @@ set -eu
 
 echo "Backfilling service-owned catalog and order tables (idempotent)"
 mysql_exec < /database/backfill-services.sql
+sh /database/bin/backfill-service-databases.sh
 echo "Backfill completed"

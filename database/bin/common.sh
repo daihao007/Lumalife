@@ -7,6 +7,25 @@ set -eu
 : "${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}"
 
 MYSQL_PORT="${MYSQL_PORT:-3306}"
+MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
+MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
+MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
+
+validate_database_identifier() {
+  value=$1
+  label=$2
+  case "$value" in
+    ''|*[!A-Za-z0-9_]*)
+      echo "${label} may contain only letters, digits and underscores." >&2
+      exit 2
+      ;;
+  esac
+}
+
+validate_database_identifier "$MYSQL_DATABASE" MYSQL_DATABASE
+validate_database_identifier "$MYSQL_IDENTITY_DATABASE" MYSQL_IDENTITY_DATABASE
+validate_database_identifier "$MYSQL_MERCHANT_DATABASE" MYSQL_MERCHANT_DATABASE
+validate_database_identifier "$MYSQL_ORDER_DATABASE" MYSQL_ORDER_DATABASE
 
 mysql_exec() {
   MYSQL_PWD="$MYSQL_PASSWORD" mysql \

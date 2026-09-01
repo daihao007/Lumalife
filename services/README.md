@@ -1,6 +1,8 @@
 # 三服务拆分与渐进迁移
 
-该目录承载 `identity-service`、`merchant-service`、`order-service` 三个独立 Spring Boot 入口。当前可运行的内部业务接口分别为 9、12、18 个：identity 负责账户/资料/地址，merchant 负责商家/商品/团购，order 负责购物车/订单详情/支付/履约/券码/评价。三项服务在生产配置下使用 MySQL 自有表，backend 仍提供 `/api/v1/**` 兼容入口；当前是共享 MySQL 实例上的逻辑服务表隔离，不是三个独立数据库。
+该目录承载 `identity-service`、`merchant-service`、`order-service` 三个独立 Spring Boot 入口。当前可运行的内部业务接口分别为 9、12、18 个：identity 负责账户/资料/地址，merchant 负责商家/商品/团购，order 负责购物车/订单详情/支付/履约/券码/评价。生产配置下三个服务分别连接 `life_assistant_identity`、`life_assistant_merchant`、`life_assistant_order`，backend 仍提供 `/api/v1/**` 兼容入口；三个数据库位于同一 MySQL 实例，但服务表已具有物理数据库边界。
+
+旧的 `life_assistant` 库保留为单体兼容和回滚源。首次初始化或 Kubernetes 部署会创建三个服务数据库；`database/bin/backfill-service-databases.sh` 将历史数据幂等回填到服务库。回填完成后，服务只写自己的数据库，不能跨域写旧库。
 
 ## 构建与启动
 
@@ -40,6 +42,6 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 - merchant-service：`/internal/v1/merchants/*`、`/internal/v1/products/*`、`/internal/v1/deals/*`（12 个业务接口）
 - order-service：`/internal/v1/orders/*`（18 个业务接口）
 
-单体网关默认保持 `monolith` 路由。Compose/Kubernetes 可打开三类远程路由；设置对应 `LUMALIFE_*_REMOTE_ENABLED` 和 `*_BACKFILL_COMPLETED` 为 `false` 即可逐服务回滚。通过 `GET /internal/migration/status` 查看实时路由。merchant 的分类、收藏、客服/AI 仍可能回落单体；筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。库存预占/释放、完整订单快照、跨服务事件总线尚未完成，不能据此宣称全量流量已切换。
+单体网关默认保持 `monolith` 路由。Compose/Kubernetes 可打开三类远程路由；设置对应 `LUMALIFE_*_REMOTE_ENABLED` 和 `*_BACKFILL_COMPLETED` 为 `false` 即可逐服务回滚。通过 `GET /internal/migration/status` 查看实时路由。merchant 的分类、收藏、客服/AI 仍可能回落单体；筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。库存预占/释放、完整订单快照、跨服务事件总线尚未完成，不能据此宣称全量业务已经完成微服务化。
 
 业务迁移必须遵守 [`docs/28_D07服务接口数据归属与需求追溯.md`](../docs/28_D07服务接口数据归属与需求追溯.md) 的当前事实和 `docs/19_D04C微服务边界接口与数据归属初稿.md` 的目标所有权，不允许跨域 Repository、共享可写数据库表或复制单体业务代码形成双写。

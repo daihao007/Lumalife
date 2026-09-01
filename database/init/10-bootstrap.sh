@@ -35,5 +35,13 @@ for migration in /database/migrations/V[0-9][0-9][0-9]__*.sql; do
   echo "Applied during initialization: ${filename}"
 done
 
+provision_script=/database/bin/provision-service-databases.sh
+if [ ! -f "$provision_script" ]; then
+  provision_script=/database/migrations/provision-service-databases.sh
+fi
+if [ -f "$provision_script" ]; then
+  MYSQL_SOCKET=/var/run/mysqld/mysqld.sock sh "$provision_script"
+fi
+
 echo "LumaLife schema initialized with all versioned migrations."
 )

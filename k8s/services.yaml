@@ -32,7 +32,7 @@ spec:
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE
-              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: database}}
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: identity-database}}
             - name: MYSQL_USER
               valueFrom: {secretKeyRef: {name: lumalife-mysql, key: username}}
             - name: MYSQL_PASSWORD
@@ -75,7 +75,7 @@ spec:
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE
-              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: database}}
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: merchant-database}}
             - name: MYSQL_USER
               valueFrom: {secretKeyRef: {name: lumalife-mysql, key: username}}
             - name: MYSQL_PASSWORD
@@ -122,7 +122,7 @@ spec:
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE
-              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: database}}
+              valueFrom: {secretKeyRef: {name: lumalife-mysql, key: order-database}}
             - name: MYSQL_USER
               valueFrom: {secretKeyRef: {name: lumalife-mysql, key: username}}
             - name: MYSQL_PASSWORD
