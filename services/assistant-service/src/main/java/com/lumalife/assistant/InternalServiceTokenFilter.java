@@ -31,7 +31,9 @@ class InternalServiceTokenFilter extends OncePerRequestFilter {
     if (actual == null || actual.isBlank()) actual = request.getHeader("X-Internal-Service-Token");
     if (expectedToken.isBlank() || actual == null
         || !MessageDigest.isEqual(expectedToken.getBytes(StandardCharsets.UTF_8), actual.getBytes(StandardCharsets.UTF_8))) {
-      response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "服务调用未认证");
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      response.setContentType("text/plain;charset=UTF-8");
+      response.getWriter().write("服务调用未认证");
       return;
     }
     chain.doFilter(request, response);

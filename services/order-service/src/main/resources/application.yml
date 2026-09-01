@@ -25,6 +25,9 @@ lumalife:
       exchange: ${LUMALIFE_EVENTS_EXCHANGE:lumalife.events}
       queue: ${LUMALIFE_EVENTS_ORDER_QUEUE:order-events}
 management:
+  health:
+    rabbit:
+      enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
   endpoint:
     health:
       probes:
