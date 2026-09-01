@@ -42,6 +42,6 @@ copy_owned_tables() {
 
 wait_for_mysql "$MYSQL_HOST" "$MYSQL_DATABASE"
 copy_owned_tables "$IDENTITY_MYSQL_HOST" "$MYSQL_IDENTITY_DATABASE" schema_migration user_account user_address auth_session
-copy_owned_tables "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE" schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event
-copy_owned_tables "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE" schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event
+copy_owned_tables "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE" schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event merchant_outbox_event
+copy_owned_tables "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE" schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event order_inbox_event order_inventory_saga
 echo "Copied owned tables from $MYSQL_HOST into three independent MySQL instances."

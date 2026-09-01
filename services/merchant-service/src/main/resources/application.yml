@@ -22,6 +22,7 @@ lumalife:
       enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
       exchange: ${LUMALIFE_EVENTS_EXCHANGE:lumalife.events}
       queue: ${LUMALIFE_EVENTS_MERCHANT_QUEUE:merchant-inventory-events}
+      result-queue: ${LUMALIFE_EVENTS_ORDER_RESULT_QUEUE:order-inventory-results}
 management:
   health:
     defaults:

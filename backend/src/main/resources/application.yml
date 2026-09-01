@@ -3,6 +3,10 @@ server:
 spring:
   application:
     name: lumalife-backend
+  profiles:
+    # The compatibility store is a local demo profile, never an implicit
+    # production fallback. Compose/Kubernetes explicitly activate prod,remote.
+    default: monolith
 management:
   endpoint:
     health:
@@ -43,7 +47,7 @@ lumalife:
   persistence: ${LUMALIFE_PERSISTENCE:file}
   compatibility:
     store:
-      enabled: ${LUMALIFE_COMPATIBILITY_STORE_ENABLED:true}
+      enabled: ${LUMALIFE_COMPATIBILITY_STORE_ENABLED:false}
   state-file: ${LUMALIFE_STATE_FILE:./data/lumalife-state.json}
   mysql:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai

@@ -1,0 +1,5 @@
+lumalife:
+  persistence: ${LUMALIFE_PERSISTENCE:file}
+  compatibility:
+    store:
+      enabled: ${LUMALIFE_COMPATIBILITY_STORE_ENABLED:true}

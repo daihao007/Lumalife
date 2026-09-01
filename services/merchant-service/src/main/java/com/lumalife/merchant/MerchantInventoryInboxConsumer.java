@@ -37,9 +37,11 @@ public class MerchantInventoryInboxConsumer {
           eventId, event.path("aggregateType").asText("ORDER"), orderId, eventType, event.path("payload").toString(), java.sql.Timestamp.from(Instant.now()));
       if (inserted == 0 && isProcessed(eventId)) return;
       if ("inventory.confirm.requested".equals(eventType)) {
-        store.confirmInventory(orderId);
+        MerchantStore.InventoryReservation reservation = store.confirmInventory(orderId);
+        appendResult(orderId, eventId, "inventory.result.confirmed", reservation);
       } else if ("inventory.release.requested".equals(eventType)) {
-        store.releaseInventory(orderId, "event-" + eventId);
+        MerchantStore.InventoryReservation reservation = store.releaseInventory(orderId, "event-" + eventId);
+        appendResult(orderId, eventId, "inventory.result.released", reservation);
       } else {
         throw new IllegalArgumentException("不支持的库存事件: " + eventType);
       }
@@ -52,5 +54,20 @@ public class MerchantInventoryInboxConsumer {
   private boolean isProcessed(String eventId) {
     String status = jdbc.queryForObject("SELECT status FROM merchant_inbox_event WHERE event_id=?", String.class, eventId);
     return "PROCESSED".equals(status);
+  }
+
+  private void appendResult(long orderId, String sourceEventId, String eventType,
+                            MerchantStore.InventoryReservation reservation) {
+    try {
+      String payload = mapper.writeValueAsString(java.util.Map.of(
+          "orderId", orderId,
+          "reservationStatus", reservation.status(),
+          "sourceEventId", sourceEventId,
+          "occurredAt", Instant.now().toString()));
+      jdbc.update("INSERT INTO merchant_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
+          "ORDER", orderId, eventType, payload, java.sql.Timestamp.from(Instant.now()));
+    } catch (Exception error) {
+      throw new IllegalStateException("库存结果事件序列化失败", error);
+    }
   }
 }

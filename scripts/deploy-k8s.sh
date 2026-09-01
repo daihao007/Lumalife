@@ -170,6 +170,7 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V012__inventory_reservation_saga.sql=database/migrations/V012__inventory_reservation_saga.sql \
   --from-file=V013__order_merchant_name_snapshot.sql=database/migrations/V013__order_merchant_name_snapshot.sql \
   --from-file=V014__event_bus_inbox.sql=database/migrations/V014__event_bus_inbox.sql \
+  --from-file=V015__inventory_saga_result_delivery.sql=database/migrations/V015__inventory_saga_result_delivery.sql \
   --from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh \
   --from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -

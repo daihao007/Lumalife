@@ -98,37 +98,46 @@ public class OrderStore {
   private final Map<Long, Review> reviews = new LinkedHashMap<>();
   private final Map<Long, String> orderTypes = new HashMap<>();
   private final MerchantInventoryClient inventoryClient;
+  private final OrderSagaEventStore sagaEventStore;
   private final ObjectMapper objectMapper;
   private final boolean eventDrivenInventory;
 
   @Autowired
   public OrderStore(ObjectProvider<JdbcTemplate> provider, ObjectProvider<MerchantInventoryClient> inventoryProvider,
                     ObjectProvider<ObjectMapper> objectMapperProvider,
+                    ObjectProvider<OrderSagaEventStore> sagaEventStoreProvider,
                     @Value("${lumalife.events.broker.enabled:false}") boolean eventDrivenInventory) {
-    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable(), objectMapperProvider.getIfAvailable(ObjectMapper::new), eventDrivenInventory);
+    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable(), objectMapperProvider.getIfAvailable(ObjectMapper::new),
+        sagaEventStoreProvider.getIfAvailable(), eventDrivenInventory);
   }
 
   OrderStore(JdbcTemplate jdbc) {
-    this(jdbc, null, new ObjectMapper(), false);
+    this(jdbc, null, new ObjectMapper(), null, false);
   }
 
   OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient) {
-    this(jdbc, inventoryClient, new ObjectMapper(), false);
+    this(jdbc, inventoryClient, new ObjectMapper(), null, false);
   }
 
   OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper) {
-    this(jdbc, inventoryClient, objectMapper, false);
+    this(jdbc, inventoryClient, objectMapper, null, false);
   }
 
   OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper, boolean eventDrivenInventory) {
+    this(jdbc, inventoryClient, objectMapper, null, eventDrivenInventory);
+  }
+
+  OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper,
+             OrderSagaEventStore sagaEventStore, boolean eventDrivenInventory) {
     this.jdbc = jdbc;
     this.inventoryClient = inventoryClient;
+    this.sagaEventStore = sagaEventStore;
     this.objectMapper = objectMapper == null ? new ObjectMapper() : objectMapper;
     this.eventDrivenInventory = eventDrivenInventory;
     refreshIdSequence();
   }
 
-  public OrderStore() { this((JdbcTemplate) null, null, new ObjectMapper(), false); }
+  public OrderStore() { this((JdbcTemplate) null, null, new ObjectMapper(), null, false); }
 
   private void refreshIdSequence() {
     if (jdbc == null) return;
@@ -395,6 +404,7 @@ public class OrderStore {
       orders.put(orderId, paid);
       if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
       if (remoteInventory && eventDrivenInventory) {
+        recordInventorySaga(orderId, userId, requestId, "CONFIRM_PENDING", null);
         appendIntegrationEvent(orderId, current.merchantId(), "inventory.confirm.requested", outboxPayload(orderId, userId, "PAID", Instant.now()));
       } else if (remoteInventory) {
         inventoryClient.confirm(current, requestId);
@@ -404,10 +414,18 @@ public class OrderStore {
       return payment;
     } catch (RuntimeException error) {
       if (remoteInventory) {
-        try {
-          inventoryClient.release(current, requestId);
-        } catch (RuntimeException compensationError) {
-          error.addSuppressed(compensationError);
+        if (eventDrivenInventory && sagaEventStore != null) {
+          try {
+            sagaEventStore.scheduleRelease(orderId, userId, requestId);
+          } catch (RuntimeException compensationError) {
+            error.addSuppressed(compensationError);
+          }
+        } else {
+          try {
+            inventoryClient.release(current, requestId);
+          } catch (RuntimeException compensationError) {
+            error.addSuppressed(compensationError);
+          }
         }
       }
       throw error;
@@ -635,6 +653,13 @@ public class OrderStore {
     Instant occurredAt = Instant.now();
     jdbc.update("INSERT INTO service_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
         "ORDER", aggregateId, eventType, payload, java.sql.Timestamp.from(occurredAt));
+  }
+
+  private void recordInventorySaga(long orderId, long userId, String clientRequestId, String status, String lastError) {
+    if (jdbc == null || !eventDrivenInventory) return;
+    jdbc.update("INSERT INTO order_inventory_saga(order_id,user_id,client_request_id,status,last_error) VALUES (?,?,?,?,?) "
+        + "ON DUPLICATE KEY UPDATE status=VALUES(status),last_error=VALUES(last_error),updated_at=CURRENT_TIMESTAMP(3)",
+        orderId, userId, clientRequestId, status, lastError);
   }
 
   private String outboxPayload(long orderId, long actor, String status, Instant occurredAt) {

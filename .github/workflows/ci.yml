@@ -228,7 +228,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\")"' | grep -qx 14
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\",\"V015\")"' | grep -qx 15
           MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
           MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
           MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
@@ -237,9 +237,9 @@ jobs:
             local query="$2"
             docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
           }
-          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 14
-          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 14
-          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 14
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 15
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 15
+          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 15
           test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM user_account")" -eq 6
           test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM merchant_catalog")" -eq 7
 
@@ -427,7 +427,7 @@ jobs:
       - name: Start backend and frontend
         shell: bash
         run: |
-          java -Dlumalife.state-file="${RUNNER_TEMP}/lumalife-ui-state.json" -jar backend/target/lumalife-backend-0.1.0.jar > "${RUNNER_TEMP}/lumalife-backend.log" 2>&1 &
+          java -Dlumalife.state-file="${RUNNER_TEMP}/lumalife-ui-state.json" -jar backend/target/lumalife-backend-0.1.0.jar --spring.profiles.active=monolith > "${RUNNER_TEMP}/lumalife-backend.log" 2>&1 &
           echo "BACKEND_PID=$!" >> "$GITHUB_ENV"
           npm run dev --prefix frontend -- --host 127.0.0.1 > "${RUNNER_TEMP}/lumalife-frontend.log" 2>&1 &
           echo "FRONTEND_PID=$!" >> "$GITHUB_ENV"

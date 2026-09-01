@@ -44,9 +44,9 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 - order-service：`/internal/v1/orders/*`（18 个业务接口）
 - assistant-service：`POST /internal/v1/assistant/answer`（内部 AI 答案契约）
 
-单体网关默认保持 `monolith` 路由。Compose/Kubernetes 打开 identity、merchant、order、assistant 四类远程路由；`LUMALIFE_COMPATIBILITY_STORE_ENABLED=false` 时 `DemoStore` 不会创建，漏配远程实现会直接暴露为启动错误。通过 `GET /internal/migration/status` 查看实时路由。筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。order-service 会保存商品名称、商家名称和配送地址快照，订单详情不依赖商家服务在线才能显示历史信息。
+单体网关只有在显式 `monolith` profile 下才保持单体路由。Compose/Kubernetes 打开 identity、merchant、order、assistant 四类远程路由；生产配置不加载 `monolith`，因此 `DemoStore` 不会作为隐式回退创建，漏配远程实现会直接暴露为启动错误。通过 `GET /internal/migration/status` 查看实时路由。筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。order-service 会保存商品名称、商家名称和配送地址快照，订单详情不依赖商家服务在线才能显示历史信息。
 
-远程切流后，管理员看板由 backend 的 `RemoteMetricsServicePort` 聚合三个有状态服务的只读投影。order-service 的状态变更在本地事务中写入 `service_outbox_event`；启用 `LUMALIFE_EVENTS_BROKER_ENABLED=true` 后由 RabbitMQ Topic Exchange 投递，merchant-service 的 `MerchantInventoryInboxConsumer` 以 `eventId` 幂等消费库存确认事件。库存预占保留同步 HTTP 命令作为支付接口的兼容窗口，确认已经切为事件驱动；完整的异步预占/支付反向补偿仍需后续演进。AI provider 和 deterministic fallback 已移入 assistant-service，backend 只负责上下文编排。
+远程切流后，管理员看板由 backend 的 `RemoteMetricsServicePort` 聚合三个有状态服务的只读投影。order-service 的状态变更和库存命令在本地事务中写入 `service_outbox_event`；启用 `LUMALIFE_EVENTS_BROKER_ENABLED=true` 后由 RabbitMQ Topic Exchange 投递。merchant-service 以 `merchant_inbox_event` 幂等消费确认/释放命令，再以 `merchant_outbox_event` 发布结果；order-service 以 `order_inbox_event` 幂等消费结果并更新 `order_inventory_saga`。库存预占仍保留同步 HTTP 命令作为支付接口的兼容窗口，但确认、失败释放和结果回传已经走可靠消息链路。AI provider 和 deterministic fallback 已移入 assistant-service，backend 只负责上下文编排。
 
 物理数据库隔离示例：
 

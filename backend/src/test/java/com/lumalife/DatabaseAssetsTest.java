@@ -30,6 +30,8 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V012__inventory_reservation_saga.sql");
   private static final Path ORDER_MERCHANT_SNAPSHOT_MIGRATION =
     Path.of("..", "database", "migrations", "V013__order_merchant_name_snapshot.sql");
+  private static final Path INVENTORY_SAGA_RESULT_MIGRATION =
+    Path.of("..", "database", "migrations", "V015__inventory_saga_result_delivery.sql");
   private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
@@ -132,6 +134,16 @@ class DatabaseAssetsTest {
     assertThat(migration).contains("ALTER TABLE order_record");
     assertThat(migration).contains("ADD COLUMN merchant_name_snapshot");
     assertThat(backfill).contains("merchant_name_snapshot");
+  }
+
+  @Test
+  void inventorySagaMigrationProvidesBothInboxAndOutboxResultStores() throws IOException {
+    String migration = Files.readString(INVENTORY_SAGA_RESULT_MIGRATION);
+
+    assertThat(migration).contains("CREATE TABLE IF NOT EXISTS merchant_outbox_event");
+    assertThat(migration).contains("CREATE TABLE IF NOT EXISTS order_inbox_event");
+    assertThat(migration).contains("CREATE TABLE IF NOT EXISTS order_inventory_saga");
+    assertThat(migration).contains("uk_order_inventory_saga_request");
   }
 
   private String passwordHash(String sql, String phone) {

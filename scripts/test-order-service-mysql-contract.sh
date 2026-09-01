@@ -43,4 +43,14 @@ test "${payment_rows}" -eq 1
 second_status="$(docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$ORDER_DATABASE" "SELECT status FROM order_record WHERE id=${second_id}" | tr -d '\r')"
 test "${second_status}" = 'PENDING_PAYMENT'
 
+# The Compose stack must complete the real RabbitMQ inventory result path,
+# not merely return PAID before the merchant side has acknowledged it.
+saga_status=''
+for attempt in {1..20}; do
+  saga_status="$(docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$ORDER_DATABASE" "SELECT status FROM order_inventory_saga WHERE order_id=${first_id}" | tr -d '\r')"
+  [ "${saga_status}" = 'CONFIRMED' ] && break
+  sleep 1
+done
+test "${saga_status}" = 'CONFIRMED'
+
 echo "MySQL payment idempotency contract passed for request ${REQUEST_ID}."
