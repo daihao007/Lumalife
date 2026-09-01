@@ -17,6 +17,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import com.lumalife.common.BusinessException;
 
 /** Routes every order-domain operation through the order-service contract. The fallback remains available only when the migration flags are disabled. */
 @Configuration
@@ -49,6 +52,7 @@ public class RemoteOrderServicePort {
       return mapper.convertValue(enriched, Order.class);
     };
     var handler = (java.lang.reflect.InvocationHandler) (proxy, method, args) -> {
+      try {
       if (method.getName().equals("userOrders")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         List<Map> rows = client.get().uri("/internal/v1/orders").header("X-User-Id", String.valueOf(user.id())).retrieve().body(List.class);
@@ -101,7 +105,8 @@ public class RemoteOrderServicePort {
       if (method.getName().equals("pay")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         var orderId = (long) args[1];
-        Map row = client.post().uri("/internal/v1/orders/{id}/pay", orderId).header("X-User-Id", String.valueOf(user.id())).body(Map.of("amountCent", 0, "clientRequestId", args[2])).retrieve().body(Map.class);
+        Map current = client.get().uri("/internal/v1/orders/{id}", orderId).header("X-User-Id", String.valueOf(user.id())).retrieve().body(Map.class);
+        Map row = client.post().uri("/internal/v1/orders/{id}/pay", orderId).header("X-User-Id", String.valueOf(user.id())).body(Map.of("amountCent", number(current.get("totalCent")), "clientRequestId", args[2])).retrieve().body(Map.class);
         return toOrder.apply(row);
       }
       if (method.getName().equals("receive")) {
@@ -142,6 +147,15 @@ public class RemoteOrderServicePort {
         return toOrder.apply(row);
       }
       return method.invoke(fallback, args);
+      } catch (java.lang.reflect.InvocationTargetException error) {
+        Throwable cause = error.getCause();
+        if (cause instanceof RuntimeException runtime) throw runtime;
+        throw error;
+      } catch (RestClientResponseException error) {
+        throw remoteError(error);
+      } catch (RestClientException error) {
+        throw new BusinessException(50300, "订单服务暂时不可用", "ORDER_SERVICE_UNAVAILABLE");
+      }
     };
     return (OrderServicePort) Proxy.newProxyInstance(OrderServicePort.class.getClassLoader(), new Class[]{OrderServicePort.class}, handler);
   }
@@ -190,5 +204,26 @@ public class RemoteOrderServicePort {
         return value;
       }
     }
+  }
+
+  private static long number(Object value) {
+    if (value instanceof Number n) return n.longValue();
+    if (value == null) return 0;
+    try { return Long.parseLong(String.valueOf(value)); } catch (NumberFormatException ignored) { return 0; }
+  }
+
+  private static BusinessException remoteError(RestClientResponseException error) {
+    int status = error.getStatusCode().value();
+    int code = switch (status) {
+      case 400 -> 40000;
+      case 401 -> 40100;
+      case 403 -> 40300;
+      case 404 -> 40400;
+      case 409 -> 40900;
+      default -> status >= 500 ? 50300 : 50000;
+    };
+    String message = error.getResponseBodyAsString();
+    if (message == null || message.isBlank()) message = "订单服务请求失败";
+    return new BusinessException(code, message, status >= 500 ? "ORDER_SERVICE_UNAVAILABLE" : "ORDER_REMOTE_ERROR");
   }
 }

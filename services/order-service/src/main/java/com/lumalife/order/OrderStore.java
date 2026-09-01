@@ -31,7 +31,20 @@ public class OrderStore {
   public record Order(long id, long userId, long merchantId, String merchantName, String type,
                       String status, long totalCent, String clientRequestId, String couponCode,
                       Long addressId, String addressSnapshot, boolean reviewed, boolean stockDeducted,
-                      Instant createdAt, List<OrderLine> lines, Map<String, Instant> statusTimeline) {}
+                      Instant createdAt, List<OrderLine> lines, Map<String, Instant> statusTimeline) {
+    /**
+     * Compatibility view for clients that still consume the old single-line
+     * order shape. The canonical model is the lines collection.
+     */
+    public int quantity() {
+      return lines == null ? 0 : lines.stream().mapToInt(OrderLine::quantity).sum();
+    }
+
+    /** Compatibility view for the first product/deal in the order. */
+    public long productId() {
+      return lines == null || lines.isEmpty() || lines.get(0).itemId() == null ? 0L : lines.get(0).itemId();
+    }
+  }
   public record OrderLine(Long itemId, String name, int quantity, long priceCent) {}
 
   private final AtomicLong ids = new AtomicLong(4000);
@@ -48,6 +61,15 @@ public class OrderStore {
       bumpIds("SELECT COALESCE(MAX(id),0) FROM order_main");
       bumpIds("SELECT COALESCE(MAX(id),0) FROM order_record");
       migrateLegacyOrders();
+    }
+  }
+
+  /** Package-private constructor retained for the existing JDBC contract test. */
+  OrderStore(JdbcTemplate jdbc) {
+    this.jdbc = jdbc;
+    if (jdbc != null) {
+      Long max = jdbc.queryForObject("SELECT COALESCE(MAX(id), 4000) FROM order_record", Long.class);
+      if (max != null) ids.updateAndGet(current -> Math.max(current, max));
     }
   }
 
@@ -132,7 +154,7 @@ public class OrderStore {
       int changed = jdbc.update("UPDATE order_main SET status='PAID',client_request_id=?,version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", requestId, orderId, userId);
       if (changed != 1) {
         Order latest = findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
-        if (!"PAID".equals(latest.status())) throw new IllegalStateException("订单状态不允许支付");
+        if (!"PAID".equals(latest.status())) throw new IllegalStateException("当前订单不可支付");
       }
       try {
         jdbc.update("INSERT INTO payment_record(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)", userId, orderId, requestId, chargedAmount, "SUCCESS");
@@ -148,7 +170,7 @@ public class OrderStore {
       if (requestOrder.id() != orderId) throw new IllegalStateException("clientRequestId 已用于其他订单");
       return new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
     }
-    if (!"PENDING_PAYMENT".equals(current.status())) throw new IllegalStateException("订单状态不允许支付");
+    if (!"PENDING_PAYMENT".equals(current.status())) throw new IllegalStateException("当前订单不可支付");
     Order paid = copyOrder(current, "PAID", requestId, current.couponCode());
     if ("GROUP_BUY".equals(current.type())) paid = copyOrder(paid, paid.status(), paid.clientRequestId(), String.format("%012d", orderId));
     orders.put(orderId, paid);
@@ -164,7 +186,9 @@ public class OrderStore {
   public synchronized Order createGroupOrder(GroupOrderRequest request) {
     if (request.quantity() <= 0 || request.merchantId() <= 0 || request.priceCent() <= 0) throw new IllegalArgumentException("团购参数不合法");
     long id = nextId();
-    Order order = newOrder(id, request.userId(), request.merchantId(), request.merchantName(), "GROUP_BUY", request.priceCent() * request.quantity(), null, null, null);
+    // The line projection below owns the amount; start from zero so the total
+    // is not counted twice for group-buy orders.
+    Order order = newOrder(id, request.userId(), request.merchantId(), request.merchantName(), "GROUP_BUY", 0, null, null, null);
     order = withLine(order, new OrderLine(request.dealId(), request.title() == null ? "团购套餐 #" + request.dealId() : request.title(), request.quantity(), request.priceCent()));
     saveOrder(order);
     return order;

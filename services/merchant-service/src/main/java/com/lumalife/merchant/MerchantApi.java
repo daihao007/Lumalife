@@ -34,7 +34,7 @@ public class MerchantApi {
   }
 
   @GetMapping("/merchants/{id}")
-  MerchantStore.Merchant merchant(@PathVariable long id) { return store.merchant(id); }
+  MerchantStore.Merchant merchant(@PathVariable long id) { return readResource(() -> store.merchant(id)); }
 
   @PostMapping("/merchants/provision")
   MerchantStore.Merchant provision(@RequestBody ProvisionRequest request) { return store.provision(request.name()); }
@@ -112,20 +112,24 @@ public class MerchantApi {
   @GetMapping("/merchants/{id}/products")
   List<MerchantStore.Product> products(@PathVariable long id,
                                        @RequestParam(defaultValue = "false") boolean listedOnly) {
-    return store.products(id, listedOnly);
+    return readResource(() -> store.products(id, listedOnly));
   }
 
   @GetMapping("/deals/{id}")
-  MerchantStore.GroupDeal deal(@PathVariable long id) { return store.deal(id); }
+  MerchantStore.GroupDeal deal(@PathVariable long id) { return readResource(() -> store.deal(id)); }
 
   @GetMapping("/products/{id}")
-  MerchantStore.Product product(@PathVariable long id) { return store.product(id); }
+  MerchantStore.Product product(@PathVariable long id) { return readResource(() -> store.product(id)); }
 
   @PostMapping("/merchants/{id}/products")
   MerchantStore.Product saveProduct(@PathVariable long id, @RequestHeader("X-Merchant-Id") long actorMerchantId,
                                     @RequestBody MerchantStore.ProductRequest request) {
     if (id != actorMerchantId) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能写入其他商家的商品");
-    return store.saveProduct(id, request);
+    try {
+      return store.saveProduct(id, request);
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    }
   }
 
   @PostMapping("/merchants/{id}/products/{productId}/toggle")
@@ -146,7 +150,12 @@ public class MerchantApi {
 
   @PostMapping("/merchants/{id}/deals")
   MerchantStore.GroupDeal saveDeal(@PathVariable long id, @RequestHeader("X-Merchant-Id") long actor, @RequestBody MerchantStore.DealRequest request) {
-    if (id != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能维护其他商家的套餐"); return store.saveDeal(id, request);
+    if (id != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能维护其他商家的套餐");
+    try {
+      return store.saveDeal(id, request);
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    }
   }
 
   @PostMapping("/merchants/{id}/deals/{dealId}/toggle")
@@ -162,4 +171,12 @@ public class MerchantApi {
   record ProfileRequest(String name) {}
   record ProvisionRequest(String name) {}
   record MessageRequest(String content) {}
+
+  private <T> T readResource(java.util.function.Supplier<T> operation) {
+    try {
+      return operation.get();
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage());
+    }
+  }
 }

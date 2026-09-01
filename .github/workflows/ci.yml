@@ -201,8 +201,10 @@ jobs:
           echo "MYSQL_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
       - name: Build and start the clean three-container stack
+        run: docker compose up --detach --build --wait
+
+      - name: Seed and backfill service-owned data
         run: |
-          docker compose up --detach --build --wait
           docker compose --profile db-tools run --rm db-seed
           docker compose --profile db-tools run --rm db-backfill-services
 
@@ -215,7 +217,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\")"' | grep -qx 7
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\")"' | grep -qx 9
 
       - name: Verify relational business persistence across backend restart
         shell: bash
@@ -261,6 +263,9 @@ jobs:
           curl --fail --silent --show-error \
             -H "Authorization: Bearer $token" \
             http://localhost:8080/api/v1/cart | grep -q '"productId":1001'
+
+      - name: Verify order-service payment idempotency against Compose MySQL
+        run: bash scripts/test-order-service-mysql-contract.sh
 
       - name: Export stack status and logs
         if: failure()
@@ -440,8 +445,10 @@ jobs:
       - name: Render Kustomize manifests
         run: kubectl kustomize k8s > "${RUNNER_TEMP}/lumalife-k8s.yaml"
 
-      - name: Verify deployment prefetch and timeout safeguards
-        run: bash scripts/test-deploy-k8s.sh
+      - name: Verify deployment and legacy migration safeguards
+        run: |
+          bash scripts/test-deploy-k8s.sh
+          bash scripts/test-legacy-migrations.sh
 
       - name: Upload rendered manifests
         uses: actions/upload-artifact@v4
@@ -462,7 +469,10 @@ jobs:
           path: |
             ecs-source-sha.txt
             scripts/deploy-k8s.sh
+            scripts/lib/legacy-migrations.sh
             k8s
+            database/backfill-services.sql
+            database/init
             database/migrations
           if-no-files-found: error
           retention-days: 7

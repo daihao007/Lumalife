@@ -6,9 +6,12 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ErrorResponse> business(BusinessException ex, HttpServletRequest request) {
     HttpStatus status = switch (ex.code()) {
@@ -33,6 +36,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> system(Exception ex, HttpServletRequest request) {
+    log.error("Unhandled request failure for {} {}", request.getMethod(), request.getRequestURI(), ex);
     String requestId = requestId(request);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header("X-Request-Id", requestId)
       .body(ErrorResponse.of(50000, "服务暂时不可用", requestId));

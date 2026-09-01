@@ -5,6 +5,8 @@ import type { Address, User } from "../types";
 
 export default function Profile({ user, setUser, setMessage }: { user: User; setUser: (value: User) => void; setMessage: (value: string) => void }) {
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [readingAvatar, setReadingAvatar] = useState(false);
   const emptyForm = { id: null as number | null, contactName: user.nickname, phone: user.phone, detail: "", defaultAddress: false };
   const [form, setForm] = useState(emptyForm);
   const [profile, setProfile] = useState({ nickname: user.nickname, avatarUrl: user.avatarUrl || "" });
@@ -23,9 +25,17 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
   }
 
   async function saveProfile() {
-    const next = await api<User>("/api/v1/user/profile", { method: "POST", body: JSON.stringify(profile) });
-    setUser(next);
-    setMessage("个人资料已更新");
+    setSavingProfile(true);
+    try {
+      const next = await api<User>("/api/v1/user/profile", { method: "POST", body: JSON.stringify(profile) });
+      setUser(next);
+      setProfile(current => ({ ...current, avatarUrl: next.avatarUrl || current.avatarUrl }));
+      setMessage("个人资料已更新");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "个人资料保存失败");
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
   async function makeDefault(id: number) {
@@ -54,9 +64,38 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
       setMessage("头像文件不能超过 2MB");
       return;
     }
+    setReadingAvatar(true);
     const reader = new FileReader();
-    reader.onload = () => setProfile(current => ({ ...current, avatarUrl: String(reader.result) }));
-    reader.onerror = () => setMessage("头像读取失败，请重试");
+    reader.onerror = () => {
+      setReadingAvatar(false);
+      setMessage("头像读取失败，请重新选择图片");
+    };
+    reader.onload = () => {
+      const source = String(reader.result || "");
+      const image = new Image();
+      image.onerror = () => {
+        setReadingAvatar(false);
+        setMessage("头像格式无法识别，请选择图片文件");
+      };
+      image.onload = () => {
+        const maxEdge = 512;
+        const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        if (!context) {
+          setReadingAvatar(false);
+          setMessage("当前浏览器无法处理头像图片");
+          return;
+        }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const compact = canvas.toDataURL("image/jpeg", 0.82);
+        setProfile(current => ({ ...current, avatarUrl: compact }));
+        setReadingAvatar(false);
+      };
+      image.src = source;
+    };
     reader.readAsDataURL(file);
   }
 
@@ -69,7 +108,7 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
           <input value={profile.nickname} onChange={e => setProfile({ ...profile, nickname: e.target.value })} placeholder="昵称" />
           <label className="upload-button"><Upload size={16} /> 选择头像<input type="file" accept="image/*" onChange={e => uploadAvatar(e.target.files?.[0])} /></label>
         </div>
-      <button data-testid="profile-save" className="primary" onClick={saveProfile}>保存资料</button>
+      <button data-testid="profile-save" className="primary" disabled={savingProfile || readingAvatar} onClick={saveProfile}>{savingProfile ? "保存中…" : "保存资料"}</button>
       </div>
       <h3>收货地址</h3>
       {addresses.map(a => <div className="line" key={a.id}><span><b>{a.contactName} · {a.phone}</b><small>{a.detail}</small></span><strong>{a.defaultAddress ? "默认" : ""}</strong><button onClick={() => edit(a)}>修改</button><button onClick={() => makeDefault(a.id)}>设默认</button><button onClick={() => remove(a.id)}>删除</button></div>)}

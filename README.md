@@ -126,7 +126,7 @@ docker compose --profile db-tools run --rm db-clean
 ```text
 LumaLife/
   backend/      Spring Boot API 服务
-  services/     identity、merchant、order 三个可独立部署的业务服务
+  services/     identity、merchant、order 三服务的独立构建、内部 API 与健康检查
   database/     MySQL 版本迁移、显式演示 seed、清理和验证脚本
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
   e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
@@ -137,7 +137,7 @@ LumaLife/
 
 ## 持续集成
 
-[![LumaLife CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
+[![Monolith CI](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/ci.yml)
 [![Deploy ECS K3s](https://github.com/daihao007/Lumalife/actions/workflows/deploy-ecs-k3s.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/deploy-ecs-k3s.yml)
 
 向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的五个应用镜像，并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查；该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。CI 全部成功后，ECS 自托管 Runner 会把同一版本自动部署到阿里云 ECS 的 k3s 集群，并执行集群内健康检查。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)、[Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md) 和 [ECS 自动部署配置](docs/26_ECS自动部署配置.md)。
@@ -145,16 +145,17 @@ LumaLife/
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
-- 后端 Controller 通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离领域边界；Compose/Kubernetes 默认将身份、目录、购物车、订单、支付、履约、收藏、客服和评价流量路由到三个独立服务，网关保留按边界回退开关。
-- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试、三个服务测试和前端测试；本轮实测后端 79 项、服务 15 项、前端 31 项全部通过，前端生产构建通过。真实 HTTP E2E 仍需在目标环境启动 MySQL/容器后执行。
-- MySQL Schema、V001～V007 版本迁移、演示 seed、回填、清理和关系表业务读写已落地，见 `docs/06_数据库设计.md` 和 [`微服务拆分实施与验收计划`](docs/27_微服务拆分实施与验收计划.md)；V007 提供头像容量升级、富订单兼容迁移和 Outbox 基础表。
+- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离。三项独立服务已提供 9/12/18 个内部业务接口，backend 仍保留兼容网关和未迁移能力的 `DemoStore` fallback；当前边界、数据归属和需求追溯见 [D07 服务接口、数据归属与需求追溯](docs/28_D07服务接口数据归属与需求追溯.md)。
+- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前实测 76 个后端测试（43 个业务规则测试 + 25 个接口集成测试 + 4 个服务边界契约测试 + 4 个数据库资产测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
+- MySQL Schema、V001～V009 版本迁移、演示 seed、清理机制和关系表业务读写已落地，见 `docs/06_数据库设计.md`；V004 及后续服务迁移为渐进切流后的 identity/merchant/order 服务提供自有表，V009 增加头像容量和 Outbox 基础表。CI 会直接检查购物车关系行，并在重启后端后通过 API 验证恢复结果。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
 - 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。
 - D03 服务边界落地、错误响应兼容和可运行契约样例见 `docs/17_D03服务边界落地记录.md`。
 - D05 中期全量测试报告与失败注入记录见 `docs/19_D05中期全量测试报告_2026-08-27.md`。
 - Issue #33 的中期检查入口（架构图、边界/接口/数据归属、故障策略、构建证据、风险与决策记录）见 `docs/19_D04C微服务边界接口与数据归属初稿.md`。
-- Issue #38 的历史骨架评审见 `docs/20_D05C微服务方案评审与拆分骨架.md`；当前落地状态、切流开关、数据回填和验收口径见 [`docs/27_微服务拆分实施与验收计划.md`](docs/27_微服务拆分实施与验收计划.md)。
+- Issue #38 的微服务方案评审、三服务独立构建/配置/健康检查骨架与回滚边界见 `docs/20_D05C微服务方案评审与拆分骨架.md`；当前仍由单体承接业务流量。
+- 本次微服务拆分的实施批次、数据回填、发布顺序、验收口径和回滚开关见 [微服务拆分实施与验收计划](docs/27_微服务拆分实施与验收计划.md)。
 
 ## 说明
 
-当前版本是课程演示版。本地直接运行默认保留单体兼容模式；Compose/Kubernetes 默认启用三个远程服务并使用 MySQL 关系表持久化。当前仍使用同一 MySQL 实例按表集合隔离所有权，后续可按不变的 HTTP 契约迁移到独立 schema/数据库。
+当前版本是从零搭建的课程演示版。本地直接运行默认使用文件状态，Compose/Kubernetes 默认使用 MySQL 关系表持久化。领域规则仍由单体聚合服务承接，因此 Kubernetes 后端暂时固定为单副本；完成按请求加载或细分 Service Repository 后再水平扩容。

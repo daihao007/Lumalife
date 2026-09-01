@@ -4,8 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 
 afterEach(() => {
-  localStorage.clear();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 describe("gateway API client", () => {
@@ -36,5 +37,15 @@ describe("gateway API client", () => {
   it("turns a non-envelope proxy failure into a safe error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("upstream unavailable", { status: 502 })));
     await expect(api("/api/v1/categories")).rejects.toThrow("网关请求失败（HTTP 502）");
+  });
+
+  it("turns an HTML 413 response into a readable upload error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>too large</html>", { status: 413, headers: { "Content-Type": "text/html" } })));
+    await expect(api("/api/v1/user/profile", { method: "POST" })).rejects.toThrow("请求内容过大，请压缩头像后重试");
+  });
+
+  it("preserves a JSON API error message", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 40000, message: "请求体格式错误" }), { status: 400, headers: { "Content-Type": "application/json" } })));
+    await expect(api("/api/v1/user/profile", { method: "POST" })).rejects.toThrow("请求体格式错误");
   });
 });
