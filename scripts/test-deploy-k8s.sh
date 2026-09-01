@@ -11,6 +11,8 @@ grep -q 'readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"' "${SCRIPT_P
 grep -q 'readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"' "${SCRIPT_PATH}"
 grep -q '^prefetch_images() {' "${SCRIPT_PATH}"
 grep -q '^apply_versioned_manifests() {' "${SCRIPT_PATH}"
+grep -Fq 's|value: main|value: ${IMAGE_TAG}|g' "${SCRIPT_PATH}"
+test "$(grep -c 'name: SERVICE_VERSION' k8s/services.yaml)" -eq 3
 grep -q '^source scripts/lib/legacy-migrations.sh$' "${SCRIPT_PATH}"
 grep -q '^readonly BACKFILL_PATH="database/backfill-services.sql"$' "${SCRIPT_PATH}"
 grep -q '^if \[\[ ! -f "\${BACKFILL_PATH}" \]\]; then$' "${SCRIPT_PATH}"

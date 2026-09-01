@@ -21,9 +21,9 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 
 | 服务 | 默认端口 | 环境变量 |
 |---|---:|---|
-| identity-service | 8081 | `LUMALIFE_IDENTITY_PORT` |
-| merchant-service | 8082 | `LUMALIFE_MERCHANT_PORT` |
-| order-service | 8083 | `LUMALIFE_ORDER_PORT` |
+| identity-service | 8081 | `LUMALIFE_IDENTITY_HTTP_PORT` |
+| merchant-service | 8082 | `LUMALIFE_MERCHANT_HTTP_PORT` |
+| order-service | 8083 | `LUMALIFE_ORDER_HTTP_PORT` |
 
 每个服务均提供：
 
