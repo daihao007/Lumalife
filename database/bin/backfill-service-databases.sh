@@ -92,10 +92,10 @@ FROM ${MYSQL_DATABASE}.chat_message
 ON DUPLICATE KEY UPDATE sender_role=VALUES(sender_role), sender_name=VALUES(sender_name), content=VALUES(content), created_at=VALUES(created_at);
 
 INSERT INTO ${MYSQL_ORDER_DATABASE}.order_record
-  (id, user_id, merchant_id, product_id, quantity, total_cent, status, created_at, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version)
-SELECT id, user_id, merchant_id, product_id, quantity, total_cent, status, created_at, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version
+  (id, user_id, merchant_id, merchant_name_snapshot, product_id, quantity, total_cent, status, created_at, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version)
+SELECT id, user_id, merchant_id, merchant_name_snapshot, product_id, quantity, total_cent, status, created_at, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version
 FROM ${MYSQL_DATABASE}.order_record
-ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), merchant_id=VALUES(merchant_id), product_id=VALUES(product_id), quantity=VALUES(quantity), total_cent=VALUES(total_cent), status=VALUES(status), order_type=VALUES(order_type), client_request_id=VALUES(client_request_id), coupon_code=VALUES(coupon_code), address_id=VALUES(address_id), address_snapshot=VALUES(address_snapshot), reviewed=VALUES(reviewed), version=VALUES(version);
+ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), merchant_id=VALUES(merchant_id), merchant_name_snapshot=VALUES(merchant_name_snapshot), product_id=VALUES(product_id), quantity=VALUES(quantity), total_cent=VALUES(total_cent), status=VALUES(status), order_type=VALUES(order_type), client_request_id=VALUES(client_request_id), coupon_code=VALUES(coupon_code), address_id=VALUES(address_id), address_snapshot=VALUES(address_snapshot), reviewed=VALUES(reviewed), version=VALUES(version);
 
 INSERT INTO ${MYSQL_ORDER_DATABASE}.service_cart_item (user_id, product_id, quantity, updated_at)
 SELECT user_id, product_id, quantity, updated_at FROM ${MYSQL_DATABASE}.service_cart_item

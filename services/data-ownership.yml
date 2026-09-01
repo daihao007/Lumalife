@@ -1,0 +1,60 @@
+version: 1
+description: >-
+  Runtime data ownership for the three business services. The legacy
+  life_assistant database is a read-only migration and rollback source while
+  the cutover is in progress; service code must not use it directly.
+
+legacyDatabase: life_assistant
+
+services:
+  identity-service:
+    database: life_assistant_identity
+    tables:
+      - user_account
+      - user_address
+      - auth_session
+    references:
+      - merchantId is an opaque reference; merchant-service owns merchant details
+
+  merchant-service:
+    database: life_assistant_merchant
+    tables:
+      - category
+      - merchant
+      - merchant_catalog
+      - group_deal
+      - merchant_favorite
+      - chat_message
+      - inventory_reservation
+      - inventory_reservation_item
+    references:
+      - userId is an opaque reference; identity-service owns user details
+      - orderId is an opaque reference; order-service owns order state
+
+  order-service:
+    database: life_assistant_order
+    tables:
+      - order_record
+      - service_order_line
+      - service_order_event
+      - service_cart_item
+      - service_payment
+      - service_coupon
+      - service_review
+    references:
+      - userId is an opaque reference; identity-service owns user details
+      - merchantId and itemId are opaque references; merchant-service owns catalog and stock
+
+communication:
+  - from: backend
+    to: identity-service
+    protocol: HTTP internal contract
+  - from: backend
+    to: merchant-service
+    protocol: HTTP internal contract
+  - from: backend
+    to: order-service
+    protocol: HTTP internal contract
+  - from: order-service
+    to: merchant-service
+    protocol: HTTP inventory reservation contract
