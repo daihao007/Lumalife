@@ -1101,18 +1101,6 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
     return userId + ":" + merchantId;
   }
 
-  public String askAssistant(String question) {
-    if (question.contains("评价")) return "只有已完成的外卖订单或已核销的团购订单可以评价，且一单只能评价一次。";
-    if (question.contains("支付")) return "当前系统为课程演示版模拟支付，支付接口使用 clientRequestId 保证幂等。";
-    if (question.contains("券")) return "团购支付成功后会生成 12 位券码，商家只能核销自己店铺的券码。";
-    return "我可以解答登录、下单、支付、评价、团购券核销和商家履约相关问题。";
-  }
-
-  @Override
-  public String assistantFallback(String question) {
-    return askAssistant(question == null ? "" : question);
-  }
-
   private Order ownedOrder(User user, long orderId) {
     Order order = orders.get(orderId);
     if (order == null || order.userId != user.id()) throw new BusinessException(40400, "订单不存在");

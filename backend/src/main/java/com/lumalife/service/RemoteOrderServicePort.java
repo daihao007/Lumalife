@@ -27,7 +27,7 @@ import com.lumalife.common.BusinessException;
 public class RemoteOrderServicePort {
   @Bean
   @Primary
-  OrderServicePort remoteOrderPort(DemoStore fallback, ObjectMapper mapper, RestClient.Builder builder,
+  OrderServicePort remoteOrderPort(ObjectMapper mapper, RestClient.Builder builder,
       @Value("${lumalife.services.order.base-url:http://localhost:8083}") String baseUrl,
       @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String merchantBaseUrl,
       @Value("${lumalife.services.identity.base-url:http://localhost:8081}") String identityBaseUrl,
@@ -146,11 +146,7 @@ public class RemoteOrderServicePort {
         Map row = client.post().uri("/internal/v1/orders/coupons/verify").header("X-Merchant-Id", String.valueOf(admin.merchantId())).body(Map.of("code", args[1])).retrieve().body(Map.class);
         return toOrder.apply(row);
       }
-      return method.invoke(fallback, args);
-      } catch (java.lang.reflect.InvocationTargetException error) {
-        Throwable cause = error.getCause();
-        if (cause instanceof RuntimeException runtime) throw runtime;
-        throw error;
+      throw new IllegalStateException("未实现远程订单能力: " + method.getName());
       } catch (RestClientResponseException error) {
         throw remoteError(error);
       } catch (RestClientException error) {

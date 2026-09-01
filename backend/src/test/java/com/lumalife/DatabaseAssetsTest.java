@@ -24,6 +24,8 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V009__microservice_durability_fixes.sql");
   private static final Path ORDER_MAIN_PAYMENT_PROJECTION_MIGRATION =
     Path.of("..", "database", "migrations", "V010__order_main_payment_projection.sql");
+  private static final Path ORDER_ADDRESS_SNAPSHOT_MIGRATION =
+    Path.of("..", "database", "migrations", "V011__order_address_snapshot.sql");
   private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
@@ -95,6 +97,16 @@ class DatabaseAssetsTest {
     assertThat(migration).contains("ADD COLUMN client_request_id");
     assertThat(migration).contains("ADD COLUMN coupon_code");
     assertThat(migration).contains("uq_order_main_client_request");
+  }
+
+  @Test
+  void orderAddressSnapshotMigrationAndBackfillPreserveDeliveryDestination() throws IOException {
+    String migration = Files.readString(ORDER_ADDRESS_SNAPSHOT_MIGRATION);
+    String backfill = Files.readString(SERVICE_BACKFILL);
+
+    assertThat(migration).contains("ALTER TABLE order_record");
+    assertThat(migration).contains("ADD COLUMN address_snapshot");
+    assertThat(backfill).contains("address_snapshot");
   }
 
   private String passwordHash(String sql, String phone) {

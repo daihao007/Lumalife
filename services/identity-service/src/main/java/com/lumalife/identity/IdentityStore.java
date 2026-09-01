@@ -37,6 +37,7 @@ public class IdentityStore {
                         boolean defaultAddress) {}
 
   private static final int TOKEN_DAYS = 30;
+  private static final int MAX_ADDRESSES = 5;
   private final PasswordEncoder passwordEncoder;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Path stateFile;
@@ -203,6 +204,7 @@ public class IdentityStore {
     if (jdbc != null) {
       List<Address> current = addresses(userId);
       if (id == null || id <= 0) {
+        if (current.size() >= MAX_ADDRESSES) throw new IdentityException(400, "最多保存 5 个地址");
         boolean makeDefault = defaultAddress || current.isEmpty();
         if (makeDefault) jdbc.update("UPDATE user_address SET is_default=0 WHERE user_id=? AND is_deleted=0", userId);
         jdbc.update("INSERT INTO user_address(user_id,contact_name,phone,detail,is_default) VALUES (?,?,?,?,?)",
@@ -217,6 +219,12 @@ public class IdentityStore {
       return addresses(userId).stream().filter(address -> address.id() == id).findFirst().orElseThrow();
     }
     List<Address> list = addresses.computeIfAbsent(userId, ignored -> new ArrayList<>());
+    if (id != null && id > 0 && list.stream().noneMatch(item -> item.id() == id)) {
+      throw new IdentityException(404, "地址不存在");
+    }
+    if ((id == null || id <= 0) && list.size() >= MAX_ADDRESSES) {
+      throw new IdentityException(400, "最多保存 5 个地址");
+    }
     long addressId = id == null || id <= 0 ? ids.incrementAndGet() : id;
     if (defaultAddress || list.isEmpty()) list.replaceAll(a -> new Address(a.id(), a.userId(), a.contactName(), a.phone(), a.detail(), false));
     Address address = new Address(addressId, userId, contactName.trim(), phone.trim(), detail.trim(), defaultAddress || list.isEmpty());

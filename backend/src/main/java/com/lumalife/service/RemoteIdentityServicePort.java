@@ -31,19 +31,17 @@ import org.springframework.web.client.RestClientResponseException;
 @Service("identityService")
 @ConditionalOnProperty(prefix = "lumalife.migration.identity", name = "enabled", havingValue = "true")
 public class RemoteIdentityServicePort implements IdentityServicePort, HealthIndicator {
-  private final DemoStore fallback;
   private final RestClient client;
   private final ObjectMapper objectMapper;
   private final String serviceToken;
   private final boolean backfillCompleted;
   private final RestClient merchantClient;
 
-  public RemoteIdentityServicePort(DemoStore fallback, RestClient.Builder builder, ObjectMapper objectMapper,
+  public RemoteIdentityServicePort(RestClient.Builder builder, ObjectMapper objectMapper,
                                    @Value("${lumalife.services.identity.base-url:http://localhost:8081}") String baseUrl,
                                    @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String merchantBaseUrl,
                                    @Value("${lumalife.internal.service-token:}") String serviceToken,
                                    @Value("${lumalife.migration.identity.backfill-completed:false}") boolean backfillCompleted) {
-    this.fallback = fallback;
     JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
     requestFactory.setReadTimeout(Duration.ofSeconds(2));
@@ -112,7 +110,16 @@ public class RemoteIdentityServicePort implements IdentityServicePort, HealthInd
     }
   }
 
-  @Override public Map<String, Object> safeUser(User user) { return fallback.safeUser(user); }
+  @Override public Map<String, Object> safeUser(User user) {
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("id", user.id());
+    data.put("phone", user.phone());
+    data.put("nickname", user.nickname());
+    data.put("avatarUrl", user.avatarUrl());
+    data.put("role", user.role());
+    data.put("merchantId", user.merchantId());
+    return data;
+  }
 
   @Override public Map<String, Object> updateProfile(User user, String nickname, String avatarUrl) {
     Map<String, Object> body = new LinkedHashMap<>();

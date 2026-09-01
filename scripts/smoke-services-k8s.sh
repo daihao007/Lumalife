@@ -54,6 +54,9 @@ diagnostics() {
   for service in "${SERVICES[@]}"; do
     kubectl -n "${NAMESPACE}" describe deployment "${service}" || true
     kubectl -n "${NAMESPACE}" get pods -l "app.kubernetes.io/name=${service}" -o wide || true
+    kubectl -n "${NAMESPACE}" describe pods -l "app.kubernetes.io/name=${service}" || true
+    kubectl -n "${NAMESPACE}" logs deployment/"${service}" --all-containers --tail=200 || true
+    kubectl -n "${NAMESPACE}" logs deployment/"${service}" --all-containers --previous --tail=200 || true
   done
   echo "::endgroup::"
 }
