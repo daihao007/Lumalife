@@ -14,6 +14,8 @@ lumalife:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
 management:
   endpoint:
+    info:
+      enabled: true
     health:
       probes:
         enabled: true
@@ -32,5 +34,7 @@ management:
 info:
   service:
     name: merchant-service
-    version: ${SERVICE_VERSION:0.1.0}
+    version: ${SERVICE_VERSION:dev}
     contract-version: v1
+  git:
+    commit: ${GIT_COMMIT:unknown}

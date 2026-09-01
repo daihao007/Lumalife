@@ -3,6 +3,7 @@ package com.lumalife.security;
 import com.lumalife.domain.Enums.UserRole;
 import com.lumalife.domain.Models.User;
 import com.lumalife.common.ErrorResponse;
+import com.lumalife.observability.RequestObservabilityFilter;
 import com.lumalife.service.boundary.IdentityServicePort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -48,7 +49,8 @@ public class SecurityConfig {
 
   private void writeError(HttpServletResponse response, HttpServletRequest request, int status,
                           String message, String reason) throws IOException {
-    String requestId = request.getHeader("X-Request-Id");
+    Object correlatedId = request.getAttribute(RequestObservabilityFilter.REQUEST_ID_ATTRIBUTE);
+    String requestId = correlatedId == null ? request.getHeader("X-Request-Id") : correlatedId.toString();
     if (requestId == null || requestId.isBlank()) requestId = java.util.UUID.randomUUID().toString();
     response.setStatus(status);
     response.setContentType("application/json;charset=UTF-8");

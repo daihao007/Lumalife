@@ -23,9 +23,15 @@ services:
       retries: 20
       start_period: 30s
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     restart: unless-stopped
     environment:
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod},remote
       LUMALIFE_PERSISTENCE: mysql
       MYSQL_HOST: mysql
@@ -55,7 +61,7 @@ services:
       identity-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health/readiness"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -64,8 +70,14 @@ services:
     build:
       context: ./services
       dockerfile: identity-service/Dockerfile
+      args:
+        SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     environment:
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
       SPRING_PROFILES_ACTIVE: prod
+      LUMALIFE_IDENTITY_STATE_FILE: /app/data/identity-state.json
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -78,7 +90,7 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/actuator/health/readiness"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -86,7 +98,12 @@ services:
     build:
       context: ./services
       dockerfile: merchant-service/Dockerfile
+      args:
+        SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     environment:
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
       SPRING_PROFILES_ACTIVE: prod
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
       MYSQL_HOST: mysql
@@ -100,7 +117,7 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/actuator/health/readiness"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -108,7 +125,12 @@ services:
     build:
       context: ./services
       dockerfile: order-service/Dockerfile
+      args:
+        SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     environment:
+      SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
       SPRING_PROFILES_ACTIVE: prod
       LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
       MYSQL_HOST: mysql
@@ -123,12 +145,16 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8083/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8083/actuator/health/readiness"]
       interval: 5s
       timeout: 5s
       retries: 20
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        SERVICE_VERSION: ${SERVICE_VERSION:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     restart: unless-stopped
     ports:
       - "5173:8080"

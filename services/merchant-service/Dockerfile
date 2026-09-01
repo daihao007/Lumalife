@@ -6,9 +6,12 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -ntp -pl merchant-service -am -DskipTests package
 
 FROM eclipse-temurin:17-jre
-ARG SERVICE_VERSION=0.1.0
+ARG SERVICE_VERSION=dev
+ARG GIT_COMMIT=unknown
 LABEL org.opencontainers.image.title="LumaLife Merchant Service" \
-      org.opencontainers.image.version="${SERVICE_VERSION}"
+      org.opencontainers.image.version="${SERVICE_VERSION}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.source="https://github.com/daihao007/Lumalife"
 WORKDIR /app
 RUN useradd --system --uid 10001 --create-home lumalife
 COPY --from=build /src/merchant-service/target/merchant-service-*.jar app.jar

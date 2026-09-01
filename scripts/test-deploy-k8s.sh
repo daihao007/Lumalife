@@ -4,6 +4,7 @@ set -Eeuo pipefail
 readonly SCRIPT_PATH="${1:-scripts/deploy-k8s.sh}"
 
 bash -n "${SCRIPT_PATH}"
+bash -n scripts/test-deployment-observability-k8s.sh
 test -f scripts/lib/legacy-migrations.sh
 test -f database/backfill-services.sql
 test -f database/bin/provision-service-databases.sh
@@ -13,6 +14,29 @@ grep -q 'readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"' "${SCRIPT_P
 grep -q 'readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"' "${SCRIPT_PATH}"
 grep -q '^prefetch_images() {' "${SCRIPT_PATH}"
 grep -q '^apply_versioned_manifests() {' "${SCRIPT_PATH}"
+grep -q 'app.kubernetes.io/version: main' k8s/services.yaml
+grep -q 'app.kubernetes.io/version: \${IMAGE_TAG}' "${SCRIPT_PATH}"
+grep -q 'EXPECTED_VERSION=\${IMAGE_TAG}' "${SCRIPT_PATH}"
+grep -q 'EXPECTED_SHA=\${SOURCE_SHA}' "${SCRIPT_PATH}"
+grep -q 'check_java_service identity-service 8081' "${SCRIPT_PATH}"
+grep -q 'check_java_service merchant-service 8082' "${SCRIPT_PATH}"
+grep -q 'check_java_service order-service 8083' "${SCRIPT_PATH}"
+grep -q 'frontend/version.json' "${SCRIPT_PATH}"
+grep -q 'Refusing failure injection outside a disposable Kind cluster' scripts/test-deployment-observability-k8s.sh
+grep -q '^restore_good_image() {' scripts/test-deployment-observability-k8s.sh
+grep -Fq 'set image "deployment/${SERVICE}" "${CONTAINER}=${good_image}"' scripts/test-deployment-observability-k8s.sh
+if grep -q 'rollout undo' scripts/test-deployment-observability-k8s.sh; then
+  echo "Failure recovery must restore the known-good image explicitly." >&2
+  exit 1
+fi
+
+test "$(grep -c 'path: /actuator/health/liveness' k8s/services.yaml)" -eq 6
+test "$(grep -c 'path: /actuator/health/readiness' k8s/services.yaml)" -eq 3
+test "$(grep -c 'app.kubernetes.io/version: main' k8s/services.yaml)" -eq 9
+
+rendered="$(kubectl kustomize k8s)"
+test "$(grep -c 'kind: Deployment' <<<"${rendered}")" -eq 5
+test "$(grep -c 'app.kubernetes.io/version: main' <<<"${rendered}")" -eq 15
 grep -Fq 's|value: main|value: ${IMAGE_TAG}|g' "${SCRIPT_PATH}"
 test "$(grep -c 'name: SERVICE_VERSION' k8s/services.yaml)" -eq 3
 grep -q '^source scripts/lib/legacy-migrations.sh$' "${SCRIPT_PATH}"

@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: lumalife-frontend
     app.kubernetes.io/part-of: lumalife
+    app.kubernetes.io/version: main
 spec:
   selector:
     app.kubernetes.io/name: lumalife-frontend
@@ -22,6 +23,7 @@ metadata:
   labels:
     app.kubernetes.io/name: lumalife-frontend
     app.kubernetes.io/part-of: lumalife
+    app.kubernetes.io/version: main
 spec:
   replicas: 2
   revisionHistoryLimit: 3
@@ -38,6 +40,7 @@ spec:
       labels:
         app.kubernetes.io/name: lumalife-frontend
         app.kubernetes.io/part-of: lumalife
+        app.kubernetes.io/version: main
     spec:
       securityContext:
         runAsNonRoot: true

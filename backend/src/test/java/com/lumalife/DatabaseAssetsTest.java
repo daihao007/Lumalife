@@ -107,7 +107,8 @@ class DatabaseAssetsTest {
     String backfill = Files.readString(SERVICE_BACKFILL);
 
     assertThat(migration).contains("ALTER TABLE order_record");
-    assertThat(migration).contains("ADD COLUMN address_snapshot");
+    assertThat(migration).contains("information_schema.columns");
+    assertThat(migration).contains("PREPARE lumalife_address_snapshot_stmt");
     assertThat(backfill).contains("address_snapshot");
   }
 

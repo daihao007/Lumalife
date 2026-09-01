@@ -1,5 +1,6 @@
 package com.lumalife.common;
 
+import com.lumalife.observability.RequestObservabilityFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -37,14 +38,20 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> system(Exception ex, HttpServletRequest request) {
-    log.error("Unhandled request failure for {} {}", request.getMethod(), request.getRequestURI(), ex);
     String requestId = requestId(request);
+    log.atError()
+      .addKeyValue("errorClass", ex.getClass().getName())
+      .addKeyValue("method", request.getMethod())
+      .addKeyValue("path", request.getRequestURI())
+      .setCause(ex)
+      .log("Unhandled request failure");
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header("X-Request-Id", requestId)
       .body(ErrorResponse.of(50000, "服务暂时不可用", requestId));
   }
 
   private String requestId(HttpServletRequest request) {
-    String requestId = request.getHeader("X-Request-Id");
+    Object correlatedId = request.getAttribute(RequestObservabilityFilter.REQUEST_ID_ATTRIBUTE);
+    String requestId = correlatedId == null ? request.getHeader("X-Request-Id") : correlatedId.toString();
     return requestId == null || requestId.isBlank() ? java.util.UUID.randomUUID().toString() : requestId;
   }
 }

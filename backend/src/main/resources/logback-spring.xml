@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <springProperty scope="context" name="serviceName" source="spring.application.name" defaultValue="unknown-service"/>
+  <springProperty scope="context" name="serviceVersion" source="info.service.version" defaultValue="dev"/>
+  <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <customFields>{"service":"${serviceName}","version":"${serviceVersion}"}</customFields>
+      <includeContext>false</includeContext>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="JSON_CONSOLE"/>
+  </root>
+</configuration>

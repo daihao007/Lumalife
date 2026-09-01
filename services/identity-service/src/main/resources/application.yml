@@ -5,6 +5,11 @@ server:
 spring:
   application:
     name: identity-service
+  # Standalone and Kind smoke deployments use the file-backed identity store.
+  # Production enables the JDBC datasource from application-prod.yml.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
@@ -12,6 +17,8 @@ lumalife:
     state-file: ${LUMALIFE_IDENTITY_STATE_FILE:./data/identity-state.json}
 management:
   endpoint:
+    info:
+      enabled: true
     health:
       probes:
         enabled: true
@@ -19,7 +26,7 @@ management:
         liveness:
           include: livenessState
         readiness:
-          include: readinessState
+          include: readinessState,identityState
   endpoints:
     web:
       exposure:
@@ -30,5 +37,7 @@ management:
 info:
   service:
     name: identity-service
-    version: ${SERVICE_VERSION:0.1.0}
+    version: ${SERVICE_VERSION:dev}
     contract-version: v1
+  git:
+    commit: ${GIT_COMMIT:unknown}

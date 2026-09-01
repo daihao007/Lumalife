@@ -30,5 +30,7 @@ management:
 info:
   service:
     name: order-service
-    version: ${SERVICE_VERSION:0.1.0}
+    version: ${SERVICE_VERSION:dev}
     contract-version: v1
+  git:
+    commit: ${GIT_COMMIT:unknown}
