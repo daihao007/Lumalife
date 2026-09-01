@@ -158,6 +158,8 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V006__order_domain_state_and_indexes.sql=database/migrations/V006__order_domain_state_and_indexes.sql \
   --from-file=V007__service_payment_global_idempotency.sql=database/migrations/V007__service_payment_global_idempotency.sql \
   --from-file=V008__service_order_lines.sql=database/migrations/V008__service_order_lines.sql \
+  --from-file=V009__microservice_durability_fixes.sql=database/migrations/V009__microservice_durability_fixes.sql \
+  --from-file=V010__order_main_payment_projection.sql=database/migrations/V010__order_main_payment_projection.sql \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images
@@ -224,6 +226,10 @@ kubectl -n "${NAMESPACE}" run "${healthcheck_name}" \
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/healthz | grep -q "^ok$"
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/version.json | grep -q "\"version\":\"${EXPECTED_VERSION}\""
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/version.json | grep -q "\"gitCommit\":\"${EXPECTED_SHA}\""
+    curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/actuator/health/readiness | grep -q "\"status\":\"UP\""
+    # The disposable cluster deliberately has no demo-data seed. Backend
+    # readiness includes the identity dependency, so a fixed demo login would
+    # make a healthy deployment fail with 401 for the wrong reason.
   '
 
 kubectl -n "${NAMESPACE}" get deployments -o custom-columns='NAME:.metadata.name,VERSION:.metadata.labels.app\.kubernetes\.io/version,IMAGE:.spec.template.spec.containers[*].image,READY:.status.readyReplicas'

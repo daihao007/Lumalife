@@ -203,6 +203,11 @@ jobs:
       - name: Build and start the clean three-container stack
         run: docker compose up --detach --build --wait
 
+      - name: Seed and backfill service-owned data
+        run: |
+          docker compose --profile db-tools run --rm db-seed
+          docker compose --profile db-tools run --rm db-backfill-services
+
       - name: Verify container count, health and automatic database initialization
         shell: bash
         run: |
@@ -212,7 +217,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\")"' | grep -qx 8
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\")"' | grep -qx 10
 
       - name: Verify relational business persistence across backend restart
         shell: bash

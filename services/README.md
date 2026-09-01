@@ -1,6 +1,6 @@
 # 三服务拆分与渐进迁移
 
-该目录承载 `identity-service`、`merchant-service`、`order-service` 三个独立 Spring Boot 入口。当前可运行的内部业务接口分别为 9、12、18 个：identity 负责账户/资料/地址，merchant 负责商家/商品/团购，order 负责购物车/订单详情/支付/履约/券码/评价。backend 仍提供 `/api/v1/**` 兼容入口；当前是共享 MySQL 上的逻辑服务表隔离，不是三个独立数据库。
+该目录承载 `identity-service`、`merchant-service`、`order-service` 三个独立 Spring Boot 入口。当前可运行的内部业务接口分别为 9、12、18 个：identity 负责账户/资料/地址，merchant 负责商家/商品/团购，order 负责购物车/订单详情/支付/履约/券码/评价。三项服务在生产配置下使用 MySQL 自有表，backend 仍提供 `/api/v1/**` 兼容入口；当前是共享 MySQL 实例上的逻辑服务表隔离，不是三个独立数据库。
 
 ## 构建与启动
 

@@ -13,6 +13,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -230,9 +231,18 @@ class OrderServiceBusinessTest {
     assertThat(merchantReviews).anySatisfy(item -> assertThat(item.orderId()).isEqualTo(deliveryOrder.id()));
   }
 
+  @Test
+  void exposesMerchantReviewProjectionAtTheFrozenInternalPath() {
+    ResponseEntity<OrderStore.Review[]> response = http.exchange("/internal/v1/merchants/1/reviews", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), OrderStore.Review[].class);
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody()).isNotNull();
+  }
+
   private HttpHeaders serviceHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Luma-Service-Token", "test-internal-token");
+    headers.setContentType(MediaType.APPLICATION_JSON);
     return headers;
   }
 }

@@ -20,6 +20,7 @@ public class GlobalExceptionHandler {
       case 40100 -> HttpStatus.UNAUTHORIZED;
       case 40300 -> HttpStatus.FORBIDDEN;
       case 40400 -> HttpStatus.NOT_FOUND;
+      case 50300 -> HttpStatus.SERVICE_UNAVAILABLE;
       default -> HttpStatus.CONFLICT;
     };
     String requestId = requestId(request);

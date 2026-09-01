@@ -103,6 +103,16 @@ class MerchantServiceBusinessTest {
     }
   }
 
+  @Test
+  void supportsMerchantProvisioningAndProductNameSearch() {
+    MerchantStore.Merchant provisioned = http.postForObject("/internal/v1/merchants/provision",
+      new HttpEntity<>(java.util.Map.of("name", "新店铺"), serviceHeaders()), MerchantStore.Merchant.class);
+    assertThat(provisioned.id()).isGreaterThan(3000);
+    MerchantStore.Merchant[] matches = http.exchange("/internal/v1/merchants?keyword=毛血旺", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), MerchantStore.Merchant[].class).getBody();
+    assertThat(matches).extracting(MerchantStore.Merchant::id).contains(1L);
+  }
+
   private HttpHeaders serviceHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Luma-Service-Token", "test-internal-token");

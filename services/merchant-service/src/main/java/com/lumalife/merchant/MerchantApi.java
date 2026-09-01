@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,10 +20,13 @@ public class MerchantApi {
   private final MerchantStore store;
   public MerchantApi(MerchantStore store) { this.store = store; }
 
+  @GetMapping("/categories")
+  List<java.util.Map<String, Object>> categories() { return store.categories(); }
+
   @GetMapping("/merchants")
   List<MerchantStore.Merchant> merchants(@RequestParam(required = false) String keyword,
                                          @RequestParam(required = false) Long categoryId,
-                                         @RequestParam(defaultValue = "recommend") String sort,
+                                         @RequestParam(required = false) String sort,
                                          @RequestParam(required = false) Integer minPrice,
                                          @RequestParam(required = false) Integer maxPrice,
                                          @RequestParam(required = false) Double minScore) {
@@ -32,8 +36,84 @@ public class MerchantApi {
   @GetMapping("/merchants/{id}")
   MerchantStore.Merchant merchant(@PathVariable long id) { return readResource(() -> store.merchant(id)); }
 
+  @PostMapping("/merchants/provision")
+  MerchantStore.Merchant provision(@RequestBody ProvisionRequest request) { return store.provision(request.name()); }
+
+  @GetMapping("/merchants/{id}/profile")
+  java.util.Map<String, Object> profile(@PathVariable long id) { return store.profile(id); }
+
+  @PutMapping("/merchants/{id}/profile")
+  java.util.Map<String, Object> updateProfile(@PathVariable long id, @RequestHeader("X-Merchant-Id") long actor,
+                                               @RequestBody ProfileRequest request) {
+    if (id != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能修改其他商家的资料");
+    return store.profile(store.updateName(id, request.name()).id());
+  }
+
+  @GetMapping("/users/{userId}/favorites")
+  List<Long> favorites(@PathVariable long userId, @RequestHeader("X-User-Id") long actor) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他用户的收藏");
+    return store.favorites(userId);
+  }
+
+  @GetMapping("/users/{userId}/favorite-merchants")
+  List<java.util.Map<String, Object>> favoriteMerchants(@PathVariable long userId, @RequestHeader("X-User-Id") long actor) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他用户的收藏");
+    return store.favoriteMerchants(userId);
+  }
+
+  @PostMapping("/users/{userId}/favorites/{merchantId}")
+  void addFavorite(@PathVariable long userId, @PathVariable long merchantId, @RequestHeader("X-User-Id") long actor) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能操作其他用户的收藏");
+    store.addFavorite(userId, merchantId);
+  }
+
+  @DeleteMapping("/users/{userId}/favorites/{merchantId}")
+  void removeFavorite(@PathVariable long userId, @PathVariable long merchantId, @RequestHeader("X-User-Id") long actor) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能操作其他用户的收藏");
+    store.removeFavorite(userId, merchantId);
+  }
+
+  @GetMapping("/users/{userId}/conversations")
+  List<java.util.Map<String, Object>> userConversations(@PathVariable long userId, @RequestHeader("X-User-Id") long actor) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他用户的会话");
+    return store.conversationSummaries(userId, null, true);
+  }
+
+  @GetMapping("/users/{userId}/conversations/{merchantId}")
+  List<MerchantStore.ChatMessage> userConversation(@PathVariable long userId, @PathVariable long merchantId, @RequestHeader("X-User-Id") long actor) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他用户的会话");
+    return store.conversation(userId, merchantId);
+  }
+
+  @PostMapping("/users/{userId}/conversations/{merchantId}/messages")
+  List<MerchantStore.ChatMessage> userMessage(@PathVariable long userId, @PathVariable long merchantId, @RequestHeader("X-User-Id") long actor, @RequestBody MessageRequest request) {
+    if (userId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能操作其他用户的会话");
+    return store.sendUserMessage(userId, merchantId, request.content(), null);
+  }
+
+  @GetMapping("/merchants/{merchantId}/conversations")
+  List<java.util.Map<String, Object>> merchantConversations(@PathVariable long merchantId, @RequestHeader("X-Merchant-Id") long actor) {
+    if (merchantId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他商家的会话");
+    return store.conversationSummaries(0, merchantId, false);
+  }
+
+  @GetMapping("/merchants/{merchantId}/conversations/{userId}")
+  List<MerchantStore.ChatMessage> merchantConversation(@PathVariable long merchantId, @PathVariable long userId, @RequestHeader("X-Merchant-Id") long actor) {
+    if (merchantId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他商家的会话");
+    return store.conversation(userId, merchantId);
+  }
+
+  @PostMapping("/merchants/{merchantId}/conversations/{userId}/messages")
+  List<MerchantStore.ChatMessage> merchantMessage(@PathVariable long merchantId, @PathVariable long userId, @RequestHeader("X-Merchant-Id") long actor, @RequestBody MessageRequest request) {
+    if (merchantId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能操作其他商家的会话");
+    return store.sendMerchantMessage(merchantId, userId, request.content(), "商家客服");
+  }
+
   @GetMapping("/merchants/{id}/products")
-  List<MerchantStore.Product> products(@PathVariable long id) { return readResource(() -> store.products(id)); }
+  List<MerchantStore.Product> products(@PathVariable long id,
+                                       @RequestParam(defaultValue = "false") boolean listedOnly) {
+    return readResource(() -> store.products(id, listedOnly));
+  }
 
   @GetMapping("/deals/{id}")
   MerchantStore.GroupDeal deal(@PathVariable long id) { return readResource(() -> store.deal(id)); }
@@ -63,7 +143,10 @@ public class MerchantApi {
   }
 
   @GetMapping("/merchants/{id}/deals")
-  List<MerchantStore.GroupDeal> deals(@PathVariable long id) { return store.deals(id); }
+  List<MerchantStore.GroupDeal> deals(@PathVariable long id,
+                                      @RequestParam(defaultValue = "false") boolean activeOnly) {
+    return store.deals(id, activeOnly);
+  }
 
   @PostMapping("/merchants/{id}/deals")
   MerchantStore.GroupDeal saveDeal(@PathVariable long id, @RequestHeader("X-Merchant-Id") long actor, @RequestBody MerchantStore.DealRequest request) {
@@ -84,6 +167,10 @@ public class MerchantApi {
   void deleteDeal(@PathVariable long id, @PathVariable long dealId, @RequestHeader("X-Merchant-Id") long actor) {
     if (id != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能维护其他商家的套餐"); store.deleteDeal(id, dealId);
   }
+
+  record ProfileRequest(String name) {}
+  record ProvisionRequest(String name) {}
+  record MessageRequest(String content) {}
 
   private <T> T readResource(java.util.function.Supplier<T> operation) {
     try {

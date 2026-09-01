@@ -12,10 +12,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -23,24 +28,47 @@ import org.springframework.web.client.RestClientResponseException;
 
 /** HTTP adapter for identity, enabled only after the explicit backfill gate is complete. */
 @Primary
-@Service
+@Service("identityService")
 @ConditionalOnProperty(prefix = "lumalife.migration.identity", name = "enabled", havingValue = "true")
-public class RemoteIdentityServicePort implements IdentityServicePort {
+public class RemoteIdentityServicePort implements IdentityServicePort, HealthIndicator {
   private final DemoStore fallback;
   private final RestClient client;
   private final ObjectMapper objectMapper;
   private final String serviceToken;
   private final boolean backfillCompleted;
+  private final RestClient merchantClient;
 
   public RemoteIdentityServicePort(DemoStore fallback, RestClient.Builder builder, ObjectMapper objectMapper,
                                    @Value("${lumalife.services.identity.base-url:http://localhost:8081}") String baseUrl,
+                                   @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String merchantBaseUrl,
                                    @Value("${lumalife.internal.service-token:}") String serviceToken,
                                    @Value("${lumalife.migration.identity.backfill-completed:false}") boolean backfillCompleted) {
     this.fallback = fallback;
-    this.client = builder.baseUrl(baseUrl).build();
+    JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
+    requestFactory.setReadTimeout(Duration.ofSeconds(2));
+    this.client = builder.requestFactory(requestFactory).baseUrl(baseUrl).build();
+    this.merchantClient = builder.baseUrl(merchantBaseUrl).build();
     this.objectMapper = objectMapper;
     this.serviceToken = serviceToken == null ? "" : serviceToken;
     this.backfillCompleted = backfillCompleted;
+  }
+
+  @Override
+  public Health health() {
+    if (!backfillCompleted) {
+      return Health.down().withDetail("reason", "IDENTITY_BACKFILL_REQUIRED").build();
+    }
+    try {
+      Map<String, Object> response = client.get().uri("/actuator/health").retrieve()
+        .body(new ParameterizedTypeReference<>() {});
+      if (response != null && "UP".equalsIgnoreCase(String.valueOf(response.get("status")))) {
+        return Health.up().build();
+      }
+      return Health.down().withDetail("reason", "IDENTITY_SERVICE_UNAVAILABLE").build();
+    } catch (RestClientException error) {
+      return Health.down().withDetail("reason", "IDENTITY_SERVICE_UNAVAILABLE").build();
+    }
   }
 
   @Override public Optional<User> userByToken(String token) {
@@ -66,7 +94,22 @@ public class RemoteIdentityServicePort implements IdentityServicePort {
   }
 
   @Override public Map<String, Object> registerMerchant(String phone, String password, String nickname) {
-    return post("/internal/v1/auth/register", Map.of("phone", phone, "password", password, "nickname", nickname, "role", "MERCHANT_ADMIN"));
+    Map<String, Object> registered = new LinkedHashMap<>(post("/internal/v1/auth/register", Map.of("phone", phone, "password", password, "nickname", nickname, "role", "MERCHANT_ADMIN")));
+    Map<?, ?> registeredUser = registered.get("user") instanceof Map<?, ?> user ? user : Map.of();
+    long userId = number(registeredUser.get("id"));
+    String merchantName = nickname == null || nickname.isBlank() ? "新商家" : nickname.trim();
+    try {
+      Map<String, Object> merchant = merchantClient.post().uri("/internal/v1/merchants/provision")
+        .header("X-Luma-Service-Token", serviceToken).body(Map.of("name", merchantName)).retrieve().body(Map.class);
+      long merchantId = number(merchant == null ? null : merchant.get("id"));
+      Map<String, Object> boundUser = put("/internal/v1/users/{id}/merchant", Map.of("merchantId", merchantId), userId);
+      registered.put("user", boundUser);
+      return registered;
+    } catch (RestClientResponseException error) {
+      throw remoteError(error);
+    } catch (RestClientException error) {
+      throw new BusinessException(50300, "商家资料服务暂时不可用", "MERCHANT_SERVICE_UNAVAILABLE");
+    }
   }
 
   @Override public Map<String, Object> safeUser(User user) { return fallback.safeUser(user); }

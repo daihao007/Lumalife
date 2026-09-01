@@ -29,7 +29,7 @@ services:
     environment:
       SERVICE_VERSION: ${SERVICE_VERSION:-dev}
       GIT_COMMIT: ${GIT_COMMIT:-unknown}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod},remote
       LUMALIFE_PERSISTENCE: mysql
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -73,12 +73,19 @@ services:
     environment:
       SERVICE_VERSION: ${SERVICE_VERSION:-dev}
       GIT_COMMIT: ${GIT_COMMIT:-unknown}
-      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      SPRING_PROFILES_ACTIVE: prod
       LUMALIFE_IDENTITY_STATE_FILE: /app/data/identity-state.json
-    volumes:
-      - identity_data:/app/data
+      LUMALIFE_INTERNAL_SERVICE_TOKEN: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     ports:
       - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/actuator/health/readiness"]
       interval: 5s
@@ -103,6 +110,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     ports:
       - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/actuator/health/readiness"]
       interval: 5s
@@ -222,4 +232,3 @@ services:
 
 volumes:
   mysql_data:
-  identity_data:
