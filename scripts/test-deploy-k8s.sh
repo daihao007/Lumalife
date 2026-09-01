@@ -61,6 +61,8 @@ grep -q 'kind: HorizontalPodAutoscaler' k8s/hpa.yaml
 grep -q 'name: backend' k8s/hpa.yaml
 grep -q 'averageUtilization: 60' k8s/hpa.yaml
 grep -q '^  - hpa.yaml$' k8s/kustomization.yaml
+grep -q 'startupProbe:' k8s/rabbitmq.yaml
+grep -q 'timeoutSeconds: 5' k8s/rabbitmq.yaml
 
 prefetch_call_line="$(grep -n '^prefetch_images$' "${SCRIPT_PATH}" | cut -d: -f1)"
 apply_call_line="$(grep -n '^apply_versioned_manifests$' "${SCRIPT_PATH}" | cut -d: -f1)"

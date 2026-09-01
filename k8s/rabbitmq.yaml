@@ -49,15 +49,23 @@ spec:
               containerPort: 5672
             - name: management
               containerPort: 15672
+          startupProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             exec:
               command: ["rabbitmq-diagnostics", "-q", "ping"]
             periodSeconds: 5
+            timeoutSeconds: 5
             failureThreshold: 12
           livenessProbe:
             exec:
               command: ["rabbitmq-diagnostics", "-q", "ping"]
             periodSeconds: 10
+            timeoutSeconds: 5
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: "1", memory: 512Mi}
