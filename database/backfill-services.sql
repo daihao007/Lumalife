@@ -12,14 +12,14 @@ FROM (
 ) source
 ON DUPLICATE KEY UPDATE item_id=VALUES(item_id), item_name=VALUES(item_name), quantity=VALUES(quantity), price_cent=VALUES(price_cent);
 
-INSERT INTO order_record (id, user_id, merchant_id, product_id, quantity, total_cent, status, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version, created_at)
-SELECT o.id, o.user_id, o.merchant_id, MIN(oi.item_id), SUM(oi.quantity), o.total_cent, o.status, o.order_type,
+INSERT INTO order_record (id, user_id, merchant_id, merchant_name_snapshot, product_id, quantity, total_cent, status, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version, created_at)
+SELECT o.id, o.user_id, o.merchant_id, o.merchant_name_snapshot, MIN(oi.item_id), SUM(oi.quantity), o.total_cent, o.status, o.order_type,
        (SELECT p.client_request_id FROM payment_record p WHERE p.order_id=o.id ORDER BY p.id DESC LIMIT 1),
        (SELECT c.code FROM coupon c WHERE c.order_id=o.id ORDER BY c.id DESC LIMIT 1),
        o.address_id, o.address_snapshot, o.is_reviewed, o.version, o.created_at
 FROM order_main o JOIN order_item oi ON oi.order_id=o.id
-GROUP BY o.id, o.user_id, o.merchant_id, o.total_cent, o.status, o.order_type, o.address_id, o.address_snapshot, o.is_reviewed, o.version, o.created_at
-ON DUPLICATE KEY UPDATE status=VALUES(status), total_cent=VALUES(total_cent), order_type=VALUES(order_type), client_request_id=VALUES(client_request_id), coupon_code=VALUES(coupon_code), address_id=VALUES(address_id), address_snapshot=VALUES(address_snapshot), reviewed=VALUES(reviewed), version=VALUES(version);
+GROUP BY o.id, o.user_id, o.merchant_id, o.merchant_name_snapshot, o.total_cent, o.status, o.order_type, o.address_id, o.address_snapshot, o.is_reviewed, o.version, o.created_at
+ON DUPLICATE KEY UPDATE merchant_name_snapshot=VALUES(merchant_name_snapshot), status=VALUES(status), total_cent=VALUES(total_cent), order_type=VALUES(order_type), client_request_id=VALUES(client_request_id), coupon_code=VALUES(coupon_code), address_id=VALUES(address_id), address_snapshot=VALUES(address_snapshot), reviewed=VALUES(reviewed), version=VALUES(version);
 
 INSERT INTO service_order_event (order_id, version, status, actor_id, occurred_at)
 SELECT t.order_id, t.id, t.status, 0, t.occurred_at

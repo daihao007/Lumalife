@@ -96,6 +96,14 @@ for table_name in schema_migration order_record service_cart_item service_paymen
   copy_table "$MYSQL_ORDER_DATABASE" "$table_name"
 done
 
+# CREATE TABLE ... LIKE is not a schema migration for an already existing
+# service database. Keep the order-owned historical merchant snapshot additive
+# for databases provisioned before V013.
+order_merchant_name_snapshot_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${MYSQL_ORDER_DATABASE}' AND table_name='order_record' AND column_name='merchant_name_snapshot'")
+if [ "$order_merchant_name_snapshot_count" -eq 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_record ADD COLUMN merchant_name_snapshot VARCHAR(160) NOT NULL DEFAULT ''"
+fi
+
 for target_database in "$MYSQL_IDENTITY_DATABASE" "$MYSQL_MERCHANT_DATABASE" "$MYSQL_ORDER_DATABASE"; do
   mysql_root --execute="INSERT INTO ${target_database}.schema_migration(version,description,checksum,installed_at) SELECT version,description,checksum,installed_at FROM ${MYSQL_DATABASE}.schema_migration ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum),installed_at=VALUES(installed_at)"
 done

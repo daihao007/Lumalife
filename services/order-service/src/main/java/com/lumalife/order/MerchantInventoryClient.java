@@ -1,10 +1,13 @@
 package com.lumalife.order;
 
 import java.nio.charset.StandardCharsets;
+import java.net.http.HttpClient;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -18,7 +21,11 @@ final class MerchantInventoryClient {
   MerchantInventoryClient(RestClient.Builder builder,
       @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String baseUrl,
       @Value("${lumalife.internal.service-token:}") String serviceToken) {
+    JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
+    requestFactory.setReadTimeout(Duration.ofSeconds(3));
     this.client = builder.baseUrl(baseUrl)
+      .requestFactory(requestFactory)
       .defaultHeader("X-Internal-Service-Token", serviceToken)
       .build();
   }

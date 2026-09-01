@@ -42,6 +42,6 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 - merchant-service：`/internal/v1/merchants/*`、`/internal/v1/products/*`、`/internal/v1/deals/*`（12 个业务接口）
 - order-service：`/internal/v1/orders/*`（18 个业务接口）
 
-单体网关默认保持 `monolith` 路由。Compose/Kubernetes 可打开三类远程路由；设置对应 `LUMALIFE_*_REMOTE_ENABLED` 和 `*_BACKFILL_COMPLETED` 为 `false` 即可逐服务回滚。通过 `GET /internal/migration/status` 查看实时路由。merchant 的分类、收藏、客服/AI 仍可能回落单体；筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。库存预占/释放、完整订单快照、跨服务事件总线尚未完成，不能据此宣称全量业务已经完成微服务化。
+单体网关默认保持 `monolith` 路由。Compose/Kubernetes 可打开三类远程路由；设置对应 `LUMALIFE_*_REMOTE_ENABLED` 和 `*_BACKFILL_COMPLETED` 为 `false` 即可逐服务回滚。通过 `GET /internal/migration/status` 查看实时路由。merchant 的分类、收藏、客服/AI 仍可能回落单体；筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。order-service 会保存商品名称、商家名称和配送地址快照，订单详情不依赖商家服务在线才能显示历史信息。跨服务库存预占/释放已通过 merchant HTTP 边界接入，但尚未升级为异步事件总线和 Outbox/Inbox，不能据此宣称全量业务已经完成微服务化。
 
 业务迁移必须遵守 [`docs/28_D07服务接口数据归属与需求追溯.md`](../docs/28_D07服务接口数据归属与需求追溯.md) 的当前事实和 `docs/19_D04C微服务边界接口与数据归属初稿.md` 的目标所有权，不允许跨域 Repository、共享可写数据库表或复制单体业务代码形成双写。
