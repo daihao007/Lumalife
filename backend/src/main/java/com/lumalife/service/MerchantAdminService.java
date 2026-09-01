@@ -6,14 +6,17 @@ import com.lumalife.domain.Models.User;
 import java.util.List;
 import java.util.Map;
 import com.lumalife.service.boundary.MerchantServicePort;
+import com.lumalife.service.boundary.IdentityServicePort;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MerchantAdminService {
   private final MerchantServicePort merchant;
+  private final IdentityServicePort identity;
 
-  public MerchantAdminService(MerchantServicePort merchant) {
+  public MerchantAdminService(MerchantServicePort merchant, IdentityServicePort identity) {
     this.merchant = merchant;
+    this.identity = identity;
   }
 
   public Map<String, Object> merchantProfile(User admin) {
@@ -21,7 +24,18 @@ public class MerchantAdminService {
   }
 
   public Map<String, Object> updateMerchantNickname(User admin, String nickname) {
-    return merchant.updateMerchantNickname(admin, nickname);
+    Map<String, Object> updated = merchant.updateMerchantNickname(admin, nickname);
+    try {
+      identity.updateProfile(admin, nickname, admin.avatarUrl());
+      return updated;
+    } catch (RuntimeException error) {
+      try {
+        merchant.updateMerchantNickname(admin, admin.nickname());
+      } catch (RuntimeException rollbackError) {
+        error.addSuppressed(rollbackError);
+      }
+      throw error;
+    }
   }
 
   public List<Product> merchantProducts(User admin) {

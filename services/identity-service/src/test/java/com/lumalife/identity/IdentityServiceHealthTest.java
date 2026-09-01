@@ -209,6 +209,12 @@ class IdentityServiceHealthTest {
     assertThat(overflow.getStatusCode().value()).isEqualTo(409);
     assertThat(overflow.getBody()).containsEntry("code", 40900).containsEntry("reason", "ADDRESS_LIMIT_REACHED");
 
+    ResponseEntity<Map> forgedId = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("id", 999999, "contactName", "测试用户", "phone", phone,
+        "detail", "伪造编号地址", "defaultAddress", false), headers), Map.class);
+    assertThat(forgedId.getStatusCode().value()).isEqualTo(404);
+    assertThat(forgedId.getBody()).containsEntry("code", 40400).containsEntry("reason", "ADDRESS_NOT_FOUND");
+
     IdentityStore.Address snapshot = http.exchange("/internal/v1/users/" + userId + "/addresses/" + lastAddressId,
       HttpMethod.GET, new HttpEntity<>(serviceHeaders()), IdentityStore.Address.class).getBody();
     assertThat(snapshot.detail()).isEqualTo("契约地址" + IdentityStore.MAX_ADDRESSES_PER_USER);

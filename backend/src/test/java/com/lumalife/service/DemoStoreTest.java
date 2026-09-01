@@ -84,6 +84,8 @@ class DemoStoreTest {
     store.saveAddress(user, null, "A", "13800000001", "地址 5", false);
     Assertions.assertThrows(BusinessException.class,
       () -> store.saveAddress(user, null, "A", "13800000001", "地址 6", false));
+    Assertions.assertThrows(BusinessException.class,
+      () -> store.saveAddress(user, 999999L, "A", "13800000001", "伪造编号地址", false));
   }
 
   @Test

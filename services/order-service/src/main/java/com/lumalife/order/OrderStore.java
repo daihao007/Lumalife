@@ -245,6 +245,12 @@ public class OrderStore {
   }
 
   public synchronized List<Order> createDeliveryOrders(DeliveryRequest request) {
+    DeliveryAddress address = request.address();
+    if (request.addressId() == null || address == null
+        || request.addressId() != address.id() || request.userId() != address.userId()) {
+      throw new SecurityException("收货地址不属于当前用户");
+    }
+    String addressSnapshot = address.snapshot();
     if (request.lines() == null || request.lines().isEmpty()) throw new IllegalArgumentException("购物车为空");
     Map<Long, List<DeliveryLine>> grouped = new LinkedHashMap<>();
     for (DeliveryLine line : request.lines()) {
@@ -265,8 +271,8 @@ public class OrderStore {
       orders.put(id, order);
       orderTypes.put(id, "DELIVERY");
       if (jdbc != null) {
-        jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,address_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-          id, order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), order.status(), "DELIVERY", request.addressId(), java.sql.Timestamp.from(order.createdAt()));
+        jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,address_id,address_snapshot,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          id, order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), order.status(), "DELIVERY", request.addressId(), addressSnapshot, java.sql.Timestamp.from(order.createdAt()));
         insertLines(id, lines);
       }
       appendEvent(id, request.userId(), "PENDING_PAYMENT");
@@ -431,7 +437,17 @@ public class OrderStore {
   public record Payment(long userId, long orderId, String clientRequestId, long amountCent, String status) {}
   public record GroupOrderRequest(long userId, long dealId, long merchantId, long priceCent, int quantity) {}
   public record DeliveryLine(long productId, long merchantId, long priceCent, int quantity) {}
-  public record DeliveryRequest(long userId, Long addressId, List<DeliveryLine> lines) {}
+  public record DeliveryAddress(long id, long userId, String contactName, String phone, String detail,
+                                boolean defaultAddress) {
+    String snapshot() {
+      if (id <= 0 || userId <= 0 || contactName == null || contactName.isBlank()
+          || phone == null || phone.isBlank() || detail == null || detail.isBlank()) {
+        throw new IllegalArgumentException("收货地址快照不完整");
+      }
+      return contactName.trim() + " " + phone.trim() + " " + detail.trim();
+    }
+  }
+  public record DeliveryRequest(long userId, Long addressId, DeliveryAddress address, List<DeliveryLine> lines) {}
   public record Coupon(String code, long orderId, long merchantId, String status) {}
   public record ReviewRequest(long userId, long orderId, String userName, int score, int tasteScore, int serviceScore, String content) {}
   public record Review(long id, long orderId, long merchantId, String userName, int score, int tasteScore, int serviceScore, String content, LocalDateTime createdAt) {}

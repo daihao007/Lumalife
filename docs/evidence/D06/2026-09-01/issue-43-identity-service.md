@@ -3,7 +3,7 @@
 日期：2026-09-01（Asia/Shanghai）  
 Issue：[#43](https://github.com/daihao007/Lumalife/issues/43)  
 分支：`codex/issue-43-identity-service`  
-拉取后的基线：`main@070838edbada20da790ce8dc86365fc25205b1cd`
+当前合并基线：`main@2ba74ea`
 
 ## 实现范围
 
@@ -18,6 +18,13 @@ Issue：[#43](https://github.com/daihao007/Lumalife/issues/43)
 - Docker Compose 的独立数据卷、Kubernetes PVC，以及后端 `RemoteIdentityServicePort` 的远程路由和回滚闸门。
 
 商家经营资料、商品、库存、订单、支付和评价不在本 Issue 的身份服务所有权内；商家注册返回的 `merchantId` 仍是身份账号绑定能力，经营资料迁移属于后续服务任务。
+
+## PR 审核修复
+
+- 默认关闭身份远程路由和 backfill 完成标记，避免空 PVC 上线后接管已有账号；切换前必须显式提供并验证历史快照。
+- 下单工作流先从 `IdentityServicePort` 解析归属地址，再向本地或远程订单 Port 传递不可变地址快照；order-service 校验用户/地址一致性并持久化 `address_snapshot`。
+- identity-service Pod 使用 UID/GID/fsGroup `10001` 挂载 PVC；短请求 ID 由 BFF 重新生成。
+- 商家昵称同时更新经营资料与身份资料，身份写入失败时回滚经营昵称；任意未占用地址 ID 不再被解释为新增地址。
 
 ## 验收映射
 
@@ -34,7 +41,7 @@ Issue：[#43](https://github.com/daihao007/Lumalife/issues/43)
 
 ```text
 mvn -B -ntp -f services/identity-service/pom.xml test
-Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 测试包含：
@@ -47,6 +54,6 @@ Tests run: 12, Failures: 0, Errors: 0, Skipped: 0
 
 ## 切换与回滚
 
-启用 BFF 远程身份调用前，必须配置 `LUMALIFE_IDENTITY_REMOTE_ENABLED=true`、`LUMALIFE_IDENTITY_BACKFILL_COMPLETED=true`、身份服务 URL、共享 service token 和持久化状态路径。未完成回填时，适配器以 `IDENTITY_BACKFILL_REQUIRED` 关闭远程流量。
+Compose/Kubernetes 将 `LUMALIFE_IDENTITY_REMOTE_ENABLED` 和 `LUMALIFE_IDENTITY_BACKFILL_COMPLETED` 默认设为 `false`。启用 BFF 远程身份调用前，必须先通过 `LUMALIFE_IDENTITY_BACKFILL_SOURCE_FILE` 挂载并导入历史账号/地址快照，核对账号与地址数量，再显式把两个开关设为 `true`；只打开远程开关时，适配器以 `IDENTITY_BACKFILL_REQUIRED` 关闭远程流量。
 
 发生回归异常时，将 `LUMALIFE_IDENTITY_REMOTE_ENABLED=false` 或清除 backfill 完成标记即可回到单体身份 Port；身份服务自身通过保留 PVC/Compose volume 和原子状态文件写入避免重启丢失。真正切换前仍需在目标环境执行历史快照回填、双读比对和全角色 UI 回归；本证据不宣称 merchant/order 已完成迁移。

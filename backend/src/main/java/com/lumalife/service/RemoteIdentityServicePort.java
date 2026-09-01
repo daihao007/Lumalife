@@ -161,8 +161,11 @@ public class RemoteIdentityServicePort implements IdentityServicePort {
   }
 
   private String requestId() {
-    String requestId = incomingHeader("X-Request-Id");
-    return requestId == null || requestId.isBlank() || requestId.length() > 128
+    return normalizeRequestId(incomingHeader("X-Request-Id"));
+  }
+
+  static String normalizeRequestId(String requestId) {
+    return requestId == null || requestId.isBlank() || requestId.length() < 8 || requestId.length() > 128
       ? UUID.randomUUID().toString() : requestId;
   }
 

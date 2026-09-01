@@ -1,22 +1,33 @@
 package com.lumalife.service;
 
+import com.lumalife.common.BusinessException;
+import com.lumalife.domain.Models.Address;
 import com.lumalife.domain.Models.Order;
 import com.lumalife.domain.Models.Review;
 import com.lumalife.domain.Models.User;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import com.lumalife.service.boundary.OrderServicePort;
+import com.lumalife.service.boundary.IdentityServicePort;
 
 @Service
 public class OrderWorkflowService {
   private final OrderServicePort order;
+  private final IdentityServicePort identity;
 
-  public OrderWorkflowService(OrderServicePort order) {
+  public OrderWorkflowService(OrderServicePort order, IdentityServicePort identity) {
     this.order = order;
+    this.identity = identity;
   }
 
   public List<Order> createDeliveryOrders(User user, Long addressId) {
-    return order.createDeliveryOrders(user, addressId);
+    List<Address> addresses = identity.addresses(user);
+    if (addresses.isEmpty()) throw new BusinessException(40900, "请先维护收货地址");
+    Address address = addresses.stream()
+      .filter(item -> addressId == null ? item.defaultAddress() : item.id() == addressId)
+      .findFirst()
+      .orElseThrow(() -> new BusinessException(40400, "收货地址不存在"));
+    return order.createDeliveryOrdersWithAddress(user, address);
   }
 
   public Order createGroupOrder(User user, long dealId, int quantity) {

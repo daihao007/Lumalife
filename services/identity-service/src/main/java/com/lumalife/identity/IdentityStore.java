@@ -214,8 +214,11 @@ public class IdentityStore {
     } else {
       addressId = id;
       boolean owned = list.stream().anyMatch(item -> item.id() == addressId);
-      if (!owned && addresses.values().stream().flatMap(List::stream).anyMatch(item -> item.id() == addressId)) {
-        throw new IdentityException(403, "不能操作其他用户的地址", "RESOURCE_FORBIDDEN");
+      if (!owned) {
+        if (addresses.values().stream().flatMap(List::stream).anyMatch(item -> item.id() == addressId)) {
+          throw new IdentityException(403, "不能操作其他用户的地址", "RESOURCE_FORBIDDEN");
+        }
+        throw new IdentityException(404, "地址不存在", "ADDRESS_NOT_FOUND");
       }
     }
 
