@@ -50,7 +50,8 @@ class OrderServiceBusinessTest {
   void preservesEveryLineWhenCreatingAMultiProductDeliveryOrder() {
     OrderStore store = new OrderStore();
     OrderStore.Order order = store.createDeliveryOrders(new OrderStore.DeliveryRequest(1, 2101L, "测试用户 13800000001 契约测试地址",
-      List.of(new OrderStore.DeliveryLine(1001, 1, 2680, 1), new OrderStore.DeliveryLine(1002, 1, 4280, 2)))).get(0);
+      List.of(new OrderStore.DeliveryLine(1001, 1, 2680, 1, "藤椒鸡饭", "巷口川味研究所"),
+        new OrderStore.DeliveryLine(1002, 1, 4280, 2, "毛血旺小锅", "巷口川味研究所")))).get(0);
 
     assertThat(order.quantity()).isEqualTo(3);
     assertThat(order.totalCent()).isEqualTo(11240);
