@@ -5,6 +5,7 @@ readonly BASE_URL="${ORDER_SERVICE_URL:-http://localhost:8083}"
 readonly SERVICE_TOKEN="${LUMALIFE_INTERNAL_SERVICE_TOKEN:-compose-internal-token}"
 readonly USER_ID="${ORDER_CONTRACT_TEST_USER_ID:-92001}"
 readonly ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE:-life_assistant}_order}"
+readonly MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE:-life_assistant}_merchant}"
 readonly REQUEST_ID="ct-mysql-${GITHUB_RUN_ID:-local}-$(date +%s%N)"
 
 request_json() {
@@ -52,5 +53,7 @@ for attempt in {1..20}; do
   sleep 1
 done
 test "${saga_status}" = 'CONFIRMED'
+reservation_status="$(docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$MERCHANT_DATABASE" "SELECT status FROM inventory_reservation WHERE order_id=${first_id}" | tr -d '\r')"
+test "${reservation_status}" = 'CONFIRMED'
 
 echo "MySQL payment idempotency contract passed for request ${REQUEST_ID}."

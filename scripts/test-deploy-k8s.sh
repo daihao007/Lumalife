@@ -30,6 +30,7 @@ grep -q -- '--from-file=V012__inventory_reservation_saga.sql=database/migrations
 grep -q -- '--from-file=V013__order_merchant_name_snapshot.sql=database/migrations/V013__order_merchant_name_snapshot.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V014__event_bus_inbox.sql=database/migrations/V014__event_bus_inbox.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V015__inventory_saga_result_delivery.sql=database/migrations/V015__inventory_saga_result_delivery.sql' "${SCRIPT_PATH}"
+grep -q -- '--from-file=V016__async_inventory_reservation_saga.sql=database/migrations/V016__async_inventory_reservation_saga.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q 'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh' "${SCRIPT_PATH}"
@@ -42,6 +43,7 @@ grep -q 'version IN (.*V012' .github/workflows/ci.yml
 grep -q 'version IN (.*V013' .github/workflows/ci.yml
 grep -q 'version IN (.*V014' .github/workflows/ci.yml
 grep -q 'version IN (.*V015' .github/workflows/ci.yml
+grep -q 'version IN (.*V016' .github/workflows/ci.yml
 grep -q '^            database/init$' .github/workflows/ci.yml
 grep -q '^            scripts/lib/legacy-migrations.sh$' .github/workflows/ci.yml
 grep -q '^            database/backfill-services.sql$' .github/workflows/ci.yml

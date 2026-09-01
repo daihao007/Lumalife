@@ -30,6 +30,12 @@ class RabbitMerchantEventBusConfiguration {
   }
 
   @Bean
+  Binding merchantInventoryReserveBinding(@Qualifier("merchantInventoryEvents") Queue merchantInventoryEvents,
+                                          TopicExchange lumalifeEventExchange) {
+    return BindingBuilder.bind(merchantInventoryEvents).to(lumalifeEventExchange).with("inventory.reserve.requested");
+  }
+
+  @Bean
   Binding merchantInventoryReleaseBinding(@Qualifier("merchantInventoryEvents") Queue merchantInventoryEvents,
                                           TopicExchange lumalifeEventExchange) {
     return BindingBuilder.bind(merchantInventoryEvents).to(lumalifeEventExchange).with("inventory.release.requested");

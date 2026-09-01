@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - mysql.yaml
+  - service-databases.yaml
   - rabbitmq.yaml
   - services.yaml
   - backend.yaml

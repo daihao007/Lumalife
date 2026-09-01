@@ -28,7 +28,7 @@ spec:
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
               value: compose-internal-token
             - name: MYSQL_HOST
-              value: mysql
+              value: mysql-identity
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE
@@ -71,7 +71,7 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: MYSQL_HOST
-              value: mysql
+              value: mysql-merchant
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE
@@ -128,7 +128,7 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: MYSQL_HOST
-              value: mysql
+              value: mysql-order
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_DATABASE

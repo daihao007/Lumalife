@@ -28,6 +28,16 @@ copy_owned_tables() {
   target_database=$2
   shift 2
   wait_for_mysql "$target_host" "$target_database"
+  # The first isolation copies the legacy snapshot. Once a target has its own
+  # migration ledger, it is the service's source of truth and must not be
+  # overwritten by a later application rollout.
+  target_migrations="$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --batch --skip-column-names \
+    --execute='SELECT COUNT(*) FROM schema_migration' 2>/dev/null || true)"
+  if [ "${target_migrations:-0}" -gt 0 ] 2>/dev/null; then
+    echo "Skipping initialized service database ${target_database}."
+    return
+  fi
   MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
     --database="$target_database" --execute='SET FOREIGN_KEY_CHECKS=0'
   MYSQL_PWD="$MYSQL_PASSWORD" mysqldump --protocol=TCP --host="$MYSQL_HOST" --user="$MYSQL_USER" \

@@ -171,13 +171,19 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V013__order_merchant_name_snapshot.sql=database/migrations/V013__order_merchant_name_snapshot.sql \
   --from-file=V014__event_bus_inbox.sql=database/migrations/V014__event_bus_inbox.sql \
   --from-file=V015__inventory_saga_result_delivery.sql=database/migrations/V015__inventory_saga_result_delivery.sql \
+  --from-file=V016__async_inventory_reservation_saga.sql=database/migrations/V016__async_inventory_reservation_saga.sql \
   --from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh \
   --from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh \
+  --from-file=isolate-service-databases.sh=database/bin/isolate-service-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images
 kubectl apply -f k8s/mysql.yaml
 kubectl -n "${NAMESPACE}" rollout status statefulset/mysql --timeout="${ROLLOUT_TIMEOUT}"
+kubectl apply -f k8s/service-databases.yaml
+for database_statefulset in mysql-identity mysql-merchant mysql-order; do
+  kubectl -n "${NAMESPACE}" rollout status statefulset/${database_statefulset} --timeout="${ROLLOUT_TIMEOUT}"
+done
 
 # Existing MySQL PVCs do not rerun /docker-entrypoint-initdb.d. Apply the
 # versioned migrations and idempotent service backfill on every deployment so
@@ -211,6 +217,8 @@ kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
   'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < "${BACKFILL_PATH}"
 kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
   'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh'
+kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
+  'MYSQL_HOST=127.0.0.1 IDENTITY_MYSQL_HOST=mysql-identity MERCHANT_MYSQL_HOST=mysql-merchant ORDER_MYSQL_HOST=mysql-order sh /database/migrations/isolate-service-databases.sh'
 
 apply_versioned_manifests
 

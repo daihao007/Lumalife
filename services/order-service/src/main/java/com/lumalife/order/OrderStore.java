@@ -388,8 +388,12 @@ public class OrderStore {
     boolean groupBuy = "GROUP_BUY".equals(current.type()) || "GROUP_BUY".equals(orderType(orderId));
     String couponCode = groupBuy ? String.format("%012d", orderId) : null;
     boolean remoteInventory = jdbc != null && inventoryClient != null;
-    if (remoteInventory) inventoryClient.reserve(current, requestId);
     try {
+      // Production broker mode is fully asynchronous: the payment transaction
+      // records the reserve command, and merchant-service owns the stock write.
+      // The synchronous HTTP reserve remains available only when the broker is
+      // explicitly disabled for a compatibility deployment.
+      if (remoteInventory && !eventDrivenInventory) inventoryClient.reserve(current, requestId);
       if (jdbc != null) {
         jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)",
           userId, orderId, requestId, chargedAmount, "SUCCESS");
@@ -404,8 +408,10 @@ public class OrderStore {
       orders.put(orderId, paid);
       if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
       if (remoteInventory && eventDrivenInventory) {
-        recordInventorySaga(orderId, userId, requestId, "CONFIRM_PENDING", null);
-        appendIntegrationEvent(orderId, current.merchantId(), "inventory.confirm.requested", outboxPayload(orderId, userId, "PAID", Instant.now()));
+        Instant occurredAt = Instant.now();
+        recordInventorySaga(orderId, userId, requestId, "RESERVE_PENDING", null);
+        appendIntegrationEvent(orderId, current.merchantId(), "inventory.reserve.requested",
+          inventoryReservePayload(current, userId, requestId, occurredAt));
       } else if (remoteInventory) {
         inventoryClient.confirm(current, requestId);
       }
@@ -413,19 +419,11 @@ public class OrderStore {
       payments.put(paymentKey, payment);
       return payment;
     } catch (RuntimeException error) {
-      if (remoteInventory) {
-        if (eventDrivenInventory && sagaEventStore != null) {
-          try {
-            sagaEventStore.scheduleRelease(orderId, userId, requestId);
-          } catch (RuntimeException compensationError) {
-            error.addSuppressed(compensationError);
-          }
-        } else {
-          try {
-            inventoryClient.release(current, requestId);
-          } catch (RuntimeException compensationError) {
-            error.addSuppressed(compensationError);
-          }
+      if (remoteInventory && !eventDrivenInventory) {
+        try {
+          inventoryClient.release(current, requestId);
+        } catch (RuntimeException compensationError) {
+          error.addSuppressed(compensationError);
         }
       }
       throw error;
@@ -671,6 +669,30 @@ public class OrderStore {
         "occurredAt", occurredAt.toString()));
     } catch (JsonProcessingException error) {
       throw new IllegalStateException("订单事件序列化失败", error);
+    }
+  }
+
+  private String inventoryReservePayload(Order order, long actor, String clientRequestId, Instant occurredAt) {
+    try {
+      String itemType = "GROUP_BUY".equals(order.type()) ? "GROUP_DEAL" : "PRODUCT";
+      List<OrderLine> lines = order.lines().isEmpty()
+        ? List.of(new OrderLine(order.productId(), "", order.quantity(), 0))
+        : order.lines();
+      List<Map<String, Object>> items = lines.stream().map(line -> Map.<String, Object>of(
+        "itemType", itemType,
+        "itemId", line.itemId(),
+        "quantity", line.quantity(),
+        "expectedVersion", 0)).toList();
+      return objectMapper.writeValueAsString(Map.of(
+        "orderId", order.id(),
+        "actorId", actor,
+        "status", "RESERVE_PENDING",
+        "clientRequestId", clientRequestId,
+        "expiresAt", occurredAt.plusSeconds(900).toString(),
+        "items", items,
+        "occurredAt", occurredAt.toString()));
+    } catch (JsonProcessingException error) {
+      throw new IllegalStateException("库存预占事件序列化失败", error);
     }
   }
 

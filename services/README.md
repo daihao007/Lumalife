@@ -2,7 +2,7 @@
 
 该目录承载 `identity-service`、`merchant-service`、`order-service`、`assistant-service` 四个独立 Spring Boot 入口。identity 负责账户/资料/地址，merchant 负责商家/商品/团购/库存/会话，order 负责购物车/订单详情/支付/履约/券码/评价，assistant 负责模型调用和 AI 降级。生产配置下前三个有状态服务分别连接 `life_assistant_identity`、`life_assistant_merchant`、`life_assistant_order`，assistant 无业务数据库；backend 仍提供 `/api/v1/**` 兼容入口。
 
-旧的 `life_assistant` 库保留为单体兼容和回滚源。默认 Compose/Kubernetes 继续使用一个 MySQL 实例承载多个逻辑库，以保持现有数据迁移兼容；需要物理隔离时使用 `docker-compose.physical-db.yml`，先运行 `db-isolate-services` 按所有权导出，再启动服务。回填完成后，服务只写自己的数据库，不能跨域写旧库。
+旧的 `life_assistant` 库保留为 BFF 兼容和回滚源。Compose 默认文件仍提供兼容模式；生产物理隔离使用 `docker-compose.physical-db.yml`，先运行 `db-isolate-services` 按所有权导出，再启动服务。Kubernetes 默认清单则让三个有状态服务分别连接 `mysql-identity`、`mysql-merchant`、`mysql-order`，legacy `mysql` 只承载兼容源和 BFF。回填/隔离完成后，服务只写自己的数据库，不能跨域写旧库。
 
 ## 构建与启动
 
@@ -46,7 +46,7 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 
 单体网关只有在显式 `monolith` profile 下才保持单体路由。Compose/Kubernetes 打开 identity、merchant、order、assistant 四类远程路由；生产配置不加载 `monolith`，因此 `DemoStore` 不会作为隐式回退创建，漏配远程实现会直接暴露为启动错误。通过 `GET /internal/migration/status` 查看实时路由。筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。order-service 会保存商品名称、商家名称和配送地址快照，订单详情不依赖商家服务在线才能显示历史信息。
 
-远程切流后，管理员看板由 backend 的 `RemoteMetricsServicePort` 聚合三个有状态服务的只读投影。order-service 的状态变更和库存命令在本地事务中写入 `service_outbox_event`；启用 `LUMALIFE_EVENTS_BROKER_ENABLED=true` 后由 RabbitMQ Topic Exchange 投递。merchant-service 以 `merchant_inbox_event` 幂等消费确认/释放命令，再以 `merchant_outbox_event` 发布结果；order-service 以 `order_inbox_event` 幂等消费结果并更新 `order_inventory_saga`。库存预占仍保留同步 HTTP 命令作为支付接口的兼容窗口，但确认、失败释放和结果回传已经走可靠消息链路。AI provider 和 deterministic fallback 已移入 assistant-service，backend 只负责上下文编排。
+远程切流后，管理员看板由 backend 的 `RemoteMetricsServicePort` 聚合三个有状态服务的只读投影。order-service 的状态变更和库存命令在本地事务中写入 `service_outbox_event`；启用 `LUMALIFE_EVENTS_BROKER_ENABLED=true` 后由 RabbitMQ Topic Exchange 投递。生产支付链路按 `RESERVE_PENDING → RESERVED → CONFIRM_PENDING → CONFIRMED` 运行：merchant-service 以 `merchant_inbox_event` 幂等消费预占/确认/释放命令，再以 `merchant_outbox_event` 发布结果；order-service 以 `order_inbox_event` 幂等消费结果并推进 `order_inventory_saga`。同步 HTTP 预占仅在显式关闭 broker 的兼容模式使用。AI provider 和 deterministic fallback 已移入 assistant-service，backend 只负责上下文编排。
 
 物理数据库隔离示例：
 
