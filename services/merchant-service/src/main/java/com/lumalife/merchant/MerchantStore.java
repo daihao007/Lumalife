@@ -43,7 +43,6 @@ public class MerchantStore {
     deals.put(1L, new GroupDeal(1, 1, "双人川味套餐", "含招牌菜和饮品", 4880, 50, true));
     if (jdbc != null) {
       bumpIds("SELECT COALESCE(MAX(id),0) FROM merchant_catalog");
-      bumpIds("SELECT COALESCE(MAX(id),0) FROM product");
       bumpIds("SELECT COALESCE(MAX(id),0) FROM group_deal");
       bumpIds("SELECT COALESCE(MAX(id),0) FROM chat_message");
     }
@@ -239,10 +238,7 @@ public class MerchantStore {
     if (jdbc != null) {
       String filter = listedOnly ? " AND listed=1" : "";
       List<Product> owned = jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,listed FROM merchant_catalog WHERE merchant_id=?" + filter + " ORDER BY id", this::mapProduct, merchantId);
-      if (!owned.isEmpty()) return owned;
-      // V004 is additive. Reading the legacy product table makes the cutover
-      // safe even when the one-time backfill job has not run yet.
-      return jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,is_listed FROM product WHERE merchant_id=? AND is_deleted=0" + (listedOnly ? " AND is_listed=1" : "") + " ORDER BY id", this::mapProduct, merchantId);
+      return owned;
     }
     return new ArrayList<>(products.getOrDefault(merchantId, List.of()).stream()
       .filter(item -> !listedOnly || item.listed()).toList());
@@ -256,7 +252,6 @@ public class MerchantStore {
     Product product = new Product(id, merchantId, request.name(), request.description(), request.priceCent(), request.stock(), request.listed());
     if (jdbc != null) {
       jdbc.update("INSERT INTO merchant_catalog(id,merchant_id,name,description,price_cent,stock,listed) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),price_cent=VALUES(price_cent),stock=VALUES(stock),listed=VALUES(listed)", id, merchantId, request.name(), request.description(), request.priceCent(), request.stock(), request.listed());
-      jdbc.update("INSERT INTO product(id,merchant_id,name,description,price_cent,stock,is_listed,is_deleted) VALUES (?,?,?,?,?,?,?,0) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),price_cent=VALUES(price_cent),stock=VALUES(stock),is_listed=VALUES(is_listed),is_deleted=0", id, merchantId, request.name(), request.description(), request.priceCent(), request.stock(), request.listed());
     }
     owned.removeIf(item -> item.id() == id);
     owned.add(product);
@@ -277,8 +272,6 @@ public class MerchantStore {
   public synchronized Product product(long id) {
     if (jdbc != null) {
       var rows = jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,listed FROM merchant_catalog WHERE id=?", this::mapProduct, id);
-      if (!rows.isEmpty()) return rows.get(0);
-      rows = jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,is_listed FROM product WHERE id=? AND is_deleted=0", this::mapProduct, id);
       if (!rows.isEmpty()) return rows.get(0);
       throw new IllegalArgumentException("商品不存在");
     }
