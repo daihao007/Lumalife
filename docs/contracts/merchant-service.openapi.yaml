@@ -40,6 +40,22 @@ paths:
       responses:
         '200': {$ref: '#/components/responses/MerchantDetailResponse'}
         '404': {$ref: '#/components/responses/Error'}
+  /merchants/{id}/profile:
+    put:
+      summary: Update the authenticated merchant's public nickname
+      operationId: updateInternalMerchantProfile
+      x-internal-only: true
+      servers: [{url: /internal/v1}]
+      security: [{serviceAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/Id'}
+        - {$ref: '#/components/parameters/MerchantActorId'}
+      requestBody: {$ref: '#/components/requestBodies/MerchantProfile'}
+      responses:
+        '200': {description: Updated merchant, content: {application/json: {schema: {$ref: '#/components/schemas/Merchant'}}}}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
   /user/favorites:
     get:
       operationId: listFavorites
@@ -240,6 +256,7 @@ components:
   parameters:
     Id: {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     MerchantId: {name: merchantId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    MerchantActorId: {name: X-Merchant-Id, in: header, required: true, schema: {type: integer, format: int64, minimum: 1}}
     UserId: {name: userId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     OrderId: {name: orderId, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
     RequestId: {name: X-Request-Id, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 128}}

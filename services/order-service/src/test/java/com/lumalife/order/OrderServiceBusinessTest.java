@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -61,6 +64,33 @@ class OrderServiceBusinessTest {
     assertThat(order.totalCent()).isEqualTo(11240);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::itemId).containsExactly(1001L, 1002L);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::quantity).containsExactly(1, 2);
+    assertThat(order.addressId()).isEqualTo(2101L);
+    assertThat(order.addressSnapshot()).isEqualTo("测试用户 13800000001 测试地址");
+  }
+
+  @Test
+  void mapsPersistedDeliveryAddressIntoOrderQueries() throws Exception {
+    Map<Integer, Object> columns = Map.ofEntries(
+      Map.entry(1, 4001L), Map.entry(2, 1L), Map.entry(3, 3L), Map.entry(4, 1001L),
+      Map.entry(5, 1), Map.entry(6, 2680L), Map.entry(7, "PENDING_PAYMENT"),
+      Map.entry(8, Timestamp.from(Instant.parse("2026-09-01T00:00:00Z"))), Map.entry(9, "DELIVERY"),
+      Map.entry(10, ""), Map.entry(11, false), Map.entry(12, 2101L),
+      Map.entry(13, "测试用户 13800000001 测试地址"));
+    ResultSet resultSet = (ResultSet) java.lang.reflect.Proxy.newProxyInstance(
+      ResultSet.class.getClassLoader(), new Class<?>[]{ResultSet.class}, (proxy, method, args) -> {
+        if (method.getName().equals("wasNull")) return false;
+        if (method.getName().equals("getLong")) return ((Number) columns.get((Integer) args[0])).longValue();
+        if (method.getName().equals("getInt")) return ((Number) columns.get((Integer) args[0])).intValue();
+        if (method.getName().equals("getBoolean")) return columns.get((Integer) args[0]);
+        if (method.getName().equals("getString")) return String.valueOf(columns.get((Integer) args[0]));
+        if (method.getName().equals("getTimestamp")) return columns.get((Integer) args[0]);
+        throw new UnsupportedOperationException(method.getName());
+      });
+
+    OrderStore.Order mapped = new OrderStore().map(resultSet, 0);
+
+    assertThat(mapped.addressId()).isEqualTo(2101L);
+    assertThat(mapped.addressSnapshot()).isEqualTo("测试用户 13800000001 测试地址");
   }
 
   @Test
@@ -221,6 +251,12 @@ class OrderServiceBusinessTest {
         "lines", List.of(Map.of("productId", 1001, "merchantId", 1, "priceCent", 2680, "quantity", 1))), userHeaders), OrderStore.Order[].class).getBody();
     assertThat(created).hasSize(1);
     OrderStore.Order deliveryOrder = created[0];
+    assertThat(deliveryOrder.addressId()).isEqualTo(2101L);
+    assertThat(deliveryOrder.addressSnapshot()).isEqualTo("契约用户 13800000001 契约地址");
+    OrderStore.Order queried = http.exchange("/internal/v1/orders/" + deliveryOrder.id(), HttpMethod.GET,
+      new HttpEntity<>(userHeaders), OrderStore.Order.class).getBody();
+    assertThat(queried.addressId()).isEqualTo(2101L);
+    assertThat(queried.addressSnapshot()).isEqualTo("契约用户 13800000001 契约地址");
     http.exchange("/internal/v1/orders/" + deliveryOrder.id() + "/pay", HttpMethod.POST,
       new HttpEntity<>(Map.of("amountCent", 2680, "clientRequestId", "ct-delivery-" + runId), userHeaders), OrderStore.Order.class);
 

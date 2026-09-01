@@ -39,6 +39,21 @@ class MerchantServiceBusinessTest {
   }
 
   @Test
+  void renamesOnlyTheAuthenticatedMerchant() {
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-Merchant-Id", "3");
+    String nickname = "远程轻食 " + UUID.randomUUID().toString().substring(0, 8);
+
+    MerchantStore.Merchant renamed = http.exchange("/internal/v1/merchants/3/profile", HttpMethod.PUT,
+      new HttpEntity<>(java.util.Map.of("nickname", nickname), headers), MerchantStore.Merchant.class).getBody();
+    MerchantStore.Merchant queried = http.exchange("/internal/v1/merchants/3", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), MerchantStore.Merchant.class).getBody();
+
+    assertThat(renamed.name()).isEqualTo(nickname);
+    assertThat(queried.name()).isEqualTo(nickname);
+  }
+
+  @Test
   void ctRtMer04To05And09ReadsProductDealAndMerchantDeals() {
     HttpHeaders headers = serviceHeaders();
     MerchantStore.Product product = http.exchange("/internal/v1/products/1001", HttpMethod.GET,

@@ -3,7 +3,7 @@
 日期：2026-09-01（Asia/Shanghai）  
 Issue：[#43](https://github.com/daihao007/Lumalife/issues/43)  
 分支：`codex/issue-43-identity-service`  
-当前合并基线：`main@97c399e`
+当前合并基线：`main@4273dfc`
 
 ## 实现范围
 
@@ -25,6 +25,8 @@ Issue：[#43](https://github.com/daihao007/Lumalife/issues/43)
 - 下单工作流先从 `IdentityServicePort` 解析归属地址，再向本地或远程订单 Port 传递不可变地址快照；order-service 校验用户/地址一致性并持久化 `address_snapshot`。
 - identity-service Pod 使用 UID/GID/fsGroup `10001` 挂载 PVC；短请求 ID 由 BFF 重新生成。
 - 商家昵称同时更新经营资料与身份资料，身份写入失败时回滚经营昵称；任意未占用地址 ID 不再被解释为新增地址。
+- 商家经营资料更新由 BFF 调用 merchant-service 的受归属保护接口，不再回落到本地 `DemoStore`；identity 与 merchant 两侧均能读取新昵称。
+- order-service 的创建响应、用户/商家列表及详情查询均返回已持久化的 `addressId` 和不可变 `addressSnapshot`。
 
 ## 验收映射
 
