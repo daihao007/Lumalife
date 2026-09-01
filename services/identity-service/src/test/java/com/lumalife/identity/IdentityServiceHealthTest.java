@@ -3,6 +3,9 @@ package com.lumalife.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -98,6 +101,25 @@ class IdentityServiceHealthTest {
     IdentityStore restarted = new IdentityStore(new BCryptPasswordEncoder(), state);
     assertThat(restarted.byToken(token).phone()).isEqualTo("13900000010");
     assertThat(restarted.addresses(1001)).hasSize(1);
+  }
+
+  @Test
+  void loadsLegacyNumericTokenStateAndMigratesItToTheCurrentFormat() throws Exception {
+    Path state = tempDir.resolve("legacy-identity-state.json");
+    Files.writeString(state, """
+      {
+        "users": [{"id": 1, "phone": "legacy-user", "passwordHash": "legacy-hash", "nickname": "旧用户", "avatarUrl": "", "role": "USER", "merchantId": null}],
+        "addresses": {"1": []},
+        "tokens": {"legacy-token": 1}
+      }
+      """, StandardCharsets.UTF_8);
+
+    IdentityStore restarted = new IdentityStore(new BCryptPasswordEncoder(), state);
+
+    assertThat(restarted.byToken("legacy-token").id()).isEqualTo(1L);
+    var migrated = new ObjectMapper().readTree(Files.readString(state, StandardCharsets.UTF_8));
+    assertThat(migrated.path("tokens").path("legacy-token").path("userId").asLong()).isEqualTo(1L);
+    assertThat(migrated.path("tokens").path("legacy-token").path("expiresAtEpochMillis").asLong()).isPositive();
   }
 
   @Test

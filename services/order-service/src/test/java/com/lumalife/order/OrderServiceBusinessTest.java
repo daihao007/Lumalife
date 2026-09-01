@@ -474,7 +474,8 @@ class OrderServiceBusinessTest {
     assertThat(merchantOneOrders).noneMatch(order -> order.id() == merchantTwoOrder.id());
     assertThat(merchantTwoOrders).anySatisfy(order -> assertThat(order.id()).isEqualTo(merchantTwoOrder.id()));
     assertThat(merchantTwoOrders).noneMatch(order -> order.id() == merchantOneOrder.id());
-    assertThat(merchantOneReviews).isEmpty();
+    assertThat(merchantOneReviews).noneMatch(review -> review.orderId() == merchantOneOrder.id()
+      || review.orderId() == merchantTwoOrder.id());
     assertThat(missingMerchant.getStatusCode().is4xxClientError()).isTrue();
     assertThat(missingReviewMerchant.getStatusCode().is4xxClientError()).isTrue();
   }

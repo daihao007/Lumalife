@@ -1,5 +1,7 @@
 package com.lumalife.identity;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -355,20 +357,51 @@ public class IdentityStore {
   private void loadPersistentState() {
     if (stateFile == null || !Files.exists(stateFile)) return;
     try {
-      PersistentState state = objectMapper.readValue(stateFile.toFile(), PersistentState.class);
+      JsonNode root = objectMapper.readTree(stateFile.toFile());
+      List<User> restoredUsers = root.hasNonNull("users")
+        ? objectMapper.convertValue(root.get("users"), new TypeReference<List<User>>() {})
+        : List.of();
+      Map<Long, List<Address>> restoredAddresses = root.hasNonNull("addresses")
+        ? objectMapper.convertValue(root.get("addresses"), new TypeReference<Map<Long, List<Address>>>() {})
+        : Map.of();
+      TokenState restoredTokens = readTokens(root.get("tokens"));
       users.clear();
-      if (state.users() != null) state.users().forEach(user -> users.put(user.phone(), user));
+      restoredUsers.forEach(user -> users.put(user.phone(), user));
       addresses.clear();
-      if (state.addresses() != null) state.addresses().forEach((id, values) -> addresses.put(id, new ArrayList<>(values)));
+      restoredAddresses.forEach((id, values) -> addresses.put(id, new ArrayList<>(values)));
       tokens.clear();
-      if (state.tokens() != null) tokens.putAll(state.tokens());
+      tokens.putAll(restoredTokens.tokens());
       users.values().forEach(user -> {
         ids.updateAndGet(current -> Math.max(current, user.id()));
         if (user.merchantId() != null) merchantIds.updateAndGet(current -> Math.max(current, user.merchantId()));
       });
+      if (restoredTokens.migrated()) persistState();
     } catch (IOException error) {
       throw new IllegalStateException("Failed to load identity state from " + stateFile, error);
+    } catch (IllegalArgumentException error) {
+      throw new IllegalStateException("Failed to load identity state from " + stateFile, error);
     }
+  }
+
+  private TokenState readTokens(JsonNode node) throws IOException {
+    Map<String, TokenSession> restored = new LinkedHashMap<>();
+    boolean migrated = false;
+    if (node == null || !node.isObject()) return new TokenState(restored, false);
+    var fields = node.fields();
+    while (fields.hasNext()) {
+      var entry = fields.next();
+      if (entry.getValue().isIntegralNumber()) {
+        // The legacy format stored only the user id; preserve the session with the default TTL.
+        long userId = entry.getValue().asLong();
+        restored.put(entry.getKey(), new TokenSession(userId, System.currentTimeMillis() + DEFAULT_TOKEN_TTL_MILLIS));
+        migrated = true;
+      } else if (entry.getValue().isObject()) {
+        restored.put(entry.getKey(), objectMapper.treeToValue(entry.getValue(), TokenSession.class));
+      } else {
+        throw new IllegalArgumentException("invalid token session for " + entry.getKey());
+      }
+    }
+    return new TokenState(restored, migrated);
   }
 
   private synchronized void persistState() {
@@ -382,5 +415,6 @@ public class IdentityStore {
     }
   }
 
+  private record TokenState(Map<String, TokenSession> tokens, boolean migrated) {}
   private record PersistentState(List<User> users, Map<Long, List<Address>> addresses, Map<String, TokenSession> tokens) {}
 }
