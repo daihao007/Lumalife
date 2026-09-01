@@ -49,13 +49,14 @@ class OrderServiceBusinessTest {
   @Test
   void preservesEveryLineWhenCreatingAMultiProductDeliveryOrder() {
     OrderStore store = new OrderStore();
-    OrderStore.Order order = store.createDeliveryOrders(new OrderStore.DeliveryRequest(1, 2101L,
+    OrderStore.Order order = store.createDeliveryOrders(new OrderStore.DeliveryRequest(1, 2101L, "测试用户 13800000001 契约测试地址",
       List.of(new OrderStore.DeliveryLine(1001, 1, 2680, 1), new OrderStore.DeliveryLine(1002, 1, 4280, 2)))).get(0);
 
     assertThat(order.quantity()).isEqualTo(3);
     assertThat(order.totalCent()).isEqualTo(11240);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::itemId).containsExactly(1001L, 1002L);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::quantity).containsExactly(1, 2);
+    assertThat(order.addressSnapshot()).isEqualTo("测试用户 13800000001 契约测试地址");
   }
 
   @Test
@@ -201,10 +202,11 @@ class OrderServiceBusinessTest {
     HttpHeaders userHeaders = serviceHeaders();
     userHeaders.set("X-User-Id", Long.toString(userId));
     OrderStore.Order[] created = http.exchange("/internal/v1/orders/delivery", HttpMethod.POST,
-      new HttpEntity<>(Map.of("userId", userId, "addressId", 2101,
+      new HttpEntity<>(Map.of("userId", userId, "addressId", 2101, "addressSnapshot", "契约用户 13800000001 契约测试地址",
         "lines", List.of(Map.of("productId", 1001, "merchantId", 1, "priceCent", 2680, "quantity", 1))), userHeaders), OrderStore.Order[].class).getBody();
     assertThat(created).hasSize(1);
     OrderStore.Order deliveryOrder = created[0];
+    assertThat(deliveryOrder.addressSnapshot()).isEqualTo("契约用户 13800000001 契约测试地址");
     http.exchange("/internal/v1/orders/" + deliveryOrder.id() + "/pay", HttpMethod.POST,
       new HttpEntity<>(Map.of("amountCent", 2680, "clientRequestId", "ct-delivery-" + runId), userHeaders), OrderStore.Order.class);
 

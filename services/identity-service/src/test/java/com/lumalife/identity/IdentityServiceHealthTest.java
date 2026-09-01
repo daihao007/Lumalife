@@ -139,6 +139,29 @@ class IdentityServiceHealthTest {
     assertThat(afterDelete[0].defaultAddress()).isTrue();
   }
 
+  @Test
+  void rejectsUnknownAddressIdsAndCapsAddressCreationAtFive() {
+    String phone = "ct-id-limit-" + UUID.randomUUID();
+    ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
+      new HttpEntity<>(Map.of("phone", phone, "password", "abc123456", "nickname", "地址上限用户", "role", "USER"), serviceHeaders()), Map.class);
+    long userId = ((Number) ((Map<?, ?>) registration.getBody().get("user")).get("id")).longValue();
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", Long.toString(userId));
+
+    ResponseEntity<String> unknown = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("id", 999999999L, "contactName", "测试用户", "phone", phone, "detail", "不存在的地址"), headers), String.class);
+    assertThat(unknown.getStatusCode().value()).isEqualTo(404);
+
+    for (int i = 1; i <= 5; i++) {
+      ResponseEntity<IdentityStore.Address> created = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+        new HttpEntity<>(Map.of("contactName", "测试用户", "phone", phone, "detail", "地址" + i), headers), IdentityStore.Address.class);
+      assertThat(created.getStatusCode().value()).isEqualTo(200);
+    }
+    ResponseEntity<String> sixth = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("contactName", "测试用户", "phone", phone, "detail", "第六个地址"), headers), String.class);
+    assertThat(sixth.getStatusCode().value()).isEqualTo(400);
+  }
+
   private HttpHeaders serviceHeaders() {
     HttpHeaders headers = new HttpHeaders();
     headers.set("X-Luma-Service-Token", "test-internal-token");

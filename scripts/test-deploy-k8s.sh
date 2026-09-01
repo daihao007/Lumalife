@@ -23,7 +23,8 @@ grep -q '^kubectl -n "\${NAMESPACE}" create configmap lumalife-mysql-migrations'
 grep -q -- '--from-file=V008__service_order_lines.sql=database/migrations/V008__service_order_lines.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V009__microservice_durability_fixes.sql=database/migrations/V009__microservice_durability_fixes.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V010__order_main_payment_projection.sql=database/migrations/V010__order_main_payment_projection.sql' "${SCRIPT_PATH}"
-grep -q 'version IN (.*V010' .github/workflows/ci.yml
+grep -q -- '--from-file=V011__order_address_snapshot.sql=database/migrations/V011__order_address_snapshot.sql' "${SCRIPT_PATH}"
+grep -q 'version IN (.*V011' .github/workflows/ci.yml
 grep -q '^            database/init$' .github/workflows/ci.yml
 grep -q '^            scripts/lib/legacy-migrations.sh$' .github/workflows/ci.yml
 grep -q '^            database/backfill-services.sql$' .github/workflows/ci.yml
