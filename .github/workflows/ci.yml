@@ -491,6 +491,7 @@ jobs:
             scripts/lib/legacy-migrations.sh
             k8s
             database/backfill-services.sql
+            database/bin
             database/init
             database/migrations
           if-no-files-found: error
