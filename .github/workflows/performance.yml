@@ -1,0 +1,87 @@
+name: Performance comparison
+
+on:
+  workflow_dispatch:
+    inputs:
+      requests:
+        description: "正式请求数（每个版本、每次重复）"
+        required: false
+        default: "90"
+      concurrency:
+        description: "并发数"
+        required: false
+        default: "12"
+
+permissions:
+  contents: read
+
+jobs:
+  compare-compose-configurations:
+    name: Compare monolith and microservices
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate isolated test credentials
+        shell: bash
+        run: |
+          echo "MYSQL_ROOT_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "MYSQL_DATABASE=life_assistant" >> "$GITHUB_ENV"
+          echo "MYSQL_USER=lifeassist" >> "$GITHUB_ENV"
+          echo "MYSQL_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
+      - name: Run microservices configuration
+        shell: bash
+        env:
+          PERF_BASE_URL: http://127.0.0.1:8080
+          PERF_LABEL: microservices
+          PERF_REQUESTS: ${{ inputs.requests }}
+          PERF_CONCURRENCY: ${{ inputs.concurrency }}
+          PERF_OUTPUT: 04_tests/performance/results/microservices.json
+          PERF_CSV: 04_tests/performance/results/microservices.csv
+        run: |
+          set -Eeuo pipefail
+          docker compose -p lumalife-performance down --volumes --remove-orphans || true
+          docker compose -p lumalife-performance up --detach --build --wait
+          docker compose -p lumalife-performance --profile db-tools run --rm db-seed
+          docker compose -p lumalife-performance --profile db-tools run --rm db-backfill-services
+          node 04_tests/performance/load-test.mjs
+
+      - name: Run monolith compatibility configuration
+        shell: bash
+        env:
+          LUMALIFE_IDENTITY_REMOTE_ENABLED: "false"
+          LUMALIFE_MERCHANT_REMOTE_ENABLED: "false"
+          LUMALIFE_ORDER_REMOTE_ENABLED: "false"
+          PERF_BASE_URL: http://127.0.0.1:8080
+          PERF_LABEL: monolith
+          PERF_REQUESTS: ${{ inputs.requests }}
+          PERF_CONCURRENCY: ${{ inputs.concurrency }}
+          PERF_OUTPUT: 04_tests/performance/results/monolith.json
+          PERF_CSV: 04_tests/performance/results/monolith.csv
+        run: |
+          set -Eeuo pipefail
+          docker compose -p lumalife-performance down --volumes --remove-orphans
+          docker compose -p lumalife-performance up --detach --build --wait
+          docker compose -p lumalife-performance --profile db-tools run --rm db-seed
+          node 04_tests/performance/load-test.mjs
+
+      - name: Upload raw performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-comparison-results
+          path: 04_tests/performance/results
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove performance stack
+        if: always()
+        run: docker compose -p lumalife-performance down --volumes --remove-orphans

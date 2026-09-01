@@ -49,6 +49,10 @@ grep -q 'name: lumalife-mysql-migrations' k8s/mysql.yaml
 grep -q 'key: identity-database' k8s/services.yaml
 grep -q 'key: merchant-database' k8s/services.yaml
 grep -q 'key: order-database' k8s/services.yaml
+grep -q 'kind: HorizontalPodAutoscaler' k8s/hpa.yaml
+grep -q 'name: backend' k8s/hpa.yaml
+grep -q 'averageUtilization: 60' k8s/hpa.yaml
+grep -q '^  - hpa.yaml$' k8s/kustomization.yaml
 
 prefetch_call_line="$(grep -n '^prefetch_images$' "${SCRIPT_PATH}" | cut -d: -f1)"
 apply_call_line="$(grep -n '^apply_versioned_manifests$' "${SCRIPT_PATH}" | cut -d: -f1)"

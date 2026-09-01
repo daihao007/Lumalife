@@ -6,3 +6,4 @@ resources:
   - services.yaml
   - backend.yaml
   - frontend.yaml
+  - hpa.yaml
