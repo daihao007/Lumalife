@@ -11,11 +11,14 @@ import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -30,11 +33,14 @@ public class RemoteOrderServicePort {
   OrderServicePort remoteOrderPort(ObjectMapper mapper, RestClient.Builder builder,
       @Value("${lumalife.services.order.base-url:http://localhost:8083}") String baseUrl,
       @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String merchantBaseUrl,
-      @Value("${lumalife.services.identity.base-url:http://localhost:8081}") String identityBaseUrl,
-      @Value("${lumalife.internal.service-token:}") String token) {
-    RestClient client = builder.baseUrl(baseUrl).defaultHeader("X-Internal-Service-Token", token).build();
-    RestClient merchantClient = builder.baseUrl(merchantBaseUrl).defaultHeader("X-Internal-Service-Token", token).build();
-    RestClient identityClient = builder.baseUrl(identityBaseUrl).defaultHeader("X-Internal-Service-Token", token).build();
+       @Value("${lumalife.services.identity.base-url:http://localhost:8081}") String identityBaseUrl,
+       @Value("${lumalife.internal.service-token:}") String token) {
+    JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
+    requestFactory.setReadTimeout(Duration.ofSeconds(3));
+    RestClient client = builder.requestFactory(requestFactory).baseUrl(baseUrl).defaultHeader("X-Internal-Service-Token", token).build();
+    RestClient merchantClient = builder.requestFactory(requestFactory).baseUrl(merchantBaseUrl).defaultHeader("X-Internal-Service-Token", token).build();
+    RestClient identityClient = builder.requestFactory(requestFactory).baseUrl(identityBaseUrl).defaultHeader("X-Internal-Service-Token", token).build();
     java.util.function.Function<Map, Order> toOrder = row -> {
       Map<String, Object> enriched = new java.util.LinkedHashMap<>();
       if (row != null) row.forEach((key, value) -> enriched.put(String.valueOf(key), value));

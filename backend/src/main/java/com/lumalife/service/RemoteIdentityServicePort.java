@@ -46,7 +46,7 @@ public class RemoteIdentityServicePort implements IdentityServicePort, HealthInd
       HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
     requestFactory.setReadTimeout(Duration.ofSeconds(2));
     this.client = builder.requestFactory(requestFactory).baseUrl(baseUrl).build();
-    this.merchantClient = builder.baseUrl(merchantBaseUrl).build();
+    this.merchantClient = builder.requestFactory(requestFactory).baseUrl(merchantBaseUrl).build();
     this.objectMapper = objectMapper;
     this.serviceToken = serviceToken == null ? "" : serviceToken;
     this.backfillCompleted = backfillCompleted;

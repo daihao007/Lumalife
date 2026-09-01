@@ -10,10 +10,13 @@ import java.lang.reflect.Proxy;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -28,10 +31,13 @@ public class RemoteMerchantServicePort {
   @Primary
   MerchantServicePort remoteMerchantPort(ObjectMapper mapper,
       RestClient.Builder builder, @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String baseUrl,
-      @Value("${lumalife.services.order.base-url:http://localhost:8083}") String orderBaseUrl,
-      @Value("${lumalife.internal.service-token:}") String token) {
-    RestClient client = builder.baseUrl(baseUrl).defaultHeader("X-Internal-Service-Token", token).build();
-    RestClient orderClient = builder.baseUrl(orderBaseUrl).defaultHeader("X-Internal-Service-Token", token).build();
+                                   @Value("${lumalife.services.order.base-url:http://localhost:8083}") String orderBaseUrl,
+                                   @Value("${lumalife.internal.service-token:}") String token) {
+    JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
+    requestFactory.setReadTimeout(Duration.ofSeconds(3));
+    RestClient client = builder.requestFactory(requestFactory).baseUrl(baseUrl).defaultHeader("X-Internal-Service-Token", token).build();
+    RestClient orderClient = builder.requestFactory(requestFactory).baseUrl(orderBaseUrl).defaultHeader("X-Internal-Service-Token", token).build();
     InvocationHandler handler = (proxy, method, args) -> {
       try {
       if (method.getName().equals("categories")) {
