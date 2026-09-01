@@ -12,10 +12,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -23,9 +28,9 @@ import org.springframework.web.client.RestClientResponseException;
 
 /** HTTP adapter for identity, enabled only after the explicit backfill gate is complete. */
 @Primary
-@Service
+@Service("identityService")
 @ConditionalOnProperty(prefix = "lumalife.migration.identity", name = "enabled", havingValue = "true")
-public class RemoteIdentityServicePort implements IdentityServicePort {
+public class RemoteIdentityServicePort implements IdentityServicePort, HealthIndicator {
   private final DemoStore fallback;
   private final RestClient client;
   private final ObjectMapper objectMapper;
@@ -39,11 +44,31 @@ public class RemoteIdentityServicePort implements IdentityServicePort {
                                    @Value("${lumalife.internal.service-token:}") String serviceToken,
                                    @Value("${lumalife.migration.identity.backfill-completed:false}") boolean backfillCompleted) {
     this.fallback = fallback;
-    this.client = builder.baseUrl(baseUrl).build();
+    JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
+    requestFactory.setReadTimeout(Duration.ofSeconds(2));
+    this.client = builder.requestFactory(requestFactory).baseUrl(baseUrl).build();
     this.merchantClient = builder.baseUrl(merchantBaseUrl).build();
     this.objectMapper = objectMapper;
     this.serviceToken = serviceToken == null ? "" : serviceToken;
     this.backfillCompleted = backfillCompleted;
+  }
+
+  @Override
+  public Health health() {
+    if (!backfillCompleted) {
+      return Health.down().withDetail("reason", "IDENTITY_BACKFILL_REQUIRED").build();
+    }
+    try {
+      Map<String, Object> response = client.get().uri("/actuator/health").retrieve()
+        .body(new ParameterizedTypeReference<>() {});
+      if (response != null && "UP".equalsIgnoreCase(String.valueOf(response.get("status")))) {
+        return Health.up().build();
+      }
+      return Health.down().withDetail("reason", "IDENTITY_SERVICE_UNAVAILABLE").build();
+    } catch (RestClientException error) {
+      return Health.down().withDetail("reason", "IDENTITY_SERVICE_UNAVAILABLE").build();
+    }
   }
 
   @Override public Optional<User> userByToken(String token) {

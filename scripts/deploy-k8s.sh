@@ -209,6 +209,10 @@ kubectl -n "${NAMESPACE}" run "${healthcheck_name}" \
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://backend:8080/actuator/health/readiness | grep -q "\"status\":\"UP\""
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/healthz | grep -q "^ok$"
     curl --fail --silent --show-error --retry 12 --retry-delay 2 http://frontend/actuator/health/readiness | grep -q "\"status\":\"UP\""
+    curl --fail --silent --show-error --retry 12 --retry-delay 2 \
+      -H "Content-Type: application/json" \
+      -d "{\"phone\":\"13800000001\",\"password\":\"abc123456\"}" \
+      http://backend:8080/api/v1/auth/login | grep -q "\"code\":200"
   '
 
 kubectl -n "${NAMESPACE}" get deployments,statefulsets,pods,services,persistentvolumeclaims -o wide

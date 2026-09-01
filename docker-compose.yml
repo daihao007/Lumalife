@@ -23,7 +23,7 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod},remote
       LUMALIFE_PERSISTENCE: mysql
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306

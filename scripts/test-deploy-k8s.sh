@@ -30,6 +30,7 @@ grep -q '^            database/backfill-services.sql$' .github/workflows/ci.yml
 grep -q 'database/init/10-bootstrap.sh' .github/workflows/deploy-ecs-k3s.yml
 grep -q 'scripts/lib/legacy-migrations.sh' .github/workflows/deploy-ecs-k3s.yml
 grep -q 'database/backfill-services.sql' .github/workflows/deploy-ecs-k3s.yml
+grep -q 'api/v1/auth/login' "${SCRIPT_PATH}"
 
 grep -q 'mountPath: /database/migrations' k8s/mysql.yaml
 grep -q 'name: lumalife-mysql-migrations' k8s/mysql.yaml
