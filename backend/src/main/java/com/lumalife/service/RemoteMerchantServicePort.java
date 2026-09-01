@@ -73,6 +73,17 @@ public class RemoteMerchantServicePort {
         List<Map> rows = client.get().uri("/internal/v1/merchants/{id}/products", user.merchantId()).retrieve().body(List.class);
         return rows.stream().map(row -> mapper.convertValue(row, Product.class)).toList();
       }
+      if (method.getName().equals("updateMerchantNickname")) {
+        com.lumalife.domain.Models.User user = (com.lumalife.domain.Models.User) args[0];
+        Map<String, Object> profile = new LinkedHashMap<>();
+        profile.put("nickname", args[1]);
+        Map row = client.put().uri("/internal/v1/merchants/{id}/profile", user.merchantId())
+          .header("X-Merchant-Id", String.valueOf(user.merchantId()))
+          .body(profile).retrieve().body(Map.class);
+        var updatedUser = new com.lumalife.domain.Models.User(user.id(), user.phone(), user.password(),
+          String.valueOf(args[1]).trim(), user.avatarUrl(), user.role(), user.merchantId());
+        return Map.of("user", fallback.safeUser(updatedUser), "merchant", mapper.convertValue(row, Merchant.class));
+      }
       if (method.getName().equals("saveProduct")) {
         com.lumalife.domain.Models.User user = (com.lumalife.domain.Models.User) args[0];
         Map<String,Object> body = new java.util.LinkedHashMap<>();

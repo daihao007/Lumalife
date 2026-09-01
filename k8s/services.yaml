@@ -15,6 +15,14 @@ spec:
       # Services use cluster DNS. Disabling legacy service-link variables also
       # prevents *_SERVICE_PORT URI values from colliding with app settings.
       enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: identity-service
           image: ghcr.io/daihao007/lumalife-identity-service:main

@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,8 +17,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -25,8 +26,15 @@ class OrderServiceBusinessTest {
 
   @Test
   void continuesAfterTheHighestPersistedOrderId() {
-    JdbcTemplate jdbc = mock(JdbcTemplate.class);
-    when(jdbc.queryForObject("SELECT COALESCE(MAX(id), 4000) FROM order_record", Long.class)).thenReturn(4007L);
+    JdbcTemplate jdbc = new JdbcTemplate() {
+      @Override public <T> T queryForObject(String sql, Class<T> requiredType) {
+        return requiredType.cast(4007L);
+      }
+
+      @Override public int update(String sql, Object... args) {
+        return 1;
+      }
+    };
 
     OrderStore store = new OrderStore(jdbc);
     OrderStore.Order order = store.create(new OrderStore.CreateOrderRequest(1, 1, 1001, 1, 2680));
@@ -49,12 +57,50 @@ class OrderServiceBusinessTest {
   void preservesEveryLineWhenCreatingAMultiProductDeliveryOrder() {
     OrderStore store = new OrderStore();
     OrderStore.Order order = store.createDeliveryOrders(new OrderStore.DeliveryRequest(1, 2101L,
+      new OrderStore.DeliveryAddress(2101, 1, "测试用户", "13800000001", "测试地址", true),
       List.of(new OrderStore.DeliveryLine(1001, 1, 2680, 1), new OrderStore.DeliveryLine(1002, 1, 4280, 2)))).get(0);
 
     assertThat(order.quantity()).isEqualTo(3);
     assertThat(order.totalCent()).isEqualTo(11240);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::itemId).containsExactly(1001L, 1002L);
     assertThat(order.lines()).extracting(OrderStore.OrderLine::quantity).containsExactly(1, 2);
+    assertThat(order.addressId()).isEqualTo(2101L);
+    assertThat(order.addressSnapshot()).isEqualTo("测试用户 13800000001 测试地址");
+  }
+
+  @Test
+  void mapsPersistedDeliveryAddressIntoOrderQueries() throws Exception {
+    Map<Integer, Object> columns = Map.ofEntries(
+      Map.entry(1, 4001L), Map.entry(2, 1L), Map.entry(3, 3L), Map.entry(4, 1001L),
+      Map.entry(5, 1), Map.entry(6, 2680L), Map.entry(7, "PENDING_PAYMENT"),
+      Map.entry(8, Timestamp.from(Instant.parse("2026-09-01T00:00:00Z"))), Map.entry(9, "DELIVERY"),
+      Map.entry(10, ""), Map.entry(11, false), Map.entry(12, 2101L),
+      Map.entry(13, "测试用户 13800000001 测试地址"));
+    ResultSet resultSet = (ResultSet) java.lang.reflect.Proxy.newProxyInstance(
+      ResultSet.class.getClassLoader(), new Class<?>[]{ResultSet.class}, (proxy, method, args) -> {
+        if (method.getName().equals("wasNull")) return false;
+        if (method.getName().equals("getLong")) return ((Number) columns.get((Integer) args[0])).longValue();
+        if (method.getName().equals("getInt")) return ((Number) columns.get((Integer) args[0])).intValue();
+        if (method.getName().equals("getBoolean")) return columns.get((Integer) args[0]);
+        if (method.getName().equals("getString")) return String.valueOf(columns.get((Integer) args[0]));
+        if (method.getName().equals("getTimestamp")) return columns.get((Integer) args[0]);
+        throw new UnsupportedOperationException(method.getName());
+      });
+
+    OrderStore.Order mapped = new OrderStore().map(resultSet, 0);
+
+    assertThat(mapped.addressId()).isEqualTo(2101L);
+    assertThat(mapped.addressSnapshot()).isEqualTo("测试用户 13800000001 测试地址");
+  }
+
+  @Test
+  void rejectsAnAddressSnapshotOwnedByAnotherUser() {
+    OrderStore store = new OrderStore();
+    assertThatThrownBy(() -> store.createDeliveryOrders(new OrderStore.DeliveryRequest(1, 2101L,
+      new OrderStore.DeliveryAddress(2101, 2, "其他用户", "13800000002", "其他地址", false),
+      List.of(new OrderStore.DeliveryLine(1001, 1, 2680, 1)))))
+      .isInstanceOf(SecurityException.class)
+      .hasMessage("收货地址不属于当前用户");
   }
 
   @Test
@@ -201,9 +247,16 @@ class OrderServiceBusinessTest {
     userHeaders.set("X-User-Id", Long.toString(userId));
     OrderStore.Order[] created = http.exchange("/internal/v1/orders/delivery", HttpMethod.POST,
       new HttpEntity<>(Map.of("userId", userId, "addressId", 2101,
+        "address", Map.of("id", 2101, "userId", userId, "contactName", "契约用户", "phone", "13800000001", "detail", "契约地址", "defaultAddress", true),
         "lines", List.of(Map.of("productId", 1001, "merchantId", 1, "priceCent", 2680, "quantity", 1))), userHeaders), OrderStore.Order[].class).getBody();
     assertThat(created).hasSize(1);
     OrderStore.Order deliveryOrder = created[0];
+    assertThat(deliveryOrder.addressId()).isEqualTo(2101L);
+    assertThat(deliveryOrder.addressSnapshot()).isEqualTo("契约用户 13800000001 契约地址");
+    OrderStore.Order queried = http.exchange("/internal/v1/orders/" + deliveryOrder.id(), HttpMethod.GET,
+      new HttpEntity<>(userHeaders), OrderStore.Order.class).getBody();
+    assertThat(queried.addressId()).isEqualTo(2101L);
+    assertThat(queried.addressSnapshot()).isEqualTo("契约用户 13800000001 契约地址");
     http.exchange("/internal/v1/orders/" + deliveryOrder.id() + "/pay", HttpMethod.POST,
       new HttpEntity<>(Map.of("amountCent", 2680, "clientRequestId", "ct-delivery-" + runId), userHeaders), OrderStore.Order.class);
 

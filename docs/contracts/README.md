@@ -1,6 +1,6 @@
 # 三服务机器可读契约
 
-本目录承接 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的 `draft-2026-08-26` 契约候选，并作为 Issue [#33](https://github.com/daihao007/Lumalife/issues/33) 的接口机器可读附件：
+本目录承接 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的契约候选，并作为 Issue [#33](https://github.com/daihao007/Lumalife/issues/33) 的接口机器可读附件。identity-service 的 v1 契约已在 Issue [#43](https://github.com/daihao007/Lumalife/issues/43) 中冻结；merchant/order 契约仍按后续服务迁移门逐步落地：
 
 | 文件 | 所有者 | 内容 |
 |---|---|---|
@@ -9,7 +9,7 @@
 | `order-service.openapi.yaml` | order-service | 18 个外部 API、评价查询和支付状态内部 API |
 | `domain-events.asyncapi.yaml` | 三服务 | 11 个版本化领域事件、公共信封和载荷约束（含商家注册 Saga） |
 
-规范文件仍包含迁移目标，尤其是 JWT、独立数据库 Schema、库存预占、Outbox/Inbox 和事件总线；但当前三个服务已经实际实现 39 个 `/internal/v1/**` 业务接口。未列入服务源码/测试的目标接口不能视为已部署能力；当前实际路由、数据表和差异记录在 [`../28_D07服务接口数据归属与需求追溯.md`](../28_D07服务接口数据归属与需求追溯.md)，目标模型仍见 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
+规范文件仍包含迁移目标，尤其是 JWT、独立数据库 Schema、库存预占、Outbox/Inbox 和事件总线；但当前三个服务已经实际实现 40 个 `/internal/v1/**` 业务接口。未列入服务源码/测试的目标接口不能视为已部署能力；当前实际路由、数据表和差异记录在 [`../28_D07服务接口数据归属与需求追溯.md`](../28_D07服务接口数据归属与需求追溯.md)，目标模型仍见 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
 
 ## 校验
 

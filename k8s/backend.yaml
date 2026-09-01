@@ -88,9 +88,9 @@ spec:
             - name: ORDER_SERVICE_URL
               value: http://order-service:8083
             - name: LUMALIFE_IDENTITY_REMOTE_ENABLED
-              value: "true"
+              value: "false"
             - name: LUMALIFE_IDENTITY_BACKFILL_COMPLETED
-              value: "true"
+              value: "false"
             - name: LUMALIFE_MERCHANT_REMOTE_ENABLED
               value: "true"
             - name: LUMALIFE_MERCHANT_BACKFILL_COMPLETED

@@ -101,6 +101,22 @@ public class MerchantStore {
     return merchant;
   }
 
+  public synchronized Merchant renameMerchant(long id, String nickname) {
+    Merchant current = merchant(id);
+    if (nickname == null || nickname.isBlank()) throw new IllegalArgumentException("商家昵称不能为空");
+    String nextName = nickname.trim();
+    if (nextName.length() > 64) throw new IllegalArgumentException("商家昵称不能超过 64 个字符");
+    if (jdbc != null) {
+      int updated = jdbc.update("UPDATE merchant SET name=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND is_deleted=0", nextName, id);
+      if (updated != 1) throw new IllegalArgumentException("商家不存在");
+    }
+    Merchant renamed = new Merchant(current.id(), nextName, current.categoryId(), current.categoryName(),
+      current.cover(), current.avgScore(), current.avgPrice(), current.monthlySales(), current.distanceKm(),
+      current.status(), current.address(), current.reason());
+    merchants.put(id, renamed);
+    return renamed;
+  }
+
   public synchronized List<Product> products(long merchantId) {
     merchant(merchantId);
     if (jdbc != null) return jdbc.query("SELECT id,merchant_id,name,description,price_cent,stock,listed FROM merchant_catalog WHERE merchant_id=? ORDER BY id", (rs,n) -> new Product(rs.getLong(1),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getLong(5),rs.getInt(6),rs.getBoolean(7)), merchantId);

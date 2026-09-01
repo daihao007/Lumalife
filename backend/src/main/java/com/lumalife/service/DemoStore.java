@@ -225,16 +225,22 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
 
   public Address saveAddress(User user, Long id, String contactName, String phone, String detail, boolean defaultAddress) {
     List<Address> list = addresses.computeIfAbsent(user.id(), ignored -> new ArrayList<>());
-    if (id == null && list.size() >= 5) {
-      throw new BusinessException(40900, "每个用户最多维护 5 个收货地址");
+    boolean creating = id == null || id <= 0;
+    if (creating) {
+      if (list.size() >= 5) throw new BusinessException(40900, "每个用户最多维护 5 个收货地址");
+    } else if (list.stream().noneMatch(address -> address.id() == id)) {
+      boolean belongsToAnotherUser = addresses.values().stream().flatMap(List::stream)
+        .anyMatch(address -> address.id() == id);
+      if (belongsToAnotherUser) throw new BusinessException(40300, "不能操作其他用户的地址");
+      throw new BusinessException(40400, "收货地址不存在");
     }
     if (defaultAddress) {
       list.replaceAll(a -> new Address(a.id(), a.userId(), a.contactName(), a.phone(), a.detail(), false));
     }
-    Address address = new Address(id == null ? ids.incrementAndGet() : id, user.id(), contactName, phone, detail, defaultAddress || list.isEmpty());
+    Address address = new Address(creating ? ids.incrementAndGet() : id, user.id(), contactName, phone, detail, defaultAddress || list.isEmpty());
     list.removeIf(a -> a.id() == address.id());
     list.add(address);
-    log(user.nickname(), (id == null ? "新增" : "编辑") + "收货地址");
+    log(user.nickname(), (creating ? "新增" : "编辑") + "收货地址");
     return address;
   }
 
@@ -607,9 +613,16 @@ public class DemoStore implements IdentityServicePort, MerchantServicePort, Orde
   }
 
   public List<Order> createDeliveryOrders(User user, Long addressId) {
+    return createDeliveryOrdersWithAddress(user, resolveOrderAddress(user, addressId));
+  }
+
+  @Override
+  public List<Order> createDeliveryOrdersWithAddress(User user, Address address) {
     List<CartItem> cart = new ArrayList<>(cart(user.id()));
     if (cart.isEmpty()) throw new BusinessException(40900, "购物车为空");
-    Address address = resolveOrderAddress(user, addressId);
+    if (address == null || address.userId() != user.id()) {
+      throw new BusinessException(40300, "不能使用其他用户的收货地址");
+    }
     Map<Long, Order> grouped = new LinkedHashMap<>();
     for (CartItem item : cart) {
       Product product = products.get(item.productId());

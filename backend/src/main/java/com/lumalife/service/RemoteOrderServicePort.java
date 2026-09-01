@@ -5,6 +5,7 @@ import com.lumalife.domain.Models.Order;
 import com.lumalife.domain.Models.CartItem;
 import com.lumalife.domain.Models.Review;
 import com.lumalife.domain.Models.CartLine;
+import com.lumalife.domain.Models.Address;
 import com.lumalife.domain.Enums.OrderStatus;
 import com.lumalife.service.boundary.OrderServicePort;
 import java.lang.reflect.Proxy;
@@ -70,8 +71,9 @@ public class RemoteOrderServicePort {
         }
         return lines;
       }
-      if (method.getName().equals("createDeliveryOrders")) {
+      if (method.getName().equals("createDeliveryOrdersWithAddress")) {
         var user = (com.lumalife.domain.Models.User) args[0];
+        var address = (Address) args[1];
         Map cart = client.get().uri("/internal/v1/orders/cart").header("X-User-Id", String.valueOf(user.id())).retrieve().body(Map.class);
         List<Map<String,Object>> lines = new ArrayList<>();
         if (cart != null) for (Object key : cart.keySet()) {
@@ -79,7 +81,11 @@ public class RemoteOrderServicePort {
           Map product = merchantClient.get().uri("/internal/v1/products/{id}", productId).retrieve().body(Map.class);
           lines.add(Map.of("productId", productId, "merchantId", product.get("merchantId"), "priceCent", product.get("priceCent"), "quantity", quantity));
         }
-        Map<String,Object> delivery = new java.util.LinkedHashMap<>(); delivery.put("userId", user.id()); delivery.put("addressId", args[1]); delivery.put("lines", lines);
+        Map<String,Object> delivery = new java.util.LinkedHashMap<>();
+        delivery.put("userId", user.id());
+        delivery.put("addressId", address.id());
+        delivery.put("address", address);
+        delivery.put("lines", lines);
         List<Map> rows = client.post().uri("/internal/v1/orders/delivery").header("X-User-Id", String.valueOf(user.id())).body(delivery).retrieve().body(List.class);
         return rows.stream().map(row -> mapper.convertValue(enrichOrder(row, merchantClient), Order.class)).toList();
       }

@@ -13,6 +13,7 @@ WORKDIR /app
 RUN useradd --system --uid 10001 --create-home lumalife \
     && install -d --owner=10001 --group=0 /app/data
 COPY --from=build /src/identity-service/target/identity-service-*.jar app.jar
+ENV LUMALIFE_IDENTITY_STATE_FILE=/app/data/identity-state.json
 USER 10001
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

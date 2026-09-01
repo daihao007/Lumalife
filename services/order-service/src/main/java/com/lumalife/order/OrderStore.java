@@ -21,29 +21,38 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderStore {
   public record Order(long id, long userId, long merchantId, long productId, int quantity,
                       long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline,
-                      String couponCode, String type, boolean reviewed, List<OrderLine> lines) {
+                      String couponCode, String type, boolean reviewed, List<OrderLine> lines,
+                      Long addressId, String addressSnapshot) {
     public Order(long id, long userId, long merchantId, long productId, int quantity,
                  long totalCent, String status, Instant createdAt) {
       this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt,
-        Map.of(status, createdAt), null, "DELIVERY", false, List.of());
+        Map.of(status, createdAt), null, "DELIVERY", false, List.of(), null, null);
     }
 
     public Order(long id, long userId, long merchantId, long productId, int quantity,
                  long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline) {
       this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt,
-        statusTimeline, null, "DELIVERY", false, List.of());
+        statusTimeline, null, "DELIVERY", false, List.of(), null, null);
     }
 
     public Order(long id, long userId, long merchantId, long productId, int quantity,
                  long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline,
                  String couponCode) {
       this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt,
-        statusTimeline, couponCode, "DELIVERY", false, List.of());
+        statusTimeline, couponCode, "DELIVERY", false, List.of(), null, null);
     }
 
     public Order(long id, long userId, long merchantId, long productId, int quantity,
                  long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline,
                  String couponCode, String type, boolean reviewed, List<OrderLine> lines) {
+      this(id, userId, merchantId, productId, quantity, totalCent, status, createdAt,
+        statusTimeline, couponCode, type, reviewed, lines, null, null);
+    }
+
+    public Order(long id, long userId, long merchantId, long productId, int quantity,
+                 long totalCent, String status, Instant createdAt, Map<String, Instant> statusTimeline,
+                 String couponCode, String type, boolean reviewed, List<OrderLine> lines,
+                 Long addressId, String addressSnapshot) {
       this.id = id;
       this.userId = userId;
       this.merchantId = merchantId;
@@ -57,6 +66,8 @@ public class OrderStore {
       this.type = type == null ? "DELIVERY" : type;
       this.reviewed = reviewed;
       this.lines = lines == null ? List.of() : List.copyOf(lines);
+      this.addressId = addressId;
+      this.addressSnapshot = addressSnapshot;
     }
   }
 
@@ -108,7 +119,7 @@ public class OrderStore {
   }
 
   public synchronized List<Order> byUser(long userId) {
-    if (jdbc != null) return jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed FROM order_record WHERE user_id=? ORDER BY id", this::map, userId);
+    if (jdbc != null) return jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_id,address_snapshot FROM order_record WHERE user_id=? ORDER BY id", this::map, userId);
     return orders.values().stream().filter(item -> item.userId() == userId).toList();
   }
 
@@ -212,7 +223,7 @@ public class OrderStore {
   }
 
   private Order lockedOrder(long id) {
-    List<Order> rows = jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed FROM order_record WHERE id=? FOR UPDATE", this::map, id);
+    List<Order> rows = jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_id,address_snapshot FROM order_record WHERE id=? FOR UPDATE", this::map, id);
     if (rows.isEmpty()) throw new IllegalArgumentException("订单不存在");
     return rows.get(0);
   }
@@ -245,6 +256,12 @@ public class OrderStore {
   }
 
   public synchronized List<Order> createDeliveryOrders(DeliveryRequest request) {
+    DeliveryAddress address = request.address();
+    if (request.addressId() == null || address == null
+        || request.addressId() != address.id() || request.userId() != address.userId()) {
+      throw new SecurityException("收货地址不属于当前用户");
+    }
+    String addressSnapshot = address.snapshot();
     if (request.lines() == null || request.lines().isEmpty()) throw new IllegalArgumentException("购物车为空");
     Map<Long, List<DeliveryLine>> grouped = new LinkedHashMap<>();
     for (DeliveryLine line : request.lines()) {
@@ -261,12 +278,13 @@ public class OrderStore {
       List<OrderLine> lines = sourceLines.stream().map(line -> new OrderLine(line.productId(), "商品 " + line.productId(), line.quantity(), line.priceCent())).toList();
       long id = nextOrderId();
       Order order = new Order(id, request.userId(), entry.getKey(), first.productId(), quantity, total,
-        "PENDING_PAYMENT", Instant.now(), Map.of("PENDING_PAYMENT", Instant.now()), null, "DELIVERY", false, lines);
+        "PENDING_PAYMENT", Instant.now(), Map.of("PENDING_PAYMENT", Instant.now()), null, "DELIVERY", false,
+        lines, request.addressId(), addressSnapshot);
       orders.put(id, order);
       orderTypes.put(id, "DELIVERY");
       if (jdbc != null) {
-        jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,address_id,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-          id, order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), order.status(), "DELIVERY", request.addressId(), java.sql.Timestamp.from(order.createdAt()));
+        jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,product_id,quantity,total_cent,status,order_type,address_id,address_snapshot,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          id, order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), order.status(), "DELIVERY", request.addressId(), addressSnapshot, java.sql.Timestamp.from(order.createdAt()));
         insertLines(id, lines);
       }
       appendEvent(id, request.userId(), "PENDING_PAYMENT");
@@ -368,14 +386,14 @@ public class OrderStore {
   }
 
   public synchronized List<Order> merchantOrders(long merchantId) {
-    if (jdbc != null) return jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed FROM order_record WHERE merchant_id=? ORDER BY id DESC", this::map, merchantId);
+    if (jdbc != null) return jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_id,address_snapshot FROM order_record WHERE merchant_id=? ORDER BY id DESC", this::map, merchantId);
     return orders.values().stream().filter(o -> o.merchantId() == merchantId).toList();
   }
 
   private Optional<Order> findOrder(long id) {
     Order cached = orders.get(id);
     if (cached != null || jdbc == null) return Optional.ofNullable(cached);
-    var rows = jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed FROM order_record WHERE id=?", this::map, id);
+    var rows = jdbc.query("SELECT id,user_id,merchant_id,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_id,address_snapshot FROM order_record WHERE id=?", this::map, id);
     return rows.stream().findFirst();
   }
 
@@ -391,14 +409,16 @@ public class OrderStore {
     Map<String, Instant> timeline = new LinkedHashMap<>(order.statusTimeline());
     timeline.put(status, Instant.now());
     return new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), status,
-      order.createdAt(), timeline, order.couponCode(), order.type(), order.reviewed(), order.lines());
+      order.createdAt(), timeline, order.couponCode(), order.type(), order.reviewed(), order.lines(),
+      order.addressId(), order.addressSnapshot());
   }
 
   private Order withStatusAndCoupon(Order order, String status, String couponCode) {
     Map<String, Instant> timeline = new LinkedHashMap<>(order.statusTimeline());
     timeline.put(status, Instant.now());
     return new Order(order.id(), order.userId(), order.merchantId(), order.productId(), order.quantity(), order.totalCent(), status,
-      order.createdAt(), timeline, couponCode, order.type(), order.reviewed(), order.lines());
+      order.createdAt(), timeline, couponCode, order.type(), order.reviewed(), order.lines(),
+      order.addressId(), order.addressSnapshot());
   }
 
   private void appendEvent(long orderId, long actor, String status) {
@@ -408,11 +428,17 @@ public class OrderStore {
     }
   }
 
-  private Order map(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+  Order map(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
     long id = rs.getLong(1);
     String type = rs.getString(9);
     return new Order(id, rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getInt(5), rs.getLong(6), rs.getString(7),
-      rs.getTimestamp(8).toInstant(), timeline(id), rs.getString(10), type, rs.getBoolean(11), lines(id));
+      rs.getTimestamp(8).toInstant(), timeline(id), rs.getString(10), type, rs.getBoolean(11), lines(id),
+      nullableLong(rs, 12), rs.getString(13));
+  }
+
+  private Long nullableLong(java.sql.ResultSet rs, int column) throws java.sql.SQLException {
+    long value = rs.getLong(column);
+    return rs.wasNull() ? null : value;
   }
 
   private Map<String, Instant> timeline(long orderId) {
@@ -431,7 +457,17 @@ public class OrderStore {
   public record Payment(long userId, long orderId, String clientRequestId, long amountCent, String status) {}
   public record GroupOrderRequest(long userId, long dealId, long merchantId, long priceCent, int quantity) {}
   public record DeliveryLine(long productId, long merchantId, long priceCent, int quantity) {}
-  public record DeliveryRequest(long userId, Long addressId, List<DeliveryLine> lines) {}
+  public record DeliveryAddress(long id, long userId, String contactName, String phone, String detail,
+                                boolean defaultAddress) {
+    String snapshot() {
+      if (id <= 0 || userId <= 0 || contactName == null || contactName.isBlank()
+          || phone == null || phone.isBlank() || detail == null || detail.isBlank()) {
+        throw new IllegalArgumentException("收货地址快照不完整");
+      }
+      return contactName.trim() + " " + phone.trim() + " " + detail.trim();
+    }
+  }
+  public record DeliveryRequest(long userId, Long addressId, DeliveryAddress address, List<DeliveryLine> lines) {}
   public record Coupon(String code, long orderId, long merchantId, String status) {}
   public record ReviewRequest(long userId, long orderId, String userName, int score, int tasteScore, int serviceScore, String content) {}
   public record Review(long id, long orderId, long merchantId, String userName, int score, int tasteScore, int serviceScore, String content, LocalDateTime createdAt) {}

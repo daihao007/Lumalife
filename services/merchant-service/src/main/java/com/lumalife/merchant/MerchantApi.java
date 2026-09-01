@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +32,18 @@ public class MerchantApi {
 
   @GetMapping("/merchants/{id}")
   MerchantStore.Merchant merchant(@PathVariable long id) { return readResource(() -> store.merchant(id)); }
+
+  @PutMapping("/merchants/{id}/profile")
+  MerchantStore.Merchant updateProfile(@PathVariable long id,
+                                       @RequestHeader("X-Merchant-Id") long actorMerchantId,
+                                       @RequestBody MerchantProfileRequest request) {
+    if (id != actorMerchantId) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能修改其他商家的资料");
+    try {
+      return store.renameMerchant(id, request == null ? null : request.nickname());
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    }
+  }
 
   @GetMapping("/merchants/{id}/products")
   List<MerchantStore.Product> products(@PathVariable long id) { return readResource(() -> store.products(id)); }
@@ -92,4 +105,6 @@ public class MerchantApi {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage());
     }
   }
+
+  record MerchantProfileRequest(String nickname) {}
 }

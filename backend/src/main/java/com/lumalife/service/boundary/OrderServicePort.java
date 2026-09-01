@@ -3,6 +3,7 @@ package com.lumalife.service.boundary;
 import com.lumalife.domain.Enums.OrderStatus;
 import com.lumalife.domain.Models.CartItem;
 import com.lumalife.domain.Models.CartLine;
+import com.lumalife.domain.Models.Address;
 import com.lumalife.domain.Models.Order;
 import com.lumalife.domain.Models.Review;
 import com.lumalife.domain.Models.User;
@@ -22,7 +23,7 @@ public interface OrderServicePort {
 
   void clearCart(long userId);
 
-  List<Order> createDeliveryOrders(User user, Long addressId);
+  List<Order> createDeliveryOrdersWithAddress(User user, Address address);
 
   Order createGroupOrder(User user, long dealId, int quantity);
 
