@@ -55,6 +55,7 @@ jobs:
           echo "IMAGE_TAG=${image_tag}" >> "${GITHUB_ENV}"
           test "$(cat "${BUNDLE_PATH}/ecs-source-sha.txt")" = "${SOURCE_SHA}"
           test -f "${BUNDLE_PATH}/scripts/deploy-k8s.sh"
+          test -f "${BUNDLE_PATH}/scripts/lib/legacy-migrations.sh"
           test -f "${BUNDLE_PATH}/k8s/kustomization.yaml"
           test -f "${BUNDLE_PATH}/database/init/10-bootstrap.sh"
           test -f "${BUNDLE_PATH}/database/migrations/V001__baseline_schema.sql"
