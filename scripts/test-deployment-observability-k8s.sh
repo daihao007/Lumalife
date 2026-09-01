@@ -20,10 +20,14 @@ test -n "${good_image}"
 bad_image="${good_image%:*}:d07-missing-${GITHUB_RUN_ID:-local}"
 injected=0
 
+restore_good_image() {
+  kubectl -n "${NAMESPACE}" set image "deployment/${SERVICE}" "${CONTAINER}=${good_image}"
+  kubectl -n "${NAMESPACE}" rollout status "deployment/${SERVICE}" --timeout="${RECOVERY_TIMEOUT}"
+}
+
 restore() {
   if [[ "${injected}" == 1 ]]; then
-    kubectl -n "${NAMESPACE}" rollout undo "deployment/${SERVICE}" >/dev/null 2>&1 || true
-    kubectl -n "${NAMESPACE}" rollout status "deployment/${SERVICE}" --timeout="${RECOVERY_TIMEOUT}" >/dev/null 2>&1 || true
+    restore_good_image >/dev/null 2>&1 || true
   fi
 }
 trap restore EXIT
@@ -59,9 +63,7 @@ if ! grep -Eqi 'ErrImagePull|ImagePullBackOff|Failed to pull image|pull access d
   exit 1
 fi
 
-kubectl -n "${NAMESPACE}" rollout undo "deployment/${SERVICE}"
-kubectl -n "${NAMESPACE}" rollout status "deployment/${SERVICE}" --timeout="${RECOVERY_TIMEOUT}" \
-  | tee "${EVIDENCE_DIR}/09-recovery-rollout.txt"
+restore_good_image | tee "${EVIDENCE_DIR}/09-recovery-rollout.txt"
 recovered_image="$(kubectl -n "${NAMESPACE}" get deployment "${SERVICE}" -o jsonpath="{.spec.template.spec.containers[?(@.name=='${CONTAINER}')].image}")"
 test "${recovered_image}" = "${good_image}"
 kubectl -n "${NAMESPACE}" get deployment,pods -l "app.kubernetes.io/name=${SERVICE}" -o wide \

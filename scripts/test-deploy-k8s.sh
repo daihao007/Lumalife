@@ -21,6 +21,12 @@ grep -q 'check_java_service merchant-service 8082' "${SCRIPT_PATH}"
 grep -q 'check_java_service order-service 8083' "${SCRIPT_PATH}"
 grep -q 'frontend/version.json' "${SCRIPT_PATH}"
 grep -q 'Refusing failure injection outside a disposable Kind cluster' scripts/test-deployment-observability-k8s.sh
+grep -q '^restore_good_image() {' scripts/test-deployment-observability-k8s.sh
+grep -Fq 'set image "deployment/${SERVICE}" "${CONTAINER}=${good_image}"' scripts/test-deployment-observability-k8s.sh
+if grep -q 'rollout undo' scripts/test-deployment-observability-k8s.sh; then
+  echo "Failure recovery must restore the known-good image explicitly." >&2
+  exit 1
+fi
 
 test "$(grep -c 'path: /actuator/health/liveness' k8s/services.yaml)" -eq 6
 test "$(grep -c 'path: /actuator/health/readiness' k8s/services.yaml)" -eq 3

@@ -103,6 +103,11 @@ jobs:
             type=sha,prefix=sha-
             type=ref,event=pr
 
+      - name: Generate runtime version
+        id: version
+        shell: bash
+        run: echo "version=sha-${GITHUB_SHA::7}" >> "${GITHUB_OUTPUT}"
+
       # ci.yml is the sole publisher of canonical sha-* tags. Keeping this
       # incremental build validation-only prevents its single-platform image
       # from racing the amd64/arm64 manifest published by the main CI workflow.
@@ -114,7 +119,9 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: SERVICE_VERSION=sha-${{ github.sha }}
+          build-args: |
+            SERVICE_VERSION=${{ steps.version.outputs.version }}
+            GIT_COMMIT=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
@@ -147,6 +154,8 @@ jobs:
               --platform linux/amd64 \
               --provenance=false \
               --load \
+              --build-arg "SERVICE_VERSION=${image_tag}" \
+              --build-arg "GIT_COMMIT=${GITHUB_SHA}" \
               --file "services/${service}/Dockerfile" \
               --tag "ghcr.io/daihao007/lumalife-${service}:${image_tag}" \
               services

@@ -22,6 +22,7 @@ fi
 readonly IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/daihao007}"
 readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
 readonly HEALTHCHECK_IMAGE="${HEALTHCHECK_IMAGE:-curlimages/curl:8.12.1}"
+readonly SOURCE_SHA="${SOURCE_SHA:-${GITHUB_SHA:-unknown}}"
 readonly SERVICES=("$@")
 
 if [[ ! "${IMAGE_TAG}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$ ]]; then
@@ -101,6 +102,9 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/env/0/value
         value: ${IMAGE_TAG}
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: ${SOURCE_SHA}
 EOF
 
   rendered_image="$(kubectl kustomize "${render_dir}" | awk '/image:/{print $2; exit}')"
@@ -118,8 +122,15 @@ EOF
   kubectl -n "${NAMESPACE}" run "${healthcheck_name}" \
     --rm --attach --restart=Never \
     --image="${HEALTHCHECK_IMAGE}" \
-    --command -- sh -ec \
-    "curl --fail --silent --show-error --retry 12 --retry-delay 2 http://${service}:${port}/actuator/health/readiness | grep -q '\"status\":\"UP\"'"
+    --env="SERVICE=${service}" \
+    --env="PORT=${port}" \
+    --env="EXPECTED_VERSION=${IMAGE_TAG}" \
+    --env="EXPECTED_SHA=${SOURCE_SHA}" \
+    --command -- sh -ec '
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${SERVICE}:${PORT}/actuator/health/readiness" | grep -Fq "\"status\":\"UP\""
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${SERVICE}:${PORT}/actuator/info" | grep -Fq "\"version\":\"${EXPECTED_VERSION}\""
+      curl --fail --silent --show-error --retry 12 --retry-delay 2 "http://${SERVICE}:${PORT}/actuator/info" | grep -Fq "\"commit\":\"${EXPECTED_SHA}\""
+    '
 
   kubectl -n "${NAMESPACE}" get deployment,service "${service}" \
     -o custom-columns='KIND:.kind,NAME:.metadata.name,VERSION:.metadata.labels.app\.kubernetes\.io/version,IMAGE:.spec.template.spec.containers[*].image'

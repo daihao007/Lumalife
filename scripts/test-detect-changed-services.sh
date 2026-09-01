@@ -24,4 +24,12 @@ assert_selection '["order-service"]' $'k8s/services/order-service.yaml\n'
 assert_selection '[]' $'k8s/services.yaml\n'
 assert_selection '[]' $'docs/README.md\nfrontend/src/App.tsx\n'
 
+grep -Fq 'SERVICE_VERSION=${{ steps.version.outputs.version }}' .github/workflows/services-cd.yml
+grep -Fq 'GIT_COMMIT=${{ github.sha }}' .github/workflows/services-cd.yml
+grep -Fq -- '--build-arg "SERVICE_VERSION=${image_tag}"' .github/workflows/services-cd.yml
+grep -Fq -- '--build-arg "GIT_COMMIT=${GITHUB_SHA}"' .github/workflows/services-cd.yml
+grep -Fq 'EXPECTED_VERSION=${IMAGE_TAG}' scripts/smoke-services-k8s.sh
+grep -Fq 'EXPECTED_SHA=${SOURCE_SHA}' scripts/smoke-services-k8s.sh
+grep -Fq '/actuator/info' scripts/smoke-services-k8s.sh
+
 echo "Changed-service detection tests passed."
