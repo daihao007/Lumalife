@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DuplicateKeyException;
 
 @RestController
 @RequestMapping("/internal/v1/orders")
@@ -28,6 +29,13 @@ public class OrderApi {
 
   @GetMapping
   List<OrderStore.Order> orders(@RequestHeader("X-User-Id") long userId) { return store.byUser(userId); }
+
+  @GetMapping("/{id}")
+  OrderStore.Order order(@PathVariable long id, @RequestHeader("X-User-Id") long userId) {
+    OrderStore.Order order = store.order(id);
+    if (order.userId() != userId) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
+    return order;
+  }
 
   @PostMapping("/{id}/cancel")
   OrderStore.Order cancel(@PathVariable long id, @RequestHeader("X-User-Id") long userId) { return store.cancel(userId, id); }
@@ -72,7 +80,13 @@ public class OrderApi {
   OrderStore.Order transition(@PathVariable long id, @RequestHeader("X-Merchant-Id") long merchantId, @RequestBody TransitionRequest request) { return store.transition(merchantId, id, request.next()); }
 
   @PostMapping("/coupons/verify")
-  OrderStore.Order verifyCoupon(@RequestHeader("X-Merchant-Id") long merchantId, @RequestBody CouponRequest request) { return store.verifyCoupon(merchantId, request.code()); }
+  OrderStore.Order verifyCoupon(@RequestHeader("X-Merchant-Id") long merchantId, @RequestBody CouponRequest request) {
+    try {
+      return store.verifyCoupon(merchantId, request.code());
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage());
+    }
+  }
 
   @PostMapping("/reviews")
   OrderStore.Review review(@RequestHeader("X-User-Id") long userId, @RequestBody ReviewRequest request) {
@@ -94,6 +108,9 @@ public class OrderApi {
 
   @ExceptionHandler(IllegalStateException.class)
   org.springframework.http.ResponseEntity<String> conflict(IllegalStateException e) { return org.springframework.http.ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
+
+  @ExceptionHandler(DuplicateKeyException.class)
+  org.springframework.http.ResponseEntity<String> duplicateKey(DuplicateKeyException e) { return org.springframework.http.ResponseEntity.status(HttpStatus.CONFLICT).body("幂等键冲突"); }
 
   record CartRequest(int quantity) {}
   record PayRequest(long amountCent, String clientRequestId) {}

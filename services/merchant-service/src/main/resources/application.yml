@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: merchant-service
+  # The default profile intentionally runs with the in-memory demo catalog;
+  # production enables the JDBC datasource in application-prod.yml.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}

@@ -91,10 +91,16 @@ spec:
             - name: init
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
+            - name: migrations
+              mountPath: /database/migrations
+              readOnly: true
       volumes:
         - name: init
           configMap:
             name: lumalife-mysql-init
+        - name: migrations
+          configMap:
+            name: lumalife-mysql-migrations
   volumeClaimTemplates:
     - metadata:
         name: data

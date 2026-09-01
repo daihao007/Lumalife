@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -44,14 +45,50 @@ public class MerchantStore {
   }
 
   public synchronized List<Merchant> search(String keyword) {
+    return search(keyword, null, "recommend", null, null, null);
+  }
+
+  public synchronized List<Merchant> search(String keyword, Long categoryId, String sort,
+                                             Integer minPrice, Integer maxPrice, Double minScore) {
     String normalized = keyword == null ? "" : keyword.trim();
     if (jdbc != null) {
       Map<Long, Merchant> merged = new LinkedHashMap<>(merchants);
-      jdbc.query("SELECT m.id,m.name,m.category_id,c.name,m.cover_url,m.avg_score,m.avg_price_cent,m.monthly_sales,m.distance_km,m.status,m.address,m.recommend_reason FROM merchant m JOIN category c ON c.id=m.category_id WHERE m.is_deleted=0", this::mapMerchant)
+      String like = "%" + normalized + "%";
+      String sql = "SELECT DISTINCT m.id,m.name,m.category_id,c.name,m.cover_url,m.avg_score,m.avg_price_cent,m.monthly_sales,m.distance_km,m.status,m.address,m.recommend_reason "
+        + "FROM merchant m JOIN category c ON c.id=m.category_id LEFT JOIN merchant_catalog p ON p.merchant_id=m.id "
+        + "WHERE m.is_deleted=0 AND (?='' OR m.name LIKE ? OR p.name LIKE ?)";
+      jdbc.query(sql, this::mapMerchant, normalized, like, like)
         .forEach(item -> merged.put(item.id(), item));
-      return merged.values().stream().filter(item -> normalized.isBlank() || item.name().contains(normalized)).toList();
+      return filterAndSort(merged.values().stream(), normalized, categoryId, sort, minPrice, maxPrice, minScore);
     }
-    return merchants.values().stream().filter(item -> normalized.isBlank() || item.name().contains(normalized)).toList();
+    return filterAndSort(merchants.values().stream(), normalized, categoryId, sort, minPrice, maxPrice, minScore);
+  }
+
+  private List<Merchant> filterAndSort(java.util.stream.Stream<Merchant> source, String keyword, Long categoryId,
+                                       String sort, Integer minPrice, Integer maxPrice, Double minScore) {
+    return source
+      .filter(item -> categoryId == null || item.categoryId() == categoryId)
+      .filter(item -> keyword.isBlank() || item.name().contains(keyword) || products(item.id()).stream().anyMatch(p -> p.name().contains(keyword)))
+      .filter(item -> minPrice == null || item.avgPrice() >= minPrice)
+      .filter(item -> maxPrice == null || item.avgPrice() <= maxPrice)
+      .filter(item -> minScore == null || item.avgScore() >= minScore)
+      .sorted(merchantComparator(sort))
+      .toList();
+  }
+
+  private Comparator<Merchant> merchantComparator(String sort) {
+    return switch (sort == null ? "recommend" : sort) {
+      case "priceAsc" -> Comparator.comparingInt(Merchant::avgPrice).thenComparingLong(Merchant::id);
+      case "priceDesc" -> Comparator.comparingInt(Merchant::avgPrice).reversed().thenComparingLong(Merchant::id);
+      case "scoreAsc" -> Comparator.comparingDouble(Merchant::avgScore).thenComparingLong(Merchant::id);
+      case "scoreDesc" -> Comparator.comparingDouble(Merchant::avgScore).reversed().thenComparingLong(Merchant::id);
+      case "salesAsc" -> Comparator.comparingInt(Merchant::monthlySales).thenComparingLong(Merchant::id);
+      case "salesDesc" -> Comparator.comparingInt(Merchant::monthlySales).reversed().thenComparingLong(Merchant::id);
+      case "distanceAsc", "distance" -> Comparator.comparingDouble(Merchant::distanceKm).thenComparingLong(Merchant::id);
+      case "distanceDesc" -> Comparator.comparingDouble(Merchant::distanceKm).reversed().thenComparingLong(Merchant::id);
+      default -> Comparator.comparingDouble((Merchant m) -> -(0.6 * (m.avgScore() / 5.0) + 0.4 * Math.max(0, 1 - m.distanceKm() / 5.0)))
+        .thenComparingLong(Merchant::id);
+    };
   }
 
   public synchronized Merchant merchant(long id) {
@@ -72,6 +109,9 @@ public class MerchantStore {
 
   public synchronized Product saveProduct(long merchantId, ProductRequest request) {
     merchant(merchantId);
+    if (request.name() == null || request.name().isBlank() || request.priceCent() <= 0 || request.stock() < 0) {
+      throw new IllegalArgumentException("商品名称、价格和库存必须合法");
+    }
     List<Product> owned = products.computeIfAbsent(merchantId, ignored -> new ArrayList<>());
     long id = request.id() == null ? ids.incrementAndGet() : request.id();
     Product product = new Product(id, merchantId, request.name(), request.description(), request.priceCent(), request.stock(), request.listed());
@@ -82,6 +122,10 @@ public class MerchantStore {
   }
 
   public synchronized GroupDeal deal(long id) {
+    if (jdbc != null) {
+      var rows = jdbc.query("SELECT id,merchant_id,title,description,price_cent,stock,is_active FROM group_deal WHERE id=? AND is_deleted=0", (rs,n) -> new GroupDeal(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4), rs.getLong(5), rs.getInt(6), rs.getBoolean(7)), id);
+      if (!rows.isEmpty()) return rows.get(0);
+    }
     GroupDeal deal = deals.get(id);
     if (deal == null) throw new IllegalArgumentException("团购套餐不存在");
     return deal;
@@ -97,24 +141,33 @@ public class MerchantStore {
   }
 
   public synchronized List<GroupDeal> deals(long merchantId) {
+    if (jdbc != null) return jdbc.query("SELECT id,merchant_id,title,description,price_cent,stock,is_active FROM group_deal WHERE merchant_id=? AND is_deleted=0 ORDER BY id", (rs,n) -> new GroupDeal(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4), rs.getLong(5), rs.getInt(6), rs.getBoolean(7)), merchantId);
     return deals.values().stream().filter(item -> item.merchantId() == merchantId).toList();
   }
 
   public synchronized GroupDeal saveDeal(long merchantId, DealRequest request) {
-    if (request.priceCent() <= 0 || request.stock() < 0) throw new IllegalArgumentException("套餐价格和库存必须合法");
+    merchant(merchantId);
+    if (request.title() == null || request.title().isBlank() || request.priceCent() <= 0 || request.stock() < 0) {
+      throw new IllegalArgumentException("套餐名称、价格和库存必须合法");
+    }
     long id = request.id() == null ? ids.incrementAndGet() : request.id();
     GroupDeal deal = new GroupDeal(id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());
+    if (jdbc != null) jdbc.update("INSERT INTO group_deal(id,merchant_id,title,description,price_cent,stock,is_active,is_deleted) VALUES (?,?,?,?,?,?,?,0) ON DUPLICATE KEY UPDATE merchant_id=VALUES(merchant_id),title=VALUES(title),description=VALUES(description),price_cent=VALUES(price_cent),stock=VALUES(stock),is_active=VALUES(is_active),is_deleted=0",
+      id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());
     deals.put(id, deal); return deal;
   }
 
   public synchronized GroupDeal toggleDeal(long merchantId, long id) {
     GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐");
     GroupDeal updated = new GroupDeal(old.id(), old.merchantId(), old.title(), old.description(), old.priceCent(), old.stock(), !old.active());
+    if (jdbc != null) jdbc.update("UPDATE group_deal SET is_active=? WHERE id=? AND merchant_id=? AND is_deleted=0", updated.active(), id, merchantId);
     deals.put(id, updated); return updated;
   }
 
   public synchronized void deleteDeal(long merchantId, long id) {
-    GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐"); deals.remove(id);
+    GroupDeal old = deal(id); if (old.merchantId() != merchantId) throw new SecurityException("无权维护该套餐");
+    if (jdbc != null) jdbc.update("UPDATE group_deal SET is_deleted=1 WHERE id=? AND merchant_id=?", id, merchantId);
+    deals.remove(id);
   }
 
   public synchronized Product toggleProduct(long merchantId, long id) {

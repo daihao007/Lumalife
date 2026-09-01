@@ -212,7 +212,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\")"' | grep -qx 6
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\")"' | grep -qx 8
 
       - name: Verify relational business persistence across backend restart
         shell: bash
@@ -258,6 +258,9 @@ jobs:
           curl --fail --silent --show-error \
             -H "Authorization: Bearer $token" \
             http://localhost:8080/api/v1/cart | grep -q '"productId":1001'
+
+      - name: Verify order-service payment idempotency against Compose MySQL
+        run: bash scripts/test-order-service-mysql-contract.sh
 
       - name: Export stack status and logs
         if: failure()
@@ -437,11 +440,31 @@ jobs:
       - name: Render Kustomize manifests
         run: kubectl kustomize k8s > "${RUNNER_TEMP}/lumalife-k8s.yaml"
 
+      - name: Verify deployment prefetch and timeout safeguards
+        run: bash scripts/test-deploy-k8s.sh
+
       - name: Upload rendered manifests
         uses: actions/upload-artifact@v4
         with:
           name: kubernetes-manifests
           path: ${{ runner.temp }}/lumalife-k8s.yaml
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Prepare ECS deployment bundle
+        shell: bash
+        run: printf '%s\n' "${GITHUB_SHA}" > ecs-source-sha.txt
+
+      - name: Upload ECS deployment bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecs-deploy-bundle
+          path: |
+            ecs-source-sha.txt
+            scripts/deploy-k8s.sh
+            k8s
+            database/init
+            database/migrations
           if-no-files-found: error
           retention-days: 7
 
