@@ -22,6 +22,8 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V008__service_order_lines.sql");
   private static final Path MICROSERVICE_DURABILITY_MIGRATION =
     Path.of("..", "database", "migrations", "V009__microservice_durability_fixes.sql");
+  private static final Path ORDER_MAIN_PAYMENT_PROJECTION_MIGRATION =
+    Path.of("..", "database", "migrations", "V010__order_main_payment_projection.sql");
   private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
@@ -83,6 +85,16 @@ class DatabaseAssetsTest {
 
     assertThat(migration).contains("MEDIUMTEXT");
     assertThat(migration).contains("CREATE TABLE IF NOT EXISTS service_outbox_event");
+  }
+
+  @Test
+  void canonicalOrderProjectionMigrationAddsPaymentIdempotencyColumns() throws IOException {
+    String migration = Files.readString(ORDER_MAIN_PAYMENT_PROJECTION_MIGRATION);
+
+    assertThat(migration).contains("ALTER TABLE order_main");
+    assertThat(migration).contains("ADD COLUMN client_request_id");
+    assertThat(migration).contains("ADD COLUMN coupon_code");
+    assertThat(migration).contains("uq_order_main_client_request");
   }
 
   private String passwordHash(String sql, String phone) {
