@@ -149,6 +149,7 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V006__order_domain_state_and_indexes.sql=database/migrations/V006__order_domain_state_and_indexes.sql \
   --from-file=V007__service_payment_global_idempotency.sql=database/migrations/V007__service_payment_global_idempotency.sql \
   --from-file=V008__service_order_lines.sql=database/migrations/V008__service_order_lines.sql \
+  --from-file=V009__order_address_snapshot.sql=database/migrations/V009__order_address_snapshot.sql \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images

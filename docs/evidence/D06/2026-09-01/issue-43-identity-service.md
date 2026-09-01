@@ -3,7 +3,7 @@
 日期：2026-09-01（Asia/Shanghai）  
 Issue：[#43](https://github.com/daihao007/Lumalife/issues/43)  
 分支：`codex/issue-43-identity-service`  
-当前合并基线：`main@2ba74ea`
+当前合并基线：`main@97c399e`
 
 ## 实现范围
 
