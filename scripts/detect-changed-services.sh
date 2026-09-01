@@ -23,7 +23,7 @@ select_all=false
 
 while IFS= read -r path; do
   case "${path}" in
-    services/pom.xml|k8s/healthcheck/*|.github/workflows/services-cd.yml|scripts/detect-changed-services.sh|scripts/smoke-services-k8s.sh)
+    services/pom.xml|k8s/services/kustomization.yaml|k8s/healthcheck/*|.github/workflows/services-cd.yml|scripts/detect-changed-services.sh|scripts/smoke-services-k8s.sh)
       select_all=true
       ;;
     services/identity-service/*|k8s/services/identity-service.yaml)

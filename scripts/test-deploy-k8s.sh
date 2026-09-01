@@ -9,6 +9,8 @@ grep -q 'readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"' "${SCRIPT_P
 grep -q 'readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"' "${SCRIPT_PATH}"
 grep -q '^prefetch_images() {' "${SCRIPT_PATH}"
 grep -q '^apply_versioned_manifests() {' "${SCRIPT_PATH}"
+grep -Fq 's|value: main|value: ${IMAGE_TAG}|g' "${SCRIPT_PATH}"
+test "$(grep -c 'name: SERVICE_VERSION' k8s/services.yaml)" -eq 3
 grep -q -- '--from-file=10-bootstrap.sh=database/init/10-bootstrap.sh' "${SCRIPT_PATH}"
 grep -q '^kubectl -n "\${NAMESPACE}" create configmap lumalife-mysql-migrations' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V008__service_order_lines.sql=database/migrations/V008__service_order_lines.sql' "${SCRIPT_PATH}"

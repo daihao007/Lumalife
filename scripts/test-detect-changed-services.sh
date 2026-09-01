@@ -18,6 +18,7 @@ assert_selection '["identity-service"]' $'services/identity-service/src/main/App
 assert_selection '["merchant-service","order-service"]' $'services/order-service/pom.xml\nservices/merchant-service/Dockerfile\n'
 assert_selection '["identity-service","merchant-service","order-service"]' $'services/pom.xml\n'
 assert_selection '["identity-service","merchant-service","order-service"]' $'k8s/healthcheck/Dockerfile\n'
+assert_selection '["identity-service","merchant-service","order-service"]' $'k8s/services/kustomization.yaml\n'
 assert_selection '["identity-service","merchant-service","order-service"]' $'scripts/smoke-services-k8s.sh\n'
 assert_selection '["order-service"]' $'k8s/services/order-service.yaml\n'
 assert_selection '[]' $'k8s/services.yaml\n'
