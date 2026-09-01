@@ -87,7 +87,10 @@ done
 # CREATE TABLE ... LIKE is intentionally idempotent, but it does not evolve an
 # already provisioned service table.  V012 adds this column to the merchant
 # catalog, so upgrade old service databases before the backfill runs.
-mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.merchant_catalog ADD COLUMN IF NOT EXISTS version BIGINT UNSIGNED NOT NULL DEFAULT 0"
+merchant_catalog_version_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='merchant_catalog' AND column_name='version'")
+if [ "$merchant_catalog_version_count" -eq 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.merchant_catalog ADD COLUMN version BIGINT NOT NULL DEFAULT 0"
+fi
 
 for table_name in schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event; do
   copy_table "$MYSQL_ORDER_DATABASE" "$table_name"
