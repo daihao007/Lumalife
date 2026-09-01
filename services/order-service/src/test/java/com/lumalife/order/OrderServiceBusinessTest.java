@@ -222,13 +222,18 @@ class OrderServiceBusinessTest {
       new HttpEntity<>(userHeaders), OrderStore.Order.class).getBody();
     assertThat(received.status()).isEqualTo("RECEIVED");
 
+    Map<String, Object> reviewRequest = Map.of("userId", userId, "orderId", deliveryOrder.id(), "userName", "契约用户",
+      "score", 5, "tasteScore", 5, "serviceScore", 5, "content", "契约测试评价");
     OrderStore.Review review = http.exchange("/internal/v1/orders/reviews", HttpMethod.POST,
-      new HttpEntity<>(Map.of("userId", userId, "orderId", deliveryOrder.id(), "userName", "契约用户", "score", 5, "tasteScore", 5, "serviceScore", 5, "content", "契约测试评价"), userHeaders), OrderStore.Review.class).getBody();
+      new HttpEntity<>(reviewRequest, userHeaders), OrderStore.Review.class).getBody();
+    ResponseEntity<String> duplicateReview = http.exchange("/internal/v1/orders/reviews", HttpMethod.POST,
+      new HttpEntity<>(reviewRequest, userHeaders), String.class);
     OrderStore.Order[] merchantOrders = http.exchange("/internal/v1/orders/merchant", HttpMethod.GET,
       new HttpEntity<>(merchantHeaders), OrderStore.Order[].class).getBody();
     OrderStore.Review[] merchantReviews = http.exchange("/internal/v1/orders/merchant/reviews", HttpMethod.GET,
       new HttpEntity<>(merchantHeaders), OrderStore.Review[].class).getBody();
     assertThat(review.orderId()).isEqualTo(deliveryOrder.id());
+    assertThat(duplicateReview.getStatusCode().value()).isEqualTo(409);
     assertThat(merchantOrders).anySatisfy(order -> assertThat(order.id()).isEqualTo(deliveryOrder.id()));
     assertThat(merchantReviews).anySatisfy(item -> assertThat(item.orderId()).isEqualTo(deliveryOrder.id()));
   }
@@ -239,6 +244,239 @@ class OrderServiceBusinessTest {
       new HttpEntity<>(serviceHeaders()), OrderStore.Review[].class);
     assertThat(response.getStatusCode().value()).isEqualTo(200);
     assertThat(response.getBody()).isNotNull();
+  }
+
+  @Test
+  void requiresServiceTokenForInternalOrderReads() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("X-User-Id", "92020");
+
+    ResponseEntity<String> response = http.exchange("/internal/v1/orders", HttpMethod.GET,
+      new HttpEntity<>(headers), String.class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(401);
+  }
+
+  @Test
+  void ctRtOrd02And18RestrictOrderListsAndDetailsToTheOwner() {
+    long ownerId = 92021L;
+    long otherUserId = 92022L;
+    HttpHeaders ownerHeaders = serviceHeaders();
+    ownerHeaders.set("X-User-Id", Long.toString(ownerId));
+    OrderStore.Order created = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", ownerId, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), ownerHeaders),
+      OrderStore.Order.class).getBody();
+
+    OrderStore.Order[] ownerOrders = http.exchange("/internal/v1/orders", HttpMethod.GET,
+      new HttpEntity<>(ownerHeaders), OrderStore.Order[].class).getBody();
+    HttpHeaders otherHeaders = serviceHeaders();
+    otherHeaders.set("X-User-Id", Long.toString(otherUserId));
+    OrderStore.Order[] otherOrders = http.exchange("/internal/v1/orders", HttpMethod.GET,
+      new HttpEntity<>(otherHeaders), OrderStore.Order[].class).getBody();
+    ResponseEntity<String> otherDetail = http.exchange("/internal/v1/orders/" + created.id(), HttpMethod.GET,
+      new HttpEntity<>(otherHeaders), String.class);
+    ResponseEntity<String> missingUser = http.exchange("/internal/v1/orders/" + created.id(), HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), String.class);
+
+    assertThat(ownerOrders).anySatisfy(order -> assertThat(order.id()).isEqualTo(created.id()));
+    assertThat(otherOrders).noneMatch(order -> order.id() == created.id());
+    assertThat(otherDetail.getStatusCode().value()).isEqualTo(404);
+    assertThat(missingUser.getStatusCode().is4xxClientError()).isTrue();
+  }
+
+  @Test
+  void ctRtOrd04To08RejectInvalidCartRequestsAndKeepUsersIsolated() {
+    long ownerId = 92023L;
+    HttpHeaders ownerHeaders = serviceHeaders();
+    ownerHeaders.set("X-User-Id", Long.toString(ownerId));
+
+    ResponseEntity<String> zeroQuantity = http.exchange("/internal/v1/orders/cart/1001", HttpMethod.POST,
+      new HttpEntity<>(Map.of("quantity", 0), ownerHeaders), String.class);
+    ResponseEntity<String> negativeIncrement = http.exchange("/internal/v1/orders/cart/1001/add", HttpMethod.POST,
+      new HttpEntity<>(Map.of("quantity", -1), ownerHeaders), String.class);
+    ResponseEntity<String> absentProduct = http.exchange("/internal/v1/orders/cart/999999999", HttpMethod.DELETE,
+      new HttpEntity<>(ownerHeaders), String.class);
+    ResponseEntity<String> missingUser = http.exchange("/internal/v1/orders/cart", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), String.class);
+
+    http.exchange("/internal/v1/orders/cart/1001", HttpMethod.POST,
+      new HttpEntity<>(Map.of("quantity", 2), ownerHeaders), Map.class);
+    HttpHeaders anotherUser = serviceHeaders();
+    anotherUser.set("X-User-Id", "92024");
+    Map<?, ?> anotherCart = http.exchange("/internal/v1/orders/cart", HttpMethod.GET,
+      new HttpEntity<>(anotherUser), Map.class).getBody();
+    Map<?, ?> ownerCart = http.exchange("/internal/v1/orders/cart", HttpMethod.GET,
+      new HttpEntity<>(ownerHeaders), Map.class).getBody();
+    ResponseEntity<Void> firstClear = http.exchange("/internal/v1/orders/cart", HttpMethod.DELETE,
+      new HttpEntity<>(ownerHeaders), Void.class);
+    ResponseEntity<Void> repeatedClear = http.exchange("/internal/v1/orders/cart", HttpMethod.DELETE,
+      new HttpEntity<>(ownerHeaders), Void.class);
+
+    assertThat(zeroQuantity.getStatusCode().value()).isEqualTo(400);
+    assertThat(negativeIncrement.getStatusCode().value()).isEqualTo(400);
+    assertThat(absentProduct.getStatusCode().value()).isEqualTo(400);
+    assertThat(missingUser.getStatusCode().is4xxClientError()).isTrue();
+    assertThat(anotherCart.containsKey(1001L)).isFalse();
+    assertThat(anotherCart.containsKey("1001")).isFalse();
+    assertThat(ownerCart.get("1001")).isEqualTo(2);
+    assertThat(firstClear.getStatusCode().value()).isEqualTo(200);
+    assertThat(repeatedClear.getStatusCode().value()).isEqualTo(200);
+  }
+
+  @Test
+  void ctRtOrd01And10To11RejectInvalidCreationRequests() {
+    long userId = 92025L;
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", Long.toString(userId));
+
+    ResponseEntity<String> invalidOrder = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "merchantId", 1, "productId", 1001, "quantity", 0, "totalCent", 2680), userHeaders), String.class);
+    ResponseEntity<String> groupBuyAsOtherUser = http.exchange("/internal/v1/orders/group-buy", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId + 1, "dealId", 1, "merchantId", 1, "priceCent", 4880, "quantity", 1), userHeaders), String.class);
+    ResponseEntity<String> invalidGroupBuy = http.exchange("/internal/v1/orders/group-buy", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "dealId", 1, "merchantId", 1, "priceCent", 4880, "quantity", 0), userHeaders), String.class);
+    ResponseEntity<String> deliveryAsOtherUser = http.exchange("/internal/v1/orders/delivery", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId + 1, "addressId", 2101, "addressSnapshot", "越权地址", "lines", List.of()), userHeaders), String.class);
+    ResponseEntity<String> emptyDelivery = http.exchange("/internal/v1/orders/delivery", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "addressId", 2101, "addressSnapshot", "空购物车", "lines", List.of()), userHeaders), String.class);
+    ResponseEntity<String> invalidDelivery = http.exchange("/internal/v1/orders/delivery", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "addressId", 2101, "addressSnapshot", "非法商品", "lines",
+        List.of(Map.of("productId", 1001, "merchantId", 1, "priceCent", 2680, "quantity", 0))), userHeaders), String.class);
+
+    assertThat(invalidOrder.getStatusCode().value()).isEqualTo(400);
+    assertThat(groupBuyAsOtherUser.getStatusCode().value()).isEqualTo(403);
+    assertThat(invalidGroupBuy.getStatusCode().value()).isEqualTo(409);
+    assertThat(deliveryAsOtherUser.getStatusCode().value()).isEqualTo(403);
+    assertThat(emptyDelivery.getStatusCode().value()).isEqualTo(400);
+    assertThat(invalidDelivery.getStatusCode().value()).isEqualTo(400);
+  }
+
+  @Test
+  void ctRtOrd03And12To13RejectInvalidStateAndMerchantOwnershipTransitions() {
+    long userId = 92026L;
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", Long.toString(userId));
+    OrderStore.Order cancellable = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), userHeaders),
+      OrderStore.Order.class).getBody();
+    HttpHeaders otherUserHeaders = serviceHeaders();
+    otherUserHeaders.set("X-User-Id", "92027");
+    ResponseEntity<String> crossUserCancel = http.exchange("/internal/v1/orders/" + cancellable.id() + "/cancel", HttpMethod.POST,
+      new HttpEntity<>(otherUserHeaders), String.class);
+    ResponseEntity<OrderStore.Order> cancelled = http.exchange("/internal/v1/orders/" + cancellable.id() + "/cancel", HttpMethod.POST,
+      new HttpEntity<>(userHeaders), OrderStore.Order.class);
+    ResponseEntity<String> repeatedCancel = http.exchange("/internal/v1/orders/" + cancellable.id() + "/cancel", HttpMethod.POST,
+      new HttpEntity<>(userHeaders), String.class);
+    ResponseEntity<String> receiveBeforeDelivery = http.exchange("/internal/v1/orders/" + cancellable.id() + "/receive", HttpMethod.POST,
+      new HttpEntity<>(userHeaders), String.class);
+
+    OrderStore.Order payable = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), userHeaders),
+      OrderStore.Order.class).getBody();
+    http.exchange("/internal/v1/orders/" + payable.id() + "/pay", HttpMethod.POST,
+      new HttpEntity<>(Map.of("amountCent", 2680, "clientRequestId", "ct-status-" + UUID.randomUUID()), userHeaders), OrderStore.Order.class);
+    HttpHeaders otherMerchant = serviceHeaders();
+    otherMerchant.set("X-Merchant-Id", "2");
+    HttpHeaders ownerMerchant = serviceHeaders();
+    ownerMerchant.set("X-Merchant-Id", "1");
+    ResponseEntity<String> crossMerchant = http.exchange("/internal/v1/orders/" + payable.id() + "/transition", HttpMethod.POST,
+      new HttpEntity<>(Map.of("next", "ACCEPTED"), otherMerchant), String.class);
+    http.exchange("/internal/v1/orders/" + payable.id() + "/transition", HttpMethod.POST,
+      new HttpEntity<>(Map.of("next", "ACCEPTED"), ownerMerchant), OrderStore.Order.class);
+    ResponseEntity<String> invalidTransition = http.exchange("/internal/v1/orders/" + payable.id() + "/transition", HttpMethod.POST,
+      new HttpEntity<>(Map.of("next", "COMPLETED"), ownerMerchant), String.class);
+
+    assertThat(crossUserCancel.getStatusCode().value()).isEqualTo(400);
+    assertThat(cancelled.getStatusCode().value()).isEqualTo(200);
+    assertThat(repeatedCancel.getStatusCode().value()).isEqualTo(409);
+    assertThat(receiveBeforeDelivery.getStatusCode().value()).isEqualTo(409);
+    assertThat(crossMerchant.getStatusCode().value()).isEqualTo(403);
+    assertThat(invalidTransition.getStatusCode().value()).isEqualTo(409);
+  }
+
+  @Test
+  void ctRtOrd14RejectsUnknownAndCrossMerchantCoupons() {
+    long userId = 92028L;
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", Long.toString(userId));
+    OrderStore.Order groupOrder = http.exchange("/internal/v1/orders/group-buy", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "dealId", 1, "merchantId", 1, "priceCent", 4880, "quantity", 1), userHeaders),
+      OrderStore.Order.class).getBody();
+    http.exchange("/internal/v1/orders/" + groupOrder.id() + "/pay", HttpMethod.POST,
+      new HttpEntity<>(Map.of("amountCent", 4880, "clientRequestId", "ct-coupon-" + UUID.randomUUID()), userHeaders), OrderStore.Order.class);
+    String code = String.format("%012d", groupOrder.id());
+    HttpHeaders otherMerchant = serviceHeaders();
+    otherMerchant.set("X-Merchant-Id", "2");
+    HttpHeaders ownerMerchant = serviceHeaders();
+    ownerMerchant.set("X-Merchant-Id", "1");
+
+    ResponseEntity<String> crossMerchant = http.exchange("/internal/v1/orders/coupons/verify", HttpMethod.POST,
+      new HttpEntity<>(Map.of("code", code), otherMerchant), String.class);
+    ResponseEntity<String> unknownCode = http.exchange("/internal/v1/orders/coupons/verify", HttpMethod.POST,
+      new HttpEntity<>(Map.of("code", "not-a-real-coupon"), ownerMerchant), String.class);
+
+    assertThat(crossMerchant.getStatusCode().value()).isEqualTo(403);
+    assertThat(unknownCode.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
+  void ctRtOrd15RejectsInvalidAndPrematureReviews() {
+    long userId = 92029L;
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", Long.toString(userId));
+    OrderStore.Order order = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), userHeaders),
+      OrderStore.Order.class).getBody();
+    Map<String, Object> review = Map.of("userId", userId, "orderId", order.id(), "userName", "契约评价用户",
+      "score", 5, "tasteScore", 5, "serviceScore", 5, "content", "待完成订单不应评价");
+    ResponseEntity<String> invalidScore = http.exchange("/internal/v1/orders/reviews", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "orderId", order.id(), "userName", "契约评价用户",
+        "score", 0, "tasteScore", 5, "serviceScore", 5, "content", "非法评分"), userHeaders), String.class);
+    ResponseEntity<String> premature = http.exchange("/internal/v1/orders/reviews", HttpMethod.POST,
+      new HttpEntity<>(review, userHeaders), String.class);
+    ResponseEntity<String> otherUser = http.exchange("/internal/v1/orders/reviews", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId + 1, "orderId", order.id(), "userName", "越权用户",
+        "score", 5, "tasteScore", 5, "serviceScore", 5, "content", "越权评价"), userHeaders), String.class);
+
+    assertThat(invalidScore.getStatusCode().value()).isEqualTo(400);
+    assertThat(premature.getStatusCode().value()).isEqualTo(409);
+    assertThat(otherUser.getStatusCode().value()).isEqualTo(403);
+  }
+
+  @Test
+  void ctRtOrd16And17IsolateMerchantProjectionsAndRequireMerchantIdentity() {
+    long userId = 92030L;
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", Long.toString(userId));
+    OrderStore.Order merchantOneOrder = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "merchantId", 1, "productId", 1001, "quantity", 1, "totalCent", 2680), userHeaders),
+      OrderStore.Order.class).getBody();
+    OrderStore.Order merchantTwoOrder = http.exchange("/internal/v1/orders", HttpMethod.POST,
+      new HttpEntity<>(Map.of("userId", userId, "merchantId", 2, "productId", 2001, "quantity", 1, "totalCent", 1980), userHeaders),
+      OrderStore.Order.class).getBody();
+
+    HttpHeaders merchantOneHeaders = serviceHeaders();
+    merchantOneHeaders.set("X-Merchant-Id", "1");
+    HttpHeaders merchantTwoHeaders = serviceHeaders();
+    merchantTwoHeaders.set("X-Merchant-Id", "2");
+    OrderStore.Order[] merchantOneOrders = http.exchange("/internal/v1/orders/merchant", HttpMethod.GET,
+      new HttpEntity<>(merchantOneHeaders), OrderStore.Order[].class).getBody();
+    OrderStore.Order[] merchantTwoOrders = http.exchange("/internal/v1/orders/merchant", HttpMethod.GET,
+      new HttpEntity<>(merchantTwoHeaders), OrderStore.Order[].class).getBody();
+    OrderStore.Review[] merchantOneReviews = http.exchange("/internal/v1/orders/merchant/reviews", HttpMethod.GET,
+      new HttpEntity<>(merchantOneHeaders), OrderStore.Review[].class).getBody();
+    ResponseEntity<String> missingMerchant = http.exchange("/internal/v1/orders/merchant", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), String.class);
+    ResponseEntity<String> missingReviewMerchant = http.exchange("/internal/v1/orders/merchant/reviews", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), String.class);
+
+    assertThat(merchantOneOrders).anySatisfy(order -> assertThat(order.id()).isEqualTo(merchantOneOrder.id()));
+    assertThat(merchantOneOrders).noneMatch(order -> order.id() == merchantTwoOrder.id());
+    assertThat(merchantTwoOrders).anySatisfy(order -> assertThat(order.id()).isEqualTo(merchantTwoOrder.id()));
+    assertThat(merchantTwoOrders).noneMatch(order -> order.id() == merchantOneOrder.id());
+    assertThat(merchantOneReviews).isEmpty();
+    assertThat(missingMerchant.getStatusCode().is4xxClientError()).isTrue();
+    assertThat(missingReviewMerchant.getStatusCode().is4xxClientError()).isTrue();
   }
 
   private HttpHeaders serviceHeaders() {

@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import java.util.Arrays;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -165,6 +166,124 @@ class MerchantServiceBusinessTest {
     ResponseEntity<String> rejectedRelease = http.exchange("/internal/v1/inventory/reservations/" + confirmedOrderId + ":release",
       HttpMethod.POST, new HttpEntity<>(rejectedReleaseHeaders), String.class);
     assertThat(rejectedRelease.getStatusCode().value()).isEqualTo(409);
+  }
+
+  @Test
+  void requiresServiceTokenForInternalCatalogReads() {
+    ResponseEntity<String> response = http.getForEntity("/internal/v1/products/1001", String.class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(401);
+  }
+
+  @Test
+  void ctRtMer01To05RejectsUnknownResourcesAndKeepsSearchDeterministic() {
+    MerchantStore.Merchant[] noMatches = http.exchange("/internal/v1/merchants?keyword=不存在的契约关键词",
+      HttpMethod.GET, new HttpEntity<>(serviceHeaders()), MerchantStore.Merchant[].class).getBody();
+    assertThat(noMatches).isEmpty();
+
+    ResponseEntity<String> unknownMerchant = http.exchange("/internal/v1/merchants/999999999",
+      HttpMethod.GET, new HttpEntity<>(serviceHeaders()), String.class);
+    ResponseEntity<String> unknownProduct = http.exchange("/internal/v1/products/999999999",
+      HttpMethod.GET, new HttpEntity<>(serviceHeaders()), String.class);
+    ResponseEntity<String> unknownDeal = http.exchange("/internal/v1/deals/999999999",
+      HttpMethod.GET, new HttpEntity<>(serviceHeaders()), String.class);
+
+    assertThat(unknownMerchant.getStatusCode().value()).isEqualTo(404);
+    assertThat(unknownProduct.getStatusCode().value()).isEqualTo(404);
+    assertThat(unknownDeal.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
+  void ctRtMer03ExcludesUnlistedProductsFromListedOnlyReads() {
+    String runId = UUID.randomUUID().toString();
+    HttpHeaders merchantHeaders = serviceHeaders();
+    merchantHeaders.set("X-Merchant-Id", "1");
+    MerchantStore.Product created = http.exchange("/internal/v1/merchants/1/products", HttpMethod.POST,
+      new HttpEntity<>(new MerchantStore.ProductRequest(null, "CT 下架商品 " + runId, "契约测试", 1999, 3, true), merchantHeaders), MerchantStore.Product.class).getBody();
+    try {
+      MerchantStore.Product unlisted = http.exchange("/internal/v1/merchants/1/products/" + created.id() + "/toggle",
+        HttpMethod.POST, new HttpEntity<>(merchantHeaders), MerchantStore.Product.class).getBody();
+      assertThat(unlisted.listed()).isFalse();
+
+      MerchantStore.Product[] listedOnly = http.exchange("/internal/v1/merchants/1/products?listedOnly=true",
+        HttpMethod.GET, new HttpEntity<>(serviceHeaders()), MerchantStore.Product[].class).getBody();
+      MerchantStore.Product[] allProducts = http.exchange("/internal/v1/merchants/1/products",
+        HttpMethod.GET, new HttpEntity<>(serviceHeaders()), MerchantStore.Product[].class).getBody();
+      assertThat(Arrays.stream(listedOnly).map(MerchantStore.Product::id).toList()).doesNotContain(created.id());
+      assertThat(Arrays.stream(allProducts).map(MerchantStore.Product::id).toList()).contains(created.id());
+    } finally {
+      http.exchange("/internal/v1/merchants/1/products/" + created.id(), HttpMethod.DELETE,
+        new HttpEntity<>(merchantHeaders), Void.class);
+    }
+  }
+
+  @Test
+  void ctRtMer06And10RejectInvalidCatalogPayloads() {
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-Merchant-Id", "1");
+
+    ResponseEntity<String> invalidProduct = http.exchange("/internal/v1/merchants/1/products", HttpMethod.POST,
+      new HttpEntity<>(new MerchantStore.ProductRequest(null, "", "", 0, -1, true), headers), String.class);
+    ResponseEntity<String> invalidDeal = http.exchange("/internal/v1/merchants/1/deals", HttpMethod.POST,
+      new HttpEntity<>(new MerchantStore.DealRequest(null, "", "", 0, -1, true), headers), String.class);
+
+    assertThat(invalidProduct.getStatusCode().value()).isEqualTo(400);
+    assertThat(invalidDeal.getStatusCode().value()).isEqualTo(400);
+  }
+
+  @Test
+  void ctRtMer07To12RejectUnknownAndCrossMerchantMutations() {
+    HttpHeaders owner = serviceHeaders();
+    owner.set("X-Merchant-Id", "1");
+    HttpHeaders otherMerchant = serviceHeaders();
+    otherMerchant.set("X-Merchant-Id", "2");
+
+    ResponseEntity<String> crossToggleProduct = http.exchange("/internal/v1/merchants/1/products/1001/toggle",
+      HttpMethod.POST, new HttpEntity<>(otherMerchant), String.class);
+    ResponseEntity<String> crossDeleteProduct = http.exchange("/internal/v1/merchants/1/products/1001",
+      HttpMethod.DELETE, new HttpEntity<>(otherMerchant), String.class);
+    ResponseEntity<String> unknownToggleProduct = http.exchange("/internal/v1/merchants/1/products/999999999/toggle",
+      HttpMethod.POST, new HttpEntity<>(owner), String.class);
+    ResponseEntity<String> crossToggleDeal = http.exchange("/internal/v1/merchants/1/deals/1/toggle",
+      HttpMethod.POST, new HttpEntity<>(otherMerchant), String.class);
+    ResponseEntity<String> unknownDeleteDeal = http.exchange("/internal/v1/merchants/1/deals/999999999",
+      HttpMethod.DELETE, new HttpEntity<>(owner), String.class);
+
+    assertThat(crossToggleProduct.getStatusCode().value()).isEqualTo(403);
+    assertThat(crossDeleteProduct.getStatusCode().value()).isEqualTo(403);
+    assertThat(unknownToggleProduct.getStatusCode().value()).isEqualTo(404);
+    assertThat(crossToggleDeal.getStatusCode().value()).isEqualTo(403);
+    assertThat(unknownDeleteDeal.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
+  void merchantFavoritesAreIsolatedAndDuplicateWritesConflict() {
+    long userId = 92011L;
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", Long.toString(userId));
+
+    ResponseEntity<Void> added = http.exchange("/internal/v1/users/" + userId + "/favorites/1",
+      HttpMethod.POST, new HttpEntity<>(userHeaders), Void.class);
+    ResponseEntity<String> duplicate = http.exchange("/internal/v1/users/" + userId + "/favorites/1",
+      HttpMethod.POST, new HttpEntity<>(userHeaders), String.class);
+    Long[] favorites = http.exchange("/internal/v1/users/" + userId + "/favorites",
+      HttpMethod.GET, new HttpEntity<>(userHeaders), Long[].class).getBody();
+
+    HttpHeaders anotherUser = serviceHeaders();
+    anotherUser.set("X-User-Id", "92012");
+    ResponseEntity<String> crossUser = http.exchange("/internal/v1/users/" + userId + "/favorites",
+      HttpMethod.GET, new HttpEntity<>(anotherUser), String.class);
+    ResponseEntity<Void> removed = http.exchange("/internal/v1/users/" + userId + "/favorites/1",
+      HttpMethod.DELETE, new HttpEntity<>(userHeaders), Void.class);
+    ResponseEntity<String> repeatedRemove = http.exchange("/internal/v1/users/" + userId + "/favorites/1",
+      HttpMethod.DELETE, new HttpEntity<>(userHeaders), String.class);
+
+    assertThat(added.getStatusCode().value()).isEqualTo(200);
+    assertThat(duplicate.getStatusCode().value()).isEqualTo(409);
+    assertThat(favorites).contains(1L);
+    assertThat(crossUser.getStatusCode().value()).isEqualTo(403);
+    assertThat(removed.getStatusCode().value()).isEqualTo(200);
+    assertThat(repeatedRemove.getStatusCode().value()).isEqualTo(404);
   }
 
   private HttpHeaders serviceHeaders() {

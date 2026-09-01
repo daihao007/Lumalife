@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -38,7 +39,13 @@ public class MerchantApi {
   MerchantStore.Merchant merchant(@PathVariable long id) { return readResource(() -> store.merchant(id)); }
 
   @PostMapping("/merchants/provision")
-  MerchantStore.Merchant provision(@RequestBody ProvisionRequest request) { return store.provision(request.name()); }
+  MerchantStore.Merchant provision(@RequestBody ProvisionRequest request) {
+    try {
+      return store.provision(request.name());
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    }
+  }
 
   @GetMapping("/merchants/{id}/profile")
   java.util.Map<String, Object> profile(@PathVariable long id) { return store.profile(id); }
@@ -213,6 +220,21 @@ public class MerchantApi {
   record ProfileRequest(String name) {}
   record ProvisionRequest(String name) {}
   record MessageRequest(String content) {}
+
+  @ExceptionHandler(SecurityException.class)
+  ResponseEntity<String> forbidden(SecurityException error) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error.getMessage());
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  ResponseEntity<String> conflict(IllegalStateException error) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(error.getMessage());
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  ResponseEntity<String> notFound(IllegalArgumentException error) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
+  }
 
   private <T> T readResource(java.util.function.Supplier<T> operation) {
     try {

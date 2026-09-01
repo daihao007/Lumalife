@@ -35,39 +35,47 @@ public class IdentityStore {
                      String role, Long merchantId) {}
   public record Address(long id, long userId, String contactName, String phone, String detail,
                         boolean defaultAddress) {}
-
+  private record TokenSession(long userId, long expiresAtEpochMillis) {}
   private static final int TOKEN_DAYS = 30;
   private static final int MAX_ADDRESSES = 5;
+  private static final long DEFAULT_TOKEN_TTL_MILLIS =
+    java.time.Duration.ofDays(TOKEN_DAYS).toMillis();
   private final PasswordEncoder passwordEncoder;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final Path stateFile;
   private final JdbcTemplate jdbc;
   private final AtomicLong ids = new AtomicLong(1000);
   private final AtomicLong merchantIds = new AtomicLong(2);
+  private final long tokenTtlMillis;
   private final Map<String, User> users = new LinkedHashMap<>();
-  private final Map<String, Long> tokens = new LinkedHashMap<>();
+  private final Map<String, TokenSession> tokens = new LinkedHashMap<>();
   private final Map<Long, List<Address>> addresses = new LinkedHashMap<>();
 
   @Autowired
   public IdentityStore(PasswordEncoder passwordEncoder,
                        @Value("${lumalife.identity.state-file:./data/identity-state.json}") String stateFile,
+                       @Value("${lumalife.identity.token-ttl-millis:2592000000}") long tokenTtlMillis,
                        ObjectProvider<JdbcTemplate> jdbcProvider) {
-    this(passwordEncoder, stateFile == null || stateFile.isBlank() ? null : Path.of(stateFile),
-      jdbcProvider.getIfAvailable());
+    this(passwordEncoder,
+      stateFile == null || stateFile.isBlank() ? null : Path.of(stateFile),
+      jdbcProvider.getIfAvailable(),
+      tokenTtlMillis
+    );
   }
 
   public IdentityStore(PasswordEncoder passwordEncoder) {
-    this(passwordEncoder, (Path) null, null);
+    this(passwordEncoder, (Path) null, null, DEFAULT_TOKEN_TTL_MILLIS);
   }
 
   IdentityStore(PasswordEncoder passwordEncoder, Path stateFile) {
-    this(passwordEncoder, stateFile, null);
+    this(passwordEncoder, stateFile, null, DEFAULT_TOKEN_TTL_MILLIS);
   }
 
-  private IdentityStore(PasswordEncoder passwordEncoder, Path stateFile, JdbcTemplate jdbc) {
+  private IdentityStore(PasswordEncoder passwordEncoder, Path stateFile, JdbcTemplate jdbc, long tokenTtlMillis) {
     this.passwordEncoder = passwordEncoder;
     this.stateFile = stateFile;
     this.jdbc = jdbc;
+    this.tokenTtlMillis = tokenTtlMillis;
     if (jdbc == null) {
       seed(6, "13800000000", "admin123456", "平台管理员", "PLATFORM_ADMIN", null);
       seed(1, "13800000001", "abc123456", "林夏", "USER", null);
@@ -90,9 +98,11 @@ public class IdentityStore {
     String token = UUID.randomUUID().toString();
     if (jdbc != null) {
       jdbc.update("INSERT INTO auth_session(user_id,token_hash,expires_at) VALUES (?,?,?)",
-        user.id(), hash(token), Timestamp.valueOf(LocalDateTime.now().plusDays(TOKEN_DAYS)));
+        user.id(), hash(token), Timestamp.valueOf(LocalDateTime.now()
+          .plus(java.time.Duration.ofMillis(tokenTtlMillis))));
     } else {
-      tokens.put(token, user.id());
+      long expiresAtEpochMillis = System.currentTimeMillis() + tokenTtlMillis;
+      tokens.put(token, new TokenSession(user.id(), expiresAtEpochMillis));
       persistState();
     }
     return Map.of("token", token, "user", safe(user));
@@ -100,6 +110,9 @@ public class IdentityStore {
 
   public synchronized User byPhone(String phone) {
     String normalized = phone == null ? "" : phone.trim();
+    if (normalized.isBlank()) {
+      throw new IdentityException(400, "手机号不能为空");
+    }
     if (jdbc != null) {
       List<User> rows = jdbc.query("SELECT id,phone,password_hash,nickname,avatar_url,role,merchant_id "
           + "FROM user_account WHERE phone=? AND is_deleted=0", this::mapUser, normalized);
@@ -121,9 +134,16 @@ public class IdentityStore {
       if (!rows.isEmpty()) return rows.get(0);
       throw new IdentityException(401, "登录状态已失效");
     }
-    Long id = tokens.get(token);
-    if (id == null) throw new IdentityException(401, "登录状态已失效");
-    return users.values().stream().filter(item -> item.id() == id).findFirst()
+    TokenSession session = tokens.get(token);
+    if (session == null || session.expiresAtEpochMillis() <= System.currentTimeMillis()) {
+      if (session != null) {
+        tokens.remove(token);
+        persistState();
+      }
+
+      throw new IdentityException(401, "登录状态已失效");
+    }
+    return users.values().stream().filter(item -> item.id() == session.userId()).findFirst()
       .orElseThrow(() -> new IdentityException(401, "登录状态已失效"));
   }
 
@@ -253,7 +273,8 @@ public class IdentityStore {
   public synchronized void deleteAddress(long userId, long id) {
     requireActor(userId, userId);
     if (jdbc != null) {
-      jdbc.update("UPDATE user_address SET is_deleted=1,is_default=0 WHERE id=? AND user_id=? AND is_deleted=0", id, userId);
+      int deleted = jdbc.update("UPDATE user_address SET is_deleted=1,is_default=0 WHERE id=? AND user_id=? AND is_deleted=0", id, userId);
+      if (deleted == 0) throw new IdentityException(404, "地址不存在");
       List<Address> remaining = addresses(userId);
       if (!remaining.isEmpty() && remaining.stream().noneMatch(Address::defaultAddress)) {
         jdbc.update("UPDATE user_address SET is_default=1 WHERE id=? AND user_id=?", remaining.get(0).id(), userId);
@@ -261,7 +282,8 @@ public class IdentityStore {
       return;
     }
     List<Address> list = addresses.computeIfAbsent(userId, ignored -> new ArrayList<>());
-    list.removeIf(item -> item.id() == id);
+    boolean removed = list.removeIf(item -> item.id() == id);
+    if (!removed) throw new IdentityException(404, "地址不存在");
     if (!list.isEmpty() && list.stream().noneMatch(Address::defaultAddress)) {
       Address first = list.get(0);
       list.set(0, new Address(first.id(), first.userId(), first.contactName(), first.phone(), first.detail(), true));
@@ -360,5 +382,5 @@ public class IdentityStore {
     }
   }
 
-  private record PersistentState(List<User> users, Map<Long, List<Address>> addresses, Map<String, Long> tokens) {}
+  private record PersistentState(List<User> users, Map<Long, List<Address>> addresses, Map<String, TokenSession> tokens) {}
 }
