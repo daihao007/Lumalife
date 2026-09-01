@@ -29,6 +29,7 @@ grep -q -- '--from-file=V011__order_address_snapshot.sql=database/migrations/V01
 grep -q -- '--from-file=V012__inventory_reservation_saga.sql=database/migrations/V012__inventory_reservation_saga.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh' "${SCRIPT_PATH}"
+grep -q 'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}"' "${SCRIPT_PATH}"
 grep -q -- '--from-literal=merchant-database="${MYSQL_MERCHANT_DATABASE}"' "${SCRIPT_PATH}"
 grep -q -- '--from-literal=order-database="${MYSQL_ORDER_DATABASE}"' "${SCRIPT_PATH}"

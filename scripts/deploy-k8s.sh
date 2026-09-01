@@ -202,7 +202,8 @@ kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
   'MYSQL_SOCKET=/var/run/mysqld/mysqld.sock sh /database/migrations/provision-service-databases.sh'
 kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
   'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < "${BACKFILL_PATH}"
-kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh /database/migrations/backfill-service-databases.sh
+kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
+  'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh'
 
 apply_versioned_manifests
 
