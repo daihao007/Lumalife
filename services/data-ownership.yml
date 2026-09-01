@@ -41,6 +41,7 @@ services:
       - service_payment
       - service_coupon
       - service_review
+      - service_outbox_event
     references:
       - userId is an opaque reference; identity-service owns user details
       - merchantId and itemId are opaque references; merchant-service owns catalog and stock

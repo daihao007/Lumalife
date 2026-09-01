@@ -51,6 +51,11 @@ public class IdentityApi {
     return store.safe(store.byToken(token(authorization)));
   }
 
+  @GetMapping("/admin/accounts")
+  List<Map<String, Object>> accountSummaries() {
+    return store.accountSummaries();
+  }
+
   @PutMapping("/users/{id}/profile")
   Map<String, Object> profile(@PathVariable long id, @RequestHeader("X-User-Id") long actorId,
                               @RequestBody ProfileRequest request) {

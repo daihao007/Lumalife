@@ -286,6 +286,27 @@ public class IdentityStore {
     return data;
   }
 
+  /**
+   * Read-only account projection for the platform dashboard.  The identity
+   * service owns the account data; callers receive no password or token
+   * fields and cannot use this projection to mutate an account.
+   */
+  public synchronized List<Map<String, Object>> accountSummaries() {
+    List<User> source = jdbc == null
+      ? new ArrayList<>(users.values())
+      : jdbc.query("SELECT id,phone,password_hash,nickname,avatar_url,role,merchant_id "
+          + "FROM user_account WHERE is_deleted=0 ORDER BY id", this::mapUser);
+    return source.stream().map(user -> {
+      Map<String, Object> summary = new LinkedHashMap<>();
+      summary.put("id", user.id());
+      summary.put("username", user.phone());
+      summary.put("nickname", user.nickname());
+      summary.put("role", user.role());
+      if (user.merchantId() != null) summary.put("merchantId", user.merchantId());
+      return summary;
+    }).toList();
+  }
+
   private User seed(long id, String phone, String password, String nickname, String role, Long merchantId) {
     User user = new User(id, phone, passwordEncoder.encode(password), nickname, "", role, merchantId);
     users.put(phone, user);

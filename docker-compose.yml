@@ -43,6 +43,8 @@ services:
       MERCHANT_SERVICE_URL: http://merchant-service:8082
       ORDER_SERVICE_URL: http://order-service:8083
       IDENTITY_SERVICE_URL: http://identity-service:8081
+      LUMALIFE_EVENTS_PUBLISHER_ENABLED: ${LUMALIFE_EVENTS_PUBLISHER_ENABLED:-false}
+      LUMALIFE_EVENTS_SINK_URL: ${LUMALIFE_EVENTS_SINK_URL:-}
     ports:
       - "8080:8080"
     depends_on:
@@ -117,6 +119,8 @@ services:
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
       MERCHANT_SERVICE_URL: http://merchant-service:8082
+      LUMALIFE_EVENTS_PUBLISHER_ENABLED: ${LUMALIFE_EVENTS_PUBLISHER_ENABLED:-false}
+      LUMALIFE_EVENTS_SINK_URL: ${LUMALIFE_EVENTS_SINK_URL:-}
     ports:
       - "8083:8083"
     depends_on:

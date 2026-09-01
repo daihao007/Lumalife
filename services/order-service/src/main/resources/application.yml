@@ -10,6 +10,11 @@ lumalife:
   services:
     merchant:
       base-url: ${MERCHANT_SERVICE_URL:http://localhost:8082}
+  events:
+    publisher:
+      enabled: ${LUMALIFE_EVENTS_PUBLISHER_ENABLED:false}
+      fixed-delay-ms: ${LUMALIFE_EVENTS_PUBLISHER_FIXED_DELAY_MS:5000}
+    sink-url: ${LUMALIFE_EVENTS_SINK_URL:}
 management:
   endpoint:
     health:

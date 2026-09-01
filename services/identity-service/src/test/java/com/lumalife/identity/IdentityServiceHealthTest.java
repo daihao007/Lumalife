@@ -88,6 +88,16 @@ class IdentityServiceHealthTest {
   }
 
   @Test
+  void exposesOnlySafeAccountProjectionForRemoteMetrics() {
+    ResponseEntity<Object[]> response = http.exchange("/internal/v1/admin/accounts", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), Object[].class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody()).isNotEmpty();
+    assertThat(response.getBody()[0].toString()).doesNotContain("passwordHash");
+  }
+
+  @Test
   void persistsAccountsTokensAndAddressesAcrossRestart() {
     Path state = tempDir.resolve("identity-state.json");
     IdentityStore first = new IdentityStore(new BCryptPasswordEncoder(), state);
