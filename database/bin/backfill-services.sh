@@ -18,6 +18,20 @@ FROM order_main o JOIN order_item oi ON oi.order_id=o.id
 GROUP BY o.id, o.user_id, o.merchant_id, o.total_cent, o.status, o.created_at
 ON DUPLICATE KEY UPDATE status=VALUES(status), total_cent=VALUES(total_cent), order_type=VALUES(order_type), client_request_id=VALUES(client_request_id), coupon_code=VALUES(coupon_code), address_id=VALUES(address_id), reviewed=VALUES(reviewed), version=VALUES(version);
 
+-- The order service owns the rich order tables after cutover. Keep this
+-- migration idempotent so an existing V004/V006 database can be switched
+-- without losing item names, address snapshots, or status history.
+INSERT INTO order_main (id, user_id, merchant_id, merchant_name_snapshot, order_type, status, total_cent, client_request_id, coupon_code, address_id, address_snapshot, is_reviewed, is_stock_deducted, version, created_at)
+SELECT o.id, o.user_id, o.merchant_id, COALESCE(m.name, CONCAT('商家 #', o.merchant_id)), o.order_type, o.status, o.total_cent, o.client_request_id, o.coupon_code, o.address_id, NULL, o.reviewed, 0, o.version, o.created_at
+FROM order_record o LEFT JOIN merchant m ON m.id=o.merchant_id
+ON DUPLICATE KEY UPDATE status=VALUES(status), total_cent=VALUES(total_cent), client_request_id=VALUES(client_request_id), coupon_code=VALUES(coupon_code), address_id=VALUES(address_id), is_reviewed=VALUES(is_reviewed), version=VALUES(version);
+
+INSERT INTO order_item (order_id, item_type, item_id, item_name_snapshot, quantity, unit_price_cent)
+SELECT o.id, IF(o.order_type='GROUP_BUY','GROUP_DEAL','PRODUCT'), o.product_id,
+       COALESCE(p.name, CONCAT('商品 #', o.product_id)), o.quantity, o.total_cent / GREATEST(o.quantity, 1)
+FROM order_record o LEFT JOIN product p ON p.id=o.product_id
+WHERE NOT EXISTS (SELECT 1 FROM order_item i WHERE i.order_id=o.id);
+
 INSERT INTO service_order_event (order_id, version, status, actor_id, occurred_at)
 SELECT t.order_id, t.id, t.status, 0, t.occurred_at
 FROM order_status_timeline t

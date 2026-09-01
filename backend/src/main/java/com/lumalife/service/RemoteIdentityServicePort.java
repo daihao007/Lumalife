@@ -31,13 +31,16 @@ public class RemoteIdentityServicePort implements IdentityServicePort {
   private final ObjectMapper objectMapper;
   private final String serviceToken;
   private final boolean backfillCompleted;
+  private final RestClient merchantClient;
 
   public RemoteIdentityServicePort(DemoStore fallback, RestClient.Builder builder, ObjectMapper objectMapper,
                                    @Value("${lumalife.services.identity.base-url:http://localhost:8081}") String baseUrl,
+                                   @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String merchantBaseUrl,
                                    @Value("${lumalife.internal.service-token:}") String serviceToken,
                                    @Value("${lumalife.migration.identity.backfill-completed:false}") boolean backfillCompleted) {
     this.fallback = fallback;
     this.client = builder.baseUrl(baseUrl).build();
+    this.merchantClient = builder.baseUrl(merchantBaseUrl).build();
     this.objectMapper = objectMapper;
     this.serviceToken = serviceToken == null ? "" : serviceToken;
     this.backfillCompleted = backfillCompleted;
@@ -66,7 +69,22 @@ public class RemoteIdentityServicePort implements IdentityServicePort {
   }
 
   @Override public Map<String, Object> registerMerchant(String phone, String password, String nickname) {
-    return post("/internal/v1/auth/register", Map.of("phone", phone, "password", password, "nickname", nickname, "role", "MERCHANT_ADMIN"));
+    Map<String, Object> registered = new LinkedHashMap<>(post("/internal/v1/auth/register", Map.of("phone", phone, "password", password, "nickname", nickname, "role", "MERCHANT_ADMIN")));
+    Map<?, ?> registeredUser = registered.get("user") instanceof Map<?, ?> user ? user : Map.of();
+    long userId = number(registeredUser.get("id"));
+    String merchantName = nickname == null || nickname.isBlank() ? "新商家" : nickname.trim();
+    try {
+      Map<String, Object> merchant = merchantClient.post().uri("/internal/v1/merchants/provision")
+        .header("X-Luma-Service-Token", serviceToken).body(Map.of("name", merchantName)).retrieve().body(Map.class);
+      long merchantId = number(merchant == null ? null : merchant.get("id"));
+      Map<String, Object> boundUser = put("/internal/v1/users/{id}/merchant", Map.of("merchantId", merchantId), userId);
+      registered.put("user", boundUser);
+      return registered;
+    } catch (RestClientResponseException error) {
+      throw remoteError(error);
+    } catch (RestClientException error) {
+      throw new BusinessException(50300, "商家资料服务暂时不可用", "MERCHANT_SERVICE_UNAVAILABLE");
+    }
   }
 
   @Override public Map<String, Object> safeUser(User user) { return fallback.safeUser(user); }

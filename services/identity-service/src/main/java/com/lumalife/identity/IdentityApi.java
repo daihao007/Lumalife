@@ -46,6 +46,11 @@ public class IdentityApi {
     return store.safe(store.byToken(token(authorization)));
   }
 
+  @GetMapping("/tokens/introspect")
+  Map<String, Object> introspect(@RequestHeader(value = "Authorization", required = false) String authorization) {
+    return store.safe(store.byToken(token(authorization)));
+  }
+
   @PutMapping("/users/{id}/profile")
   Map<String, Object> profile(@PathVariable long id, @RequestHeader("X-User-Id") long actorId,
                               @RequestBody ProfileRequest request) {
@@ -53,10 +58,25 @@ public class IdentityApi {
     return store.safe(store.updateProfile(id, request.nickname(), request.avatarUrl()));
   }
 
+  @PutMapping("/users/{id}/merchant")
+  Map<String, Object> bindMerchant(@PathVariable long id, @RequestHeader("X-User-Id") long actorId,
+                                    @RequestBody MerchantBindingRequest request) {
+    store.requireActor(id, actorId);
+    return store.safe(store.bindMerchant(id, request.merchantId()));
+  }
+
   @GetMapping("/users/{id}/addresses")
   List<IdentityStore.Address> addresses(@PathVariable long id, @RequestHeader("X-User-Id") long actorId) {
     store.requireActor(id, actorId);
     return store.addresses(id);
+  }
+
+  @GetMapping("/users/{id}/address-snapshot")
+  IdentityStore.Address addressSnapshot(@PathVariable long id, @RequestParam long addressId,
+                                         @RequestHeader("X-User-Id") long actorId) {
+    store.requireActor(id, actorId);
+    return store.addresses(id).stream().filter(address -> address.id() == addressId).findFirst()
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "地址不存在"));
   }
 
   @PostMapping("/users/{id}/addresses")
@@ -88,5 +108,6 @@ public class IdentityApi {
   record LoginRequest(String phone, String password) {}
   record RegisterRequest(String phone, String password, String nickname, String role) {}
   record ProfileRequest(String nickname, String avatarUrl) {}
+  record MerchantBindingRequest(long merchantId) {}
   record AddressRequest(Long id, String contactName, String phone, String detail, boolean defaultAddress) {}
 }

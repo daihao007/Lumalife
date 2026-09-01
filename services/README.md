@@ -1,6 +1,6 @@
 # 三服务拆分与渐进迁移
 
-该目录承载 `identity-service`、`merchant-service`、`order-service` 三个独立 Spring Boot 入口。当前已完成第一阶段业务切片：身份服务提供登录、注册、用户资料和地址能力；商家服务提供商家/商品目录能力；订单服务提供创建、查询和取消能力。服务内部只维护自己的数据，跨服务只传递用户、商家和商品 ID 引用。
+该目录承载 `identity-service`、`merchant-service`、`order-service` 三个独立 Spring Boot 入口。三者均可独立构建、健康检查和部署：身份服务负责账户/会话/地址，商家服务负责分类、商家、商品、团购、收藏和客服会话，订单服务负责购物车、订单、支付、履约、券码和评价。生产模式使用 MySQL 持久化；服务通过 HTTP 内部契约交换 ID 和快照，网关对外仍保持 `/api/v1`。
 
 ## 构建与启动
 
@@ -40,6 +40,8 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 - merchant-service：`/internal/v1/merchants/*`
 - order-service：`/internal/v1/orders/*`
 
-单体网关默认保持 `monolith` 路由。Compose 默认启动三个服务，并打开身份服务以及 merchant 的目录读取/商品写入、order 的订单查询/取消远程路由；设置对应 `LUMALIFE_*_REMOTE_ENABLED` 和 `*_BACKFILL_COMPLETED` 为 `false` 即可逐服务回滚。通过 `GET /internal/migration/status` 查看实时路由。merchant/order 仍有购物车、支付、团购、评价、券码等未迁移能力，这些能力会显式回落到单体，不能据此宣称全量流量已切换。
+Compose/Kubernetes 默认启动网关和三个服务，并打开三组远程路由。网关对远程服务只保留兼容性回退开关；正常部署下身份、目录、收藏/客服、购物车、订单、支付、团购、履约、券码和评价均由对应服务处理。通过 `GET /internal/migration/status` 查看实时路由；发生故障时可将对应 `LUMALIFE_*_REMOTE_ENABLED` 或 `*_BACKFILL_COMPLETED` 设为 `false` 回滚单个边界。
 
-业务迁移必须遵守 `docs/19_D04C微服务边界接口与数据归属初稿.md` 冻结的所有权，不允许跨域 Repository、共享可写数据库表或复制单体业务代码形成双写。
+首次使用已有数据库时，先执行 `docker compose --profile db-tools run --rm db-seed`，再执行 `docker compose --profile db-tools run --rm db-backfill-services`。新版本会自动应用 V007：头像字段升级为 `MEDIUMTEXT`，并将旧 `order_record` 迁移为带商品明细、商家快照和状态时间线的订单模型。
+
+业务迁移必须遵守 `docs/19_D04C微服务边界接口与数据归属初稿.md` 冻结的所有权，不允许跨域 Repository 或复制单体业务代码形成双写。当前兼容窗口仍在同一 MySQL 实例内按服务表集合划分所有权；后续可按同一 HTTP 契约无损迁移到独立 schema/数据库。

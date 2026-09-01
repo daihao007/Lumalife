@@ -46,8 +46,17 @@ export default function Profile({ user, setUser, setMessage }: { user: User; set
 
   function uploadAvatar(file?: File) {
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessage("请选择图片格式的头像");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("头像文件不能超过 2MB");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => setProfile(current => ({ ...current, avatarUrl: String(reader.result) }));
+    reader.onerror = () => setMessage("头像读取失败，请重试");
     reader.readAsDataURL(file);
   }
 
