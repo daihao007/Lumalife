@@ -43,10 +43,19 @@ import java.util.function.Function;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+/**
+ * Monolith compatibility implementation. It is deliberately not created by a
+ * production remote cutover, so a missed service boundary fails at startup
+ * instead of silently routing business traffic back into the monolith.
+ */
 @Service
+@Profile("monolith")
+@ConditionalOnProperty(name = "lumalife.compatibility.store.enabled", havingValue = "true", matchIfMissing = true)
 public class DemoStore implements IdentityServicePort, MerchantServicePort, OrderServicePort, MetricsServicePort {
   private static final String DEFAULT_CHUANXIANG_COVER = "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=1000&q=80";
   private final PasswordEncoder passwordEncoder;

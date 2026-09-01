@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: merchant-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:lumalife}
+    password: ${RABBITMQ_PASSWORD:lumalife-ci-password}
   # The default profile intentionally runs with the in-memory demo catalog;
   # production enables the JDBC datasource in application-prod.yml.
   autoconfigure:
@@ -12,7 +17,18 @@ spring:
 lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
+  events:
+    broker:
+      enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
+      exchange: ${LUMALIFE_EVENTS_EXCHANGE:lumalife.events}
+      queue: ${LUMALIFE_EVENTS_MERCHANT_QUEUE:merchant-inventory-events}
+      result-queue: ${LUMALIFE_EVENTS_ORDER_RESULT_QUEUE:order-inventory-results}
 management:
+  health:
+    defaults:
+      enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
+    rabbit:
+      enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
   endpoint:
     health:
       probes:

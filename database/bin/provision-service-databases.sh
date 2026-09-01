@@ -80,7 +80,7 @@ for table_name in schema_migration user_account user_address auth_session; do
   copy_table "$MYSQL_IDENTITY_DATABASE" "$table_name"
 done
 
-for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item; do
+for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event merchant_outbox_event; do
   copy_table "$MYSQL_MERCHANT_DATABASE" "$table_name"
 done
 
@@ -92,7 +92,7 @@ if [ "$merchant_catalog_version_count" -eq 0 ]; then
   mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.merchant_catalog ADD COLUMN version BIGINT NOT NULL DEFAULT 0"
 fi
 
-for table_name in schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event; do
+for table_name in schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event order_inbox_event order_inventory_saga; do
   copy_table "$MYSQL_ORDER_DATABASE" "$table_name"
 done
 

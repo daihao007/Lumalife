@@ -2,6 +2,6 @@ spring:
   autoconfigure:
     exclude: []
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_MERCHANT_HOST:${MYSQL_HOST:mysql}}:${MYSQL_MERCHANT_PORT:${MYSQL_PORT:3306}}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USER:lifeassist}
     password: ${MYSQL_PASSWORD:}

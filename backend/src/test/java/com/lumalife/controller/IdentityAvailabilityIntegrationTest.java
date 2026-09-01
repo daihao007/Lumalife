@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
-  "spring.profiles.active=remote",
+  "spring.profiles.active=monolith,remote",
   "lumalife.state-file=",
   "lumalife.migration.identity.enabled=true",
   "lumalife.migration.identity.backfill-completed=true",

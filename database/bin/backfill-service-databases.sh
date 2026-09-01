@@ -91,6 +91,18 @@ SELECT id, user_id, merchant_id, sender_role, sender_name, content, created_at
 FROM ${MYSQL_DATABASE}.chat_message
 ON DUPLICATE KEY UPDATE sender_role=VALUES(sender_role), sender_name=VALUES(sender_name), content=VALUES(content), created_at=VALUES(created_at);
 
+INSERT INTO ${MYSQL_MERCHANT_DATABASE}.merchant_outbox_event
+  (id, aggregate_type, aggregate_id, event_type, payload, status, occurred_at, published_at)
+SELECT id, aggregate_type, aggregate_id, event_type, payload, status, occurred_at, published_at
+FROM ${MYSQL_DATABASE}.merchant_outbox_event
+ON DUPLICATE KEY UPDATE aggregate_type=VALUES(aggregate_type), aggregate_id=VALUES(aggregate_id), event_type=VALUES(event_type), payload=VALUES(payload), status=VALUES(status), occurred_at=VALUES(occurred_at), published_at=VALUES(published_at);
+
+INSERT INTO ${MYSQL_MERCHANT_DATABASE}.merchant_inbox_event
+  (event_id, aggregate_type, aggregate_id, event_type, payload, status, received_at, processed_at, last_error)
+SELECT event_id, aggregate_type, aggregate_id, event_type, payload, status, received_at, processed_at, last_error
+FROM ${MYSQL_DATABASE}.merchant_inbox_event
+ON DUPLICATE KEY UPDATE aggregate_type=VALUES(aggregate_type), aggregate_id=VALUES(aggregate_id), event_type=VALUES(event_type), payload=VALUES(payload), status=VALUES(status), received_at=VALUES(received_at), processed_at=VALUES(processed_at), last_error=VALUES(last_error);
+
 INSERT INTO ${MYSQL_ORDER_DATABASE}.order_record
   (id, user_id, merchant_id, merchant_name_snapshot, product_id, quantity, total_cent, status, created_at, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version)
 SELECT id, user_id, merchant_id, merchant_name_snapshot, product_id, quantity, total_cent, status, created_at, order_type, client_request_id, coupon_code, address_id, address_snapshot, reviewed, version
@@ -126,6 +138,18 @@ INSERT INTO ${MYSQL_ORDER_DATABASE}.service_outbox_event
   (id, aggregate_type, aggregate_id, event_type, payload, status, occurred_at, published_at)
 SELECT id, aggregate_type, aggregate_id, event_type, payload, status, occurred_at, published_at FROM ${MYSQL_DATABASE}.service_outbox_event
 ON DUPLICATE KEY UPDATE aggregate_type=VALUES(aggregate_type), aggregate_id=VALUES(aggregate_id), event_type=VALUES(event_type), payload=VALUES(payload), status=VALUES(status), occurred_at=VALUES(occurred_at), published_at=VALUES(published_at);
+
+INSERT INTO ${MYSQL_ORDER_DATABASE}.order_inbox_event
+  (event_id, aggregate_type, aggregate_id, event_type, payload, status, received_at, processed_at, last_error)
+SELECT event_id, aggregate_type, aggregate_id, event_type, payload, status, received_at, processed_at, last_error
+FROM ${MYSQL_DATABASE}.order_inbox_event
+ON DUPLICATE KEY UPDATE aggregate_type=VALUES(aggregate_type), aggregate_id=VALUES(aggregate_id), event_type=VALUES(event_type), payload=VALUES(payload), status=VALUES(status), received_at=VALUES(received_at), processed_at=VALUES(processed_at), last_error=VALUES(last_error);
+
+INSERT INTO ${MYSQL_ORDER_DATABASE}.order_inventory_saga
+  (order_id, user_id, client_request_id, status, last_error, created_at, updated_at)
+SELECT order_id, user_id, client_request_id, status, last_error, created_at, updated_at
+FROM ${MYSQL_DATABASE}.order_inventory_saga
+ON DUPLICATE KEY UPDATE client_request_id=VALUES(client_request_id), status=VALUES(status), last_error=VALUES(last_error), updated_at=VALUES(updated_at);
 SQL
 
 echo "Backfilled identity, merchant and order databases from ${MYSQL_DATABASE}."

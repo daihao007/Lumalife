@@ -1,16 +1,23 @@
 package com.lumalife.order;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -91,23 +98,46 @@ public class OrderStore {
   private final Map<Long, Review> reviews = new LinkedHashMap<>();
   private final Map<Long, String> orderTypes = new HashMap<>();
   private final MerchantInventoryClient inventoryClient;
+  private final OrderSagaEventStore sagaEventStore;
+  private final ObjectMapper objectMapper;
+  private final boolean eventDrivenInventory;
 
   @Autowired
-  public OrderStore(ObjectProvider<JdbcTemplate> provider, ObjectProvider<MerchantInventoryClient> inventoryProvider) {
-    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable());
+  public OrderStore(ObjectProvider<JdbcTemplate> provider, ObjectProvider<MerchantInventoryClient> inventoryProvider,
+                    ObjectProvider<ObjectMapper> objectMapperProvider,
+                    ObjectProvider<OrderSagaEventStore> sagaEventStoreProvider,
+                    @Value("${lumalife.events.broker.enabled:false}") boolean eventDrivenInventory) {
+    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable(), objectMapperProvider.getIfAvailable(ObjectMapper::new),
+        sagaEventStoreProvider.getIfAvailable(), eventDrivenInventory);
   }
 
   OrderStore(JdbcTemplate jdbc) {
-    this(jdbc, null);
+    this(jdbc, null, new ObjectMapper(), null, false);
   }
 
   OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient) {
+    this(jdbc, inventoryClient, new ObjectMapper(), null, false);
+  }
+
+  OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper) {
+    this(jdbc, inventoryClient, objectMapper, null, false);
+  }
+
+  OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper, boolean eventDrivenInventory) {
+    this(jdbc, inventoryClient, objectMapper, null, eventDrivenInventory);
+  }
+
+  OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient, ObjectMapper objectMapper,
+             OrderSagaEventStore sagaEventStore, boolean eventDrivenInventory) {
     this.jdbc = jdbc;
     this.inventoryClient = inventoryClient;
+    this.sagaEventStore = sagaEventStore;
+    this.objectMapper = objectMapper == null ? new ObjectMapper() : objectMapper;
+    this.eventDrivenInventory = eventDrivenInventory;
     refreshIdSequence();
   }
 
-  public OrderStore() { this((JdbcTemplate) null, null); }
+  public OrderStore() { this((JdbcTemplate) null, null, new ObjectMapper(), null, false); }
 
   private void refreshIdSequence() {
     if (jdbc == null) return;
@@ -124,6 +154,7 @@ public class OrderStore {
     return ids.incrementAndGet();
   }
 
+  @Transactional
   public synchronized Order create(CreateOrderRequest request) {
     if (request.quantity() <= 0) throw new IllegalArgumentException("数量必须大于 0");
     Order order = new Order(nextOrderId(), request.userId(), request.merchantId(), request.productId(),
@@ -132,6 +163,7 @@ public class OrderStore {
     orderTypes.put(order.id(), "DELIVERY");
     if (jdbc != null) jdbc.update("INSERT INTO order_record(id,user_id,merchant_id,merchant_name_snapshot,product_id,quantity,total_cent,status,order_type,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
       order.id(), order.userId(), order.merchantId(), order.merchantName(), order.productId(), order.quantity(), order.totalCent(), order.status(), "DELIVERY", java.sql.Timestamp.from(order.createdAt()));
+    appendEvent(order.id(), request.userId(), "PENDING_PAYMENT");
     return order;
   }
 
@@ -140,11 +172,152 @@ public class OrderStore {
     return orders.values().stream().filter(item -> item.userId() == userId).toList();
   }
 
+  /**
+   * Order-owned read model consumed by the BFF's remote metrics adapter.
+   * Identity and merchant account/catalog fields are intentionally absent;
+   * the BFF joins those opaque references with their owning services.
+   */
+  public synchronized Map<String, Object> metrics() {
+    List<Order> allOrders = allOrders();
+    List<Order> nonCancelled = allOrders.stream().filter(order -> !"CANCELLED".equals(order.status())).toList();
+    LocalDate today = LocalDate.now();
+    Instant todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    long totalAmount = nonCancelled.stream().mapToLong(Order::totalCent).sum();
+    List<Order> todayOrders = allOrders.stream().filter(order -> !order.createdAt().isBefore(todayStart)).toList();
+    long todayAmount = todayOrders.stream().filter(order -> !"CANCELLED".equals(order.status()))
+      .mapToLong(Order::totalCent).sum();
+
+    Map<String, Object> overview = new LinkedHashMap<>();
+    overview.put("users", 0);
+    overview.put("merchants", 0);
+    overview.put("orders", allOrders.size());
+    overview.put("amountCent", totalAmount);
+    overview.put("todayOrders", todayOrders.size());
+    overview.put("todayAmountCent", todayAmount);
+
+    Map<String, Integer> statusDistribution = new LinkedHashMap<>();
+    for (String status : List.of("PENDING_PAYMENT", "PAID", "ACCEPTED", "DELIVERING", "RECEIVED",
+        "COMPLETED", "USED", "EXPIRED", "CANCELLED")) {
+      int count = (int) allOrders.stream().filter(order -> status.equals(order.status())).count();
+      if (count > 0) statusDistribution.put(status, count);
+    }
+
+    Map<String, Integer> typeDistribution = new LinkedHashMap<>();
+    allOrders.forEach(order -> typeDistribution.merge(order.type(), 1, Integer::sum));
+
+    List<Map<String, Object>> revenueTrend = new ArrayList<>();
+    for (int daysAgo = 6; daysAgo >= 0; daysAgo--) {
+      LocalDate day = today.minusDays(daysAgo);
+      Instant start = day.atStartOfDay(ZoneId.systemDefault()).toInstant();
+      Instant end = day.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+      List<Order> dayOrders = nonCancelled.stream()
+        .filter(order -> !order.createdAt().isBefore(start) && order.createdAt().isBefore(end)).toList();
+      Map<String, Object> point = new LinkedHashMap<>();
+      point.put("date", day.toString());
+      point.put("amountCent", dayOrders.stream().mapToLong(Order::totalCent).sum());
+      point.put("orderCount", dayOrders.size());
+      revenueTrend.add(point);
+    }
+
+    List<Review> allReviews = allReviews();
+    Map<Long, List<Order>> ordersByMerchant = new LinkedHashMap<>();
+    nonCancelled.forEach(order -> ordersByMerchant.computeIfAbsent(order.merchantId(), ignored -> new ArrayList<>()).add(order));
+    List<Map<String, Object>> merchantRanking = ordersByMerchant.entrySet().stream().map(entry -> {
+      long merchantId = entry.getKey();
+      List<Order> merchantOrders = entry.getValue();
+      List<Review> merchantReviews = allReviews.stream().filter(review -> review.merchantId() == merchantId).toList();
+      double averageScore = merchantReviews.stream().mapToInt(Review::score).average().orElse(0.0);
+      Map<String, Object> row = new LinkedHashMap<>();
+      row.put("merchantId", merchantId);
+      row.put("name", "商家 #" + merchantId);
+      row.put("orderCount", merchantOrders.size());
+      row.put("revenueCent", merchantOrders.stream().mapToLong(Order::totalCent).sum());
+      row.put("avgScore", Math.round(averageScore * 10.0) / 10.0);
+      return row;
+    }).sorted(java.util.Comparator.<Map<String, Object>, Long>comparing(row -> ((Number) row.get("revenueCent")).longValue()).reversed())
+      .toList();
+
+    List<Order> deliveryOrders = nonCancelled.stream().filter(order -> "DELIVERY".equals(order.type())).toList();
+    double averageAcceptMinutes = averageTransitionMinutes(deliveryOrders, "PAID", "ACCEPTED");
+    double averageDeliveryMinutes = averageTransitionMinutes(deliveryOrders, "ACCEPTED", "COMPLETED");
+    long completedCount = deliveryOrders.stream().filter(order -> "RECEIVED".equals(order.status())
+      || "COMPLETED".equals(order.status())).count();
+    Map<String, Object> deliveryMetrics = new LinkedHashMap<>();
+    deliveryMetrics.put("avgAcceptMinutes", Math.round(averageAcceptMinutes * 10.0) / 10.0);
+    deliveryMetrics.put("avgDeliveryMinutes", Math.round(averageDeliveryMinutes * 10.0) / 10.0);
+    deliveryMetrics.put("completionRate", deliveryOrders.isEmpty() ? 0.0
+      : Math.round((double) completedCount / deliveryOrders.size() * 100.0) / 100.0);
+
+    Set<String> activeStatuses = Set.of("PAID", "ACCEPTED", "DELIVERING");
+    List<Map<String, Object>> activeOrders = allOrders.stream().filter(order -> activeStatuses.contains(order.status()))
+      .sorted(java.util.Comparator.comparing(Order::createdAt).reversed()).map(order -> {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", order.id());
+        row.put("merchantName", order.merchantName());
+        row.put("type", order.type());
+        row.put("status", order.status());
+        row.put("totalCent", order.totalCent());
+        row.put("createdAt", order.createdAt().toString());
+        row.put("elapsedMinutes", Math.max(0, Duration.between(order.createdAt(), Instant.now()).toMinutes()));
+        Map<String, String> timeline = new LinkedHashMap<>();
+        order.statusTimeline().forEach((status, occurredAt) -> timeline.put(status, occurredAt.toString()));
+        row.put("statusTimeline", timeline);
+        return row;
+      }).toList();
+
+    Map<String, Object> health = new LinkedHashMap<>();
+    health.put("status", "UP");
+    health.put("pendingOrders", activeOrders.size());
+    health.put("outboxPending", pendingOutboxCount());
+
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("overview", overview);
+    result.put("orderStatusDistribution", statusDistribution);
+    result.put("orderTypeDistribution", typeDistribution);
+    result.put("revenueTrend", revenueTrend);
+    result.put("merchantRanking", merchantRanking);
+    result.put("deliveryMetrics", deliveryMetrics);
+    result.put("activeOrders", activeOrders);
+    result.put("health", health);
+    result.put("logs", List.of());
+    return result;
+  }
+
+  private List<Order> allOrders() {
+    if (jdbc == null) return new ArrayList<>(orders.values());
+    return jdbc.query("SELECT id,user_id,merchant_id,merchant_name_snapshot,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_snapshot FROM order_record ORDER BY id", this::map);
+  }
+
+  private List<Review> allReviews() {
+    if (jdbc == null) return new ArrayList<>(reviews.values());
+    return jdbc.query("SELECT order_id,user_id,merchant_id,score,taste_score,service_score,content,created_at FROM service_review ORDER BY created_at DESC",
+      (rs, n) -> new Review(nextReviewId(), rs.getLong("order_id"), rs.getLong("merchant_id"), "用户" + rs.getLong("user_id"),
+        rs.getInt("score"), rs.getInt("taste_score"), rs.getInt("service_score"), rs.getString("content"),
+        rs.getTimestamp("created_at").toLocalDateTime()));
+  }
+
+  private double averageTransitionMinutes(List<Order> source, String from, String to) {
+    return source.stream().filter(order -> order.statusTimeline().containsKey(from) && order.statusTimeline().containsKey(to))
+      .mapToLong(order -> Duration.between(order.statusTimeline().get(from), order.statusTimeline().get(to)).toMinutes())
+      .average().orElse(0);
+  }
+
+  private long pendingOutboxCount() {
+    if (jdbc == null) return 0;
+    try {
+      Long count = jdbc.queryForObject("SELECT COUNT(*) FROM service_outbox_event WHERE status IN ('PENDING','FAILED')", Long.class);
+      return count == null ? 0 : count;
+    } catch (DataAccessException ignored) {
+      return 0;
+    }
+  }
+
+  @Transactional
   public synchronized Order cancel(long userId, long id) {
     Order order = findOrder(id).orElse(null);
     if (order == null || order.userId() != userId) throw new IllegalArgumentException("订单不存在");
     if (!"PENDING_PAYMENT".equals(order.status())) throw new IllegalStateException("当前状态不可取消");
-    if (jdbc != null && inventoryClient != null) inventoryClient.releaseIfPresent(order, "cancel-" + order.id());
+    if (jdbc != null && inventoryClient != null && !eventDrivenInventory) inventoryClient.releaseIfPresent(order, "cancel-" + order.id());
     Order cancelled = withStatus(order, "CANCELLED");
     orders.put(id, cancelled);
     if (jdbc != null) jdbc.update("UPDATE order_record SET status=? WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", "CANCELLED", id, userId);
@@ -215,8 +388,12 @@ public class OrderStore {
     boolean groupBuy = "GROUP_BUY".equals(current.type()) || "GROUP_BUY".equals(orderType(orderId));
     String couponCode = groupBuy ? String.format("%012d", orderId) : null;
     boolean remoteInventory = jdbc != null && inventoryClient != null;
-    if (remoteInventory) inventoryClient.reserve(current, requestId);
     try {
+      // Production broker mode is fully asynchronous: the payment transaction
+      // records the reserve command, and merchant-service owns the stock write.
+      // The synchronous HTTP reserve remains available only when the broker is
+      // explicitly disabled for a compatibility deployment.
+      if (remoteInventory && !eventDrivenInventory) inventoryClient.reserve(current, requestId);
       if (jdbc != null) {
         jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)",
           userId, orderId, requestId, chargedAmount, "SUCCESS");
@@ -230,12 +407,19 @@ public class OrderStore {
       Order paid = withStatusAndCoupon(current, "PAID", couponCode);
       orders.put(orderId, paid);
       if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
-      if (remoteInventory) inventoryClient.confirm(current, requestId);
+      if (remoteInventory && eventDrivenInventory) {
+        Instant occurredAt = Instant.now();
+        recordInventorySaga(orderId, userId, requestId, "RESERVE_PENDING", null);
+        appendIntegrationEvent(orderId, current.merchantId(), "inventory.reserve.requested",
+          inventoryReservePayload(current, userId, requestId, occurredAt));
+      } else if (remoteInventory) {
+        inventoryClient.confirm(current, requestId);
+      }
       Payment payment = new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
       payments.put(paymentKey, payment);
       return payment;
     } catch (RuntimeException error) {
-      if (remoteInventory) {
+      if (remoteInventory && !eventDrivenInventory) {
         try {
           inventoryClient.release(current, requestId);
         } catch (RuntimeException compensationError) {
@@ -270,6 +454,7 @@ public class OrderStore {
     return types.isEmpty() ? "DELIVERY" : types.get(0);
   }
 
+  @Transactional
   public synchronized Order createGroupOrder(GroupOrderRequest request) {
     if (request.quantity() <= 0 || request.merchantId() <= 0 || request.priceCent() <= 0) throw new IllegalStateException("团购参数不合法");
     long id = nextOrderId();
@@ -287,6 +472,7 @@ public class OrderStore {
     return order;
   }
 
+  @Transactional
   public synchronized List<Order> createDeliveryOrders(DeliveryRequest request) {
     if (request.lines() == null || request.lines().isEmpty()) throw new IllegalArgumentException("购物车为空");
     Map<Long, List<DeliveryLine>> grouped = new LinkedHashMap<>();
@@ -329,6 +515,7 @@ public class OrderStore {
     }
   }
 
+  @Transactional
   public synchronized Order receive(long userId, long id) {
     Order order = findOrder(id).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
     if (order.userId() != userId) throw new IllegalArgumentException("订单不存在");
@@ -336,6 +523,7 @@ public class OrderStore {
     return setStatus(order, userId, "RECEIVED");
   }
 
+  @Transactional
   public synchronized Order transition(long merchantId, long id, String next) {
     Order order = findOrder(id).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
     if (order.merchantId() != merchantId) throw new SecurityException("不能处理其他商家的订单");
@@ -346,6 +534,7 @@ public class OrderStore {
     return setStatus(order, merchantId, next);
   }
 
+  @Transactional
   public synchronized Coupon issueCoupon(long userId, long orderId) {
     Order order = findOrder(orderId).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
     if (order.userId() != userId || !"PAID".equals(order.status())) throw new IllegalStateException("订单不可生成券码");
@@ -359,6 +548,7 @@ public class OrderStore {
     return coupons.get(code);
   }
 
+  @Transactional
   public synchronized Order verifyCoupon(long merchantId, String code) {
     Coupon coupon = coupons.get(code);
     if (coupon == null && jdbc != null) {
@@ -376,6 +566,7 @@ public class OrderStore {
     return used;
   }
 
+  @Transactional
   public synchronized Review addReview(ReviewRequest request) {
     if (request.score() < 1 || request.score() > 5 || request.tasteScore() < 1 || request.tasteScore() > 5
       || request.serviceScore() < 1 || request.serviceScore() > 5 || request.content() == null || request.content().isBlank()) {
@@ -447,7 +638,61 @@ public class OrderStore {
   private void appendEvent(long orderId, long actor, String status) {
     if (jdbc != null) {
       Integer nextVersion = jdbc.queryForObject("SELECT COALESCE(MAX(version),0)+1 FROM service_order_event WHERE order_id=?", Integer.class, orderId);
+      Instant occurredAt = Instant.now();
       jdbc.update("INSERT INTO service_order_event(order_id,version,status,actor_id) VALUES (?,?,?,?)", orderId, nextVersion == null ? 1 : nextVersion, status, actor);
+      jdbc.update("INSERT INTO service_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
+        "ORDER", orderId, "order.status.changed", outboxPayload(orderId, actor, status, occurredAt),
+        java.sql.Timestamp.from(occurredAt));
+    }
+  }
+
+  private void appendIntegrationEvent(long aggregateId, long actor, String eventType, String payload) {
+    if (jdbc == null) return;
+    Instant occurredAt = Instant.now();
+    jdbc.update("INSERT INTO service_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
+        "ORDER", aggregateId, eventType, payload, java.sql.Timestamp.from(occurredAt));
+  }
+
+  private void recordInventorySaga(long orderId, long userId, String clientRequestId, String status, String lastError) {
+    if (jdbc == null || !eventDrivenInventory) return;
+    jdbc.update("INSERT INTO order_inventory_saga(order_id,user_id,client_request_id,status,last_error) VALUES (?,?,?,?,?) "
+        + "ON DUPLICATE KEY UPDATE status=VALUES(status),last_error=VALUES(last_error),updated_at=CURRENT_TIMESTAMP(3)",
+        orderId, userId, clientRequestId, status, lastError);
+  }
+
+  private String outboxPayload(long orderId, long actor, String status, Instant occurredAt) {
+    try {
+      return objectMapper.writeValueAsString(Map.of(
+        "orderId", orderId,
+        "actorId", actor,
+        "status", status,
+        "occurredAt", occurredAt.toString()));
+    } catch (JsonProcessingException error) {
+      throw new IllegalStateException("订单事件序列化失败", error);
+    }
+  }
+
+  private String inventoryReservePayload(Order order, long actor, String clientRequestId, Instant occurredAt) {
+    try {
+      String itemType = "GROUP_BUY".equals(order.type()) ? "GROUP_DEAL" : "PRODUCT";
+      List<OrderLine> lines = order.lines().isEmpty()
+        ? List.of(new OrderLine(order.productId(), "", order.quantity(), 0))
+        : order.lines();
+      List<Map<String, Object>> items = lines.stream().map(line -> Map.<String, Object>of(
+        "itemType", itemType,
+        "itemId", line.itemId(),
+        "quantity", line.quantity(),
+        "expectedVersion", 0)).toList();
+      return objectMapper.writeValueAsString(Map.of(
+        "orderId", order.id(),
+        "actorId", actor,
+        "status", "RESERVE_PENDING",
+        "clientRequestId", clientRequestId,
+        "expiresAt", occurredAt.plusSeconds(900).toString(),
+        "items", items,
+        "occurredAt", occurredAt.toString()));
+    } catch (JsonProcessingException error) {
+      throw new IllegalStateException("库存预占事件序列化失败", error);
     }
   }
 

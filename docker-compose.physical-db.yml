@@ -1,0 +1,101 @@
+services:
+  mysql-identity:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_IDENTITY_DATABASE:-life_assistant_identity}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    volumes:
+      - mysql_identity_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP --host=127.0.0.1 --user=$$MYSQL_USER --database=$$MYSQL_DATABASE --execute='SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mysql-merchant:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_MERCHANT_DATABASE:-life_assistant_merchant}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    volumes:
+      - mysql_merchant_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP --host=127.0.0.1 --user=$$MYSQL_USER --database=$$MYSQL_DATABASE --execute='SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mysql-order:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_ORDER_DATABASE:-life_assistant_order}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    volumes:
+      - mysql_order_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql --protocol=TCP --host=127.0.0.1 --user=$$MYSQL_USER --database=$$MYSQL_DATABASE --execute='SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  db-isolate-services:
+    image: mysql:8.4
+    profiles: ["physical-db"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-life_assistant}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MYSQL_IDENTITY_DATABASE: ${MYSQL_IDENTITY_DATABASE:-life_assistant_identity}
+      MYSQL_MERCHANT_DATABASE: ${MYSQL_MERCHANT_DATABASE:-life_assistant_merchant}
+      MYSQL_ORDER_DATABASE: ${MYSQL_ORDER_DATABASE:-life_assistant_order}
+      IDENTITY_MYSQL_HOST: mysql-identity
+      MERCHANT_MYSQL_HOST: mysql-merchant
+      ORDER_MYSQL_HOST: mysql-order
+    volumes:
+      - ./database:/database:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysql-identity:
+        condition: service_healthy
+      mysql-merchant:
+        condition: service_healthy
+      mysql-order:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/database/bin/isolate-service-databases.sh"]
+
+  identity-service:
+    environment:
+      MYSQL_IDENTITY_HOST: mysql-identity
+      MYSQL_IDENTITY_PORT: 3306
+    depends_on:
+      mysql-identity:
+        condition: service_healthy
+
+  merchant-service:
+    environment:
+      MYSQL_MERCHANT_HOST: mysql-merchant
+      MYSQL_MERCHANT_PORT: 3306
+    depends_on:
+      mysql-merchant:
+        condition: service_healthy
+
+  order-service:
+    environment:
+      MYSQL_ORDER_HOST: mysql-order
+      MYSQL_ORDER_PORT: 3306
+    depends_on:
+      mysql-order:
+        condition: service_healthy
+
+volumes:
+  mysql_identity_data:
+  mysql_merchant_data:
+  mysql_order_data:

@@ -31,6 +31,8 @@ DELETE FROM user_account;
 SQL
 
 service_mysql_exec "$MYSQL_MERCHANT_DATABASE" <<'SQL'
+DELETE FROM merchant_outbox_event;
+DELETE FROM merchant_inbox_event;
 DELETE FROM chat_message;
 DELETE FROM merchant_favorite;
 DELETE FROM inventory_reservation_item;
@@ -42,6 +44,8 @@ DELETE FROM category;
 SQL
 
 service_mysql_exec "$MYSQL_ORDER_DATABASE" <<'SQL'
+DELETE FROM order_inbox_event;
+DELETE FROM order_inventory_saga;
 DELETE FROM service_outbox_event;
 DELETE FROM service_order_event;
 DELETE FROM service_order_line;

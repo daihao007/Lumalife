@@ -128,6 +128,16 @@ class OrderServiceBusinessTest {
   }
 
   @Test
+  void exposesOrderOwnedMetricsProjectionWithoutIdentityOrCatalogFields() {
+    ResponseEntity<Map> response = http.exchange("/internal/v1/orders/metrics", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), Map.class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody()).containsKeys("overview", "orderStatusDistribution", "merchantRanking", "health");
+    assertThat(response.getBody()).doesNotContainKey("userAccounts").doesNotContainKey("merchants");
+  }
+
+  @Test
   void ctRtOrd02And09EnforcePaymentAmountIdempotencyAndCancelledState() {
     HttpHeaders headers = serviceHeaders();
     headers.set("X-User-Id", "1");

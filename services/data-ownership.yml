@@ -1,6 +1,6 @@
 version: 1
 description: >-
-  Runtime data ownership for the three business services. The legacy
+  Runtime data ownership for the four business services. The legacy
   life_assistant database is a read-only migration and rollback source while
   the cutover is in progress; service code must not use it directly.
 
@@ -27,6 +27,8 @@ services:
       - chat_message
       - inventory_reservation
       - inventory_reservation_item
+      - merchant_inbox_event
+      - merchant_outbox_event
     references:
       - userId is an opaque reference; identity-service owns user details
       - orderId is an opaque reference; order-service owns order state
@@ -41,9 +43,18 @@ services:
       - service_payment
       - service_coupon
       - service_review
+      - service_outbox_event
+      - order_inbox_event
+      - order_inventory_saga
     references:
       - userId is an opaque reference; identity-service owns user details
       - merchantId and itemId are opaque references; merchant-service owns catalog and stock
+
+  assistant-service:
+    database: none
+    tables: []
+    references:
+      - context is a request-scoped projection supplied by backend; the service owns no business data
 
 communication:
   - from: backend
@@ -57,4 +68,10 @@ communication:
     protocol: HTTP internal contract
   - from: order-service
     to: merchant-service
-    protocol: HTTP inventory reservation contract
+    protocol: RabbitMQ inventory command and result events with transactional outboxes
+  - from: order-service
+    to: merchant-service
+    protocol: RabbitMQ at-least-once delivery with merchant Inbox and order Inbox idempotency
+  - from: backend
+    to: assistant-service
+    protocol: HTTP internal AI answer contract

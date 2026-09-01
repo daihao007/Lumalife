@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly ALL_SERVICES=(identity-service merchant-service order-service)
+readonly ALL_SERVICES=(identity-service merchant-service order-service assistant-service)
 
 changed_paths() {
   if [[ "${1:-}" == "--stdin" ]]; then
@@ -34,6 +34,9 @@ while IFS= read -r path; do
       ;;
     services/order-service/*|k8s/services/order-service.yaml)
       selected[order-service]=1
+      ;;
+    services/assistant-service/*|k8s/services/assistant-service.yaml)
+      selected[assistant-service]=1
       ;;
   esac
 done < <(changed_paths "$@")

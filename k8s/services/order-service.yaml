@@ -60,6 +60,10 @@ spec:
           env:
             - name: SERVICE_VERSION
               value: "0.1.0"
+            - name: LUMALIFE_EVENTS_PUBLISHER_ENABLED
+              value: "false"
+            - name: LUMALIFE_EVENTS_SINK_URL
+              value: ""
           startupProbe:
             httpGet:
               path: /actuator/health/liveness

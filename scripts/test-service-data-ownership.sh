@@ -37,9 +37,9 @@ assert_no_cross_service_sql() {
 
 assert_manifest_tables identity-service user_account user_address auth_session
 assert_manifest_tables merchant-service category merchant merchant_catalog group_deal \
-  merchant_favorite chat_message inventory_reservation inventory_reservation_item
+  merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event merchant_outbox_event
 assert_manifest_tables order-service order_record service_order_line service_order_event \
-  service_cart_item service_payment service_coupon service_review
+  service_cart_item service_payment service_coupon service_review service_outbox_event order_inbox_event order_inventory_saga
 
 # A service may hold another service's identifier, but it must not query or
 # mutate the other service's tables. Keep this gate close to the source so a
@@ -58,5 +58,16 @@ grep -q 'key: order-database' "${ROOT}/k8s/services.yaml"
 grep -q 'MYSQL_DATABASE:.*MYSQL_IDENTITY_DATABASE' "${ROOT}/docker-compose.yml"
 grep -q 'MYSQL_DATABASE:.*MYSQL_MERCHANT_DATABASE' "${ROOT}/docker-compose.yml"
 grep -q 'MYSQL_DATABASE:.*MYSQL_ORDER_DATABASE' "${ROOT}/docker-compose.yml"
+
+test -f "${ROOT}/k8s/service-databases.yaml"
+grep -q 'name: mysql-identity' "${ROOT}/k8s/service-databases.yaml"
+grep -q 'name: mysql-merchant' "${ROOT}/k8s/service-databases.yaml"
+grep -q 'name: mysql-order' "${ROOT}/k8s/service-databases.yaml"
+grep -q 'value: mysql-identity' "${ROOT}/k8s/services.yaml"
+grep -q 'value: mysql-merchant' "${ROOT}/k8s/services.yaml"
+grep -q 'value: mysql-order' "${ROOT}/k8s/services.yaml"
+grep -q 'IDENTITY_MYSQL_HOST: mysql-identity' "${ROOT}/docker-compose.physical-db.yml"
+grep -q 'MERCHANT_MYSQL_HOST: mysql-merchant' "${ROOT}/docker-compose.physical-db.yml"
+grep -q 'ORDER_MYSQL_HOST: mysql-order' "${ROOT}/docker-compose.physical-db.yml"
 
 echo "Service data ownership boundary checks passed."

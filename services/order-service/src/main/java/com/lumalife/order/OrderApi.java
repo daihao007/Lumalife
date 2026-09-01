@@ -30,6 +30,10 @@ public class OrderApi {
   @GetMapping
   List<OrderStore.Order> orders(@RequestHeader("X-User-Id") long userId) { return store.byUser(userId); }
 
+  /** Order-owned read projection; identity/catalog data is joined by the BFF. */
+  @GetMapping("/metrics")
+  java.util.Map<String, Object> metrics() { return store.metrics(); }
+
   @GetMapping("/{id}")
   OrderStore.Order order(@PathVariable long id, @RequestHeader("X-User-Id") long userId) {
     OrderStore.Order order = store.order(id);

@@ -8,6 +8,7 @@ readonly FRONTEND_IMAGE="${FRONTEND_IMAGE:-ghcr.io/daihao007/lumalife-frontend}"
 readonly IDENTITY_IMAGE="${IDENTITY_IMAGE:-ghcr.io/daihao007/lumalife-identity-service}"
 readonly MERCHANT_IMAGE="${MERCHANT_IMAGE:-ghcr.io/daihao007/lumalife-merchant-service}"
 readonly ORDER_IMAGE="${ORDER_IMAGE:-ghcr.io/daihao007/lumalife-order-service}"
+readonly ASSISTANT_IMAGE="${ASSISTANT_IMAGE:-ghcr.io/daihao007/lumalife-assistant-service}"
 readonly IMAGE_PULL_TIMEOUT="${IMAGE_PULL_TIMEOUT:-1800s}"
 readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-900s}"
 readonly HEALTHCHECK_IMAGE="${HEALTHCHECK_IMAGE:-curlimages/curl:8.12.1}"
@@ -44,7 +45,7 @@ diagnostics() {
   echo "Recent container logs (including the previous crashed instance):"
   kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 \
     -l 'app.kubernetes.io/part-of=lumalife' || true
-  for app in identity-service merchant-service order-service; do
+  for app in identity-service merchant-service order-service assistant-service; do
     kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app=${app}" || true
     kubectl -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 --previous -l "app=${app}" || true
   done
@@ -68,6 +69,7 @@ prefetch_images() {
     "${IDENTITY_IMAGE}:${IMAGE_TAG}"
     "${MERCHANT_IMAGE}:${IMAGE_TAG}"
     "${ORDER_IMAGE}:${IMAGE_TAG}"
+    "${ASSISTANT_IMAGE}:${IMAGE_TAG}"
   )
   local -a pod_targets=()
   local safe_tag run_suffix pod_name image index
@@ -110,6 +112,7 @@ apply_versioned_manifests() {
     "${IDENTITY_IMAGE}:${IMAGE_TAG}"
     "${MERCHANT_IMAGE}:${IMAGE_TAG}"
     "${ORDER_IMAGE}:${IMAGE_TAG}"
+    "${ASSISTANT_IMAGE}:${IMAGE_TAG}"
   )
 
   manifests="$(kubectl kustomize k8s | sed \
@@ -118,6 +121,7 @@ apply_versioned_manifests() {
     -e "s|image: ghcr.io/daihao007/lumalife-identity-service:main|image: ${IDENTITY_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-merchant-service:main|image: ${MERCHANT_IMAGE}:${IMAGE_TAG}|" \
     -e "s|image: ghcr.io/daihao007/lumalife-order-service:main|image: ${ORDER_IMAGE}:${IMAGE_TAG}|" \
+    -e "s|image: ghcr.io/daihao007/lumalife-assistant-service:main|image: ${ASSISTANT_IMAGE}:${IMAGE_TAG}|" \
     -e "s|value: main|value: ${IMAGE_TAG}|g")"
 
   for image in "${expected_images[@]}"; do
@@ -165,13 +169,21 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V011__order_address_snapshot.sql=database/migrations/V011__order_address_snapshot.sql \
   --from-file=V012__inventory_reservation_saga.sql=database/migrations/V012__inventory_reservation_saga.sql \
   --from-file=V013__order_merchant_name_snapshot.sql=database/migrations/V013__order_merchant_name_snapshot.sql \
+  --from-file=V014__event_bus_inbox.sql=database/migrations/V014__event_bus_inbox.sql \
+  --from-file=V015__inventory_saga_result_delivery.sql=database/migrations/V015__inventory_saga_result_delivery.sql \
+  --from-file=V016__async_inventory_reservation_saga.sql=database/migrations/V016__async_inventory_reservation_saga.sql \
   --from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh \
   --from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh \
+  --from-file=isolate-service-databases.sh=database/bin/isolate-service-databases.sh \
   --dry-run=client -o yaml | kubectl apply -f -
 
 prefetch_images
 kubectl apply -f k8s/mysql.yaml
 kubectl -n "${NAMESPACE}" rollout status statefulset/mysql --timeout="${ROLLOUT_TIMEOUT}"
+kubectl apply -f k8s/service-databases.yaml
+for database_statefulset in mysql-identity mysql-merchant mysql-order; do
+  kubectl -n "${NAMESPACE}" rollout status statefulset/${database_statefulset} --timeout="${ROLLOUT_TIMEOUT}"
+done
 
 # Existing MySQL PVCs do not rerun /docker-entrypoint-initdb.d. Apply the
 # versioned migrations and idempotent service backfill on every deployment so
@@ -205,14 +217,18 @@ kubectl -n "${NAMESPACE}" exec -i statefulset/mysql -- sh -ec \
   'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --default-character-set=utf8mb4' < "${BACKFILL_PATH}"
 kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
   'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh'
+kubectl -n "${NAMESPACE}" exec statefulset/mysql -- sh -ec \
+  'MYSQL_HOST=127.0.0.1 IDENTITY_MYSQL_HOST=mysql-identity MERCHANT_MYSQL_HOST=mysql-merchant ORDER_MYSQL_HOST=mysql-order sh /database/migrations/isolate-service-databases.sh'
 
 apply_versioned_manifests
 
 kubectl -n "${NAMESPACE}" rollout status deployment/backend --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/frontend --timeout="${ROLLOUT_TIMEOUT}"
+kubectl -n "${NAMESPACE}" rollout status deployment/rabbitmq --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/identity-service --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/merchant-service --timeout="${ROLLOUT_TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status deployment/order-service --timeout="${ROLLOUT_TIMEOUT}"
+kubectl -n "${NAMESPACE}" rollout status deployment/assistant-service --timeout="${ROLLOUT_TIMEOUT}"
 
 healthcheck_name="deployment-health-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 healthcheck_name="${healthcheck_name:0:63}"

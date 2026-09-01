@@ -87,6 +87,8 @@ spec:
               value: http://merchant-service:8082
             - name: ORDER_SERVICE_URL
               value: http://order-service:8083
+            - name: ASSISTANT_SERVICE_URL
+              value: http://assistant-service:8084
             - name: LUMALIFE_IDENTITY_REMOTE_ENABLED
               value: "true"
             - name: LUMALIFE_IDENTITY_BACKFILL_COMPLETED
@@ -99,6 +101,12 @@ spec:
               value: "true"
             - name: LUMALIFE_ORDER_BACKFILL_COMPLETED
               value: "true"
+            - name: LUMALIFE_ASSISTANT_REMOTE_ENABLED
+              value: "true"
+            - name: LUMALIFE_ASSISTANT_BACKFILL_COMPLETED
+              value: "true"
+            - name: LUMALIFE_COMPATIBILITY_STORE_ENABLED
+              value: "false"
           startupProbe:
             httpGet:
               path: /actuator/health/liveness

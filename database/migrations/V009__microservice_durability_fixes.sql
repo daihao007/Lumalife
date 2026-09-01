@@ -1,5 +1,5 @@
--- Final cutover fixes: avatars are durable payloads and the service-owned
--- outbox foundation is available for future event publication.
+-- Final cutover fixes: avatars are durable payloads and order-service owns a
+-- transactional outbox for order state events.
 ALTER TABLE user_account MODIFY COLUMN avatar_url MEDIUMTEXT NOT NULL;
 
 CREATE TABLE IF NOT EXISTS service_outbox_event (

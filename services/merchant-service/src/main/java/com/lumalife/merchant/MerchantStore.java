@@ -159,10 +159,12 @@ public class MerchantStore {
     ChatMessage question = new ChatMessage(nextMessageId(), userId, merchantId, "USER", "用户", text, LocalDateTime.now());
     saveMessage(question);
     messages.add(question);
-    String answer = aiResponder == null ? localAnswer(text, merchant) : aiResponder.apply(messages);
-    ChatMessage response = new ChatMessage(nextMessageId(), userId, merchantId, "MERCHANT_AI", merchant.name(), normalizeMessage(answer), LocalDateTime.now());
-    saveMessage(response);
-    messages.add(response);
+    String answer = aiResponder == null ? null : normalizeMessage(aiResponder.apply(messages));
+    if (answer != null && !answer.isBlank()) {
+      ChatMessage response = new ChatMessage(nextMessageId(), userId, merchantId, "MERCHANT_AI", merchant.name(), answer, LocalDateTime.now());
+      saveMessage(response);
+      messages.add(response);
+    }
     return messages;
   }
 
@@ -612,9 +614,4 @@ public class MerchantStore {
     return result.length() > 500 ? result.substring(0, 500) : result;
   }
 
-  private String localAnswer(String question, Merchant merchant) {
-    if (question.contains("营业") || question.contains("开门")) return merchant.name() + "当前状态为" + merchant.status() + "，地址是" + merchant.address() + "。";
-    if (question.contains("价格") || question.contains("推荐")) return "可以在店铺详情页查看" + merchant.name() + "的在售商品和最新价格。";
-    return "您好，这里是" + merchant.name() + "客服。商品、营业时间和订单问题都可以继续咨询。";
-  }
 }

@@ -16,7 +16,10 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Executable v1 contract examples for the identity/order service boundaries. */
-@SpringBootTest(properties = "lumalife.state-file=")
+@SpringBootTest(properties = {
+  "spring.profiles.active=monolith",
+  "lumalife.state-file="
+})
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ServiceBoundaryContractTest {

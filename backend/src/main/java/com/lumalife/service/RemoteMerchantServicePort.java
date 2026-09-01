@@ -4,12 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lumalife.domain.Models.Merchant;
 import com.lumalife.domain.Models.Product;
 import com.lumalife.domain.Models.Category;
+import com.lumalife.domain.Models.ChatMessage;
 import com.lumalife.service.boundary.MerchantServicePort;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -148,7 +152,23 @@ public class RemoteMerchantServicePort {
       }
       if (method.getName().equals("sendUserMessage")) {
         var user = (com.lumalife.domain.Models.User) args[0];
-        Map row = client.post().uri("/internal/v1/users/{userId}/conversations/{merchantId}/messages", user.id(), args[1]).header("X-User-Id", String.valueOf(user.id())).body(Map.of("content", args[2])).retrieve().body(Map.class);
+        long merchantId = (long) args[1];
+        List<Map> beforeRows = client.get().uri("/internal/v1/users/{userId}/conversations/{merchantId}", user.id(), merchantId)
+            .header("X-User-Id", String.valueOf(user.id())).retrieve().body(List.class);
+        List<ChatMessage> history = new ArrayList<>();
+        if (beforeRows != null) {
+          beforeRows.forEach(item -> history.add(mapper.convertValue(item, ChatMessage.class)));
+        }
+        history.add(new ChatMessage(0, user.id(), merchantId, "USER", "用户", String.valueOf(args[2]), LocalDateTime.now()));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("content", args[2]);
+        if (args.length > 3 && args[3] instanceof Function<?, ?> responder) {
+          @SuppressWarnings("unchecked")
+          String answer = String.valueOf(((Function<List<ChatMessage>, ?>) responder).apply(history));
+          body.put("assistantAnswer", answer);
+        }
+        client.post().uri("/internal/v1/users/{userId}/conversations/{merchantId}/messages", user.id(), merchantId)
+            .header("X-User-Id", String.valueOf(user.id())).body(body).retrieve().body(List.class);
         List<Map> rows = client.get().uri("/internal/v1/users/{userId}/conversations/{merchantId}", user.id(), args[1]).header("X-User-Id", String.valueOf(user.id())).retrieve().body(List.class);
         return rows.stream().map(item -> mapper.convertValue(item, com.lumalife.domain.Models.ChatMessage.class)).toList();
       }

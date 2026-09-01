@@ -45,6 +45,7 @@ service_port() {
     identity-service) printf '8081' ;;
     merchant-service) printf '8082' ;;
     order-service) printf '8083' ;;
+    assistant-service) printf '8084' ;;
     *) echo "Unknown service: $1" >&2; return 2 ;;
   esac
 }
