@@ -27,17 +27,19 @@ public class AssistantService {
   private static final Logger log = LoggerFactory.getLogger(AssistantService.class);
 
   private final MerchantServicePort merchant;
+  private final AssistantFallbackService assistantFallback;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
   private final String endpoint;
   private final String apiKey;
   private final String model;
 
-  public AssistantService(MerchantServicePort merchant,
+  public AssistantService(MerchantServicePort merchant, AssistantFallbackService assistantFallback,
                           @Value("${agnes.endpoint:https://apihub.agnes-ai.com/v1/chat/completions}") String endpoint,
                           @Value("${agnes.api-key:}") String apiKey,
                           @Value("${agnes.model:agnes-2.0-flash}") String model) {
     this.merchant = merchant;
+    this.assistantFallback = assistantFallback;
     this.endpoint = endpoint;
     this.apiKey = apiKey == null ? "" : apiKey.trim();
     this.model = model;
@@ -45,7 +47,7 @@ public class AssistantService {
 
   public String ask(String question) {
     String safeQuestion = question == null ? "" : question;
-    String fallback = merchant.assistantFallback(safeQuestion);
+    String fallback = assistantFallback.answer(safeQuestion);
     return callAgnes(List.of(
       Map.of("role", "system", "content", "你是 LumaLife 本地生活平台的 AI 客服，回答登录、下单、支付、评价、团购券核销和商家履约相关问题。请用简洁中文回复。"),
       Map.of("role", "user", "content", safeQuestion)

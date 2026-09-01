@@ -6,7 +6,6 @@ import com.lumalife.domain.Models.Product;
 import com.lumalife.domain.Models.Category;
 import com.lumalife.service.boundary.MerchantServicePort;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +26,7 @@ import com.lumalife.common.BusinessException;
 public class RemoteMerchantServicePort {
   @Bean
   @Primary
-  MerchantServicePort remoteMerchantPort(DemoStore fallback, ObjectMapper mapper,
+  MerchantServicePort remoteMerchantPort(ObjectMapper mapper,
       RestClient.Builder builder, @Value("${lumalife.services.merchant.base-url:http://localhost:8082}") String baseUrl,
       @Value("${lumalife.services.order.base-url:http://localhost:8083}") String orderBaseUrl,
       @Value("${lumalife.internal.service-token:}") String token) {
@@ -61,14 +60,14 @@ public class RemoteMerchantServicePort {
       if (method.getName().equals("merchantProfile")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         Map<String, Object> result = client.get().uri("/internal/v1/merchants/{id}/profile", user.merchantId()).retrieve().body(Map.class);
-        if (result != null) result.put("user", fallback.safeUser(user));
+        if (result != null) result.put("user", safeUser(user));
         return result;
       }
       if (method.getName().equals("updateMerchantNickname")) {
         var user = (com.lumalife.domain.Models.User) args[0];
         Map<String, Object> body = Map.of("name", args[1]);
         Map<String, Object> result = client.put().uri("/internal/v1/merchants/{id}/profile", user.merchantId()).header("X-Merchant-Id", String.valueOf(user.merchantId())).body(body).retrieve().body(Map.class);
-        if (result != null) result.put("user", fallback.safeUser(user));
+        if (result != null) result.put("user", safeUser(user));
         return result;
       }
       if (method.getName().equals("merchantsForUser")) {
@@ -152,7 +151,6 @@ public class RemoteMerchantServicePort {
         List<Map> rows = client.post().uri("/internal/v1/merchants/{merchantId}/conversations/{userId}/messages", user.merchantId(), args[1]).header("X-Merchant-Id", String.valueOf(user.merchantId())).body(Map.of("content", args[2])).retrieve().body(List.class);
         return rows.stream().map(item -> mapper.convertValue(item, com.lumalife.domain.Models.ChatMessage.class)).toList();
       }
-      if (method.getName().equals("assistantFallback")) return fallback.assistantFallback((String) args[0]);
       if (method.getName().equals("saveDeal")) {
         com.lumalife.domain.Models.User user = (com.lumalife.domain.Models.User) args[0];
         Map<String,Object> body = new java.util.LinkedHashMap<>(); body.put("id", args[1]); body.put("title", args[2]); body.put("description", args[3]); body.put("priceCent", args[4]); body.put("stock", args[5]); body.put("active", args[6]);
@@ -165,11 +163,7 @@ public class RemoteMerchantServicePort {
         Map row = client.post().uri("/internal/v1/merchants/{id}/deals/{dealId}/toggle", merchantId, dealId).header("X-Merchant-Id", String.valueOf(merchantId)).retrieve().body(Map.class);
         return mapper.convertValue(row, com.lumalife.domain.Models.GroupDeal.class);
       }
-      return method.invoke(fallback, args);
-      } catch (java.lang.reflect.InvocationTargetException error) {
-        Throwable cause = error.getCause();
-        if (cause instanceof RuntimeException runtime) throw runtime;
-        throw error;
+      throw new IllegalStateException("未实现远程商家能力: " + method.getName());
       } catch (RestClientResponseException error) {
         throw remoteError(error);
       } catch (RestClientException error) {
@@ -203,6 +197,17 @@ public class RemoteMerchantServicePort {
   private static void copyEntries(Map<?, ?> source, Map<String, Object> target) {
     if (source == null) return;
     source.forEach((key, value) -> target.put(String.valueOf(key), value));
+  }
+
+  private static Map<String, Object> safeUser(com.lumalife.domain.Models.User user) {
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("id", user.id());
+    data.put("phone", user.phone());
+    data.put("nickname", user.nickname());
+    data.put("avatarUrl", user.avatarUrl());
+    data.put("role", user.role());
+    data.put("merchantId", user.merchantId());
+    return data;
   }
 
   private static BusinessException remoteError(RestClientResponseException error) {

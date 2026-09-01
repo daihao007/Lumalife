@@ -62,5 +62,4 @@ public interface MerchantServicePort {
 
   List<ChatMessage> sendMerchantMessage(User admin, long userId, String content);
 
-  String assistantFallback(String question);
 }
