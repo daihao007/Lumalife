@@ -1,7 +1,7 @@
-INSERT INTO merchant_catalog (id, merchant_id, name, description, price_cent, stock, listed)
-SELECT p.id, p.merchant_id, p.name, COALESCE(p.description,''), p.price_cent, p.stock, p.is_listed
+INSERT INTO merchant_catalog (id, merchant_id, name, description, price_cent, stock, listed, version)
+SELECT p.id, p.merchant_id, p.name, COALESCE(p.description,''), p.price_cent, p.stock, p.is_listed, p.version
 FROM product p
-ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description), price_cent=VALUES(price_cent), stock=VALUES(stock), listed=VALUES(listed);
+ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description), price_cent=VALUES(price_cent), stock=VALUES(stock), listed=VALUES(listed), version=VALUES(version);
 
 INSERT INTO service_order_line (order_id, line_no, item_id, item_name, quantity, price_cent)
 SELECT source.order_id, source.line_no, COALESCE(source.item_id, 0), source.item_name, source.quantity, source.price_cent

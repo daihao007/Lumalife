@@ -26,6 +26,7 @@ grep -q -- '--from-file=V008__service_order_lines.sql=database/migrations/V008__
 grep -q -- '--from-file=V009__microservice_durability_fixes.sql=database/migrations/V009__microservice_durability_fixes.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V010__order_main_payment_projection.sql=database/migrations/V010__order_main_payment_projection.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V011__order_address_snapshot.sql=database/migrations/V011__order_address_snapshot.sql' "${SCRIPT_PATH}"
+grep -q -- '--from-file=V012__inventory_reservation_saga.sql=database/migrations/V012__inventory_reservation_saga.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}"' "${SCRIPT_PATH}"
@@ -33,7 +34,7 @@ grep -q -- '--from-literal=merchant-database="${MYSQL_MERCHANT_DATABASE}"' "${SC
 grep -q -- '--from-literal=order-database="${MYSQL_ORDER_DATABASE}"' "${SCRIPT_PATH}"
 grep -q 'provision-service-databases.sh' "${SCRIPT_PATH}"
 grep -q 'backfill-service-databases.sh' "${SCRIPT_PATH}"
-grep -q 'version IN (.*V011' .github/workflows/ci.yml
+grep -q 'version IN (.*V012' .github/workflows/ci.yml
 grep -q '^            database/init$' .github/workflows/ci.yml
 grep -q '^            scripts/lib/legacy-migrations.sh$' .github/workflows/ci.yml
 grep -q '^            database/backfill-services.sql$' .github/workflows/ci.yml

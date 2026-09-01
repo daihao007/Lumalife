@@ -1,10 +1,12 @@
 package com.lumalife.merchant;
 
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
+import java.util.Locale;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.function.Function;
@@ -22,6 +24,10 @@ public class MerchantStore {
                          int avgPrice, int monthlySales, double distanceKm, String status, String address, String reason) {}
   public record Product(long id, long merchantId, String name, String description, long priceCent, int stock, boolean listed) {}
   public record GroupDeal(long id, long merchantId, String title, String description, long priceCent, int stock, boolean active) {}
+  public record ReservationItem(String itemType, long itemId, int quantity, long expectedVersion) {}
+  public record ReservationRequest(long orderId, Instant expiresAt, List<ReservationItem> items) {}
+  public record InventoryReservation(long orderId, String status, Instant expiresAt, List<ReservationItem> items) {}
+  private record ReservationHeader(long orderId, String idempotencyKey, String status, Instant expiresAt) {}
   public record ChatMessage(long id, long userId, long merchantId, String senderRole, String senderName,
                             String content, LocalDateTime createdAt) {}
 
@@ -31,6 +37,8 @@ public class MerchantStore {
   private final Map<Long, GroupDeal> deals = new LinkedHashMap<>();
   private final Map<String, List<ChatMessage>> conversations = new LinkedHashMap<>();
   private final Map<Long, Set<Long>> favoriteIndex = new LinkedHashMap<>();
+  private final Map<Long, InventoryReservation> reservations = new LinkedHashMap<>();
+  private final Map<Long, String> reservationKeys = new LinkedHashMap<>();
   private final JdbcTemplate jdbc;
 
   @Autowired
@@ -277,6 +285,215 @@ public class MerchantStore {
     }
     return products.values().stream().flatMap(List::stream).filter(item -> item.id() == id).findFirst()
       .orElseThrow(() -> new IllegalArgumentException("商品不存在"));
+  }
+
+  @Transactional
+  public synchronized InventoryReservation reserveInventory(ReservationRequest request, String idempotencyKey) {
+    List<ReservationItem> items = normalizeReservationItems(request);
+    if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
+      throw new IllegalArgumentException("Idempotency-Key 不能为空且长度不能超过 128");
+    }
+    if (jdbc != null) {
+      List<ReservationHeader> existing = jdbc.query(
+        "SELECT order_id,idempotency_key,status,expires_at FROM inventory_reservation WHERE order_id=? OR idempotency_key=? FOR UPDATE",
+        (rs, n) -> new ReservationHeader(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getTimestamp(4).toInstant()),
+        request.orderId(), idempotencyKey);
+      if (!existing.isEmpty()) {
+        ReservationHeader header = existing.get(0);
+        if (header.orderId() != request.orderId() || !idempotencyKey.equals(header.idempotencyKey())
+            || !itemsEqual(items, reservationItems(header.orderId()))) {
+          throw new IllegalStateException("库存预占幂等键或商品载荷不一致");
+        }
+        return loadReservation(header.orderId());
+      }
+
+      for (ReservationItem item : items) reserveJdbcItem(item);
+      jdbc.update("INSERT INTO inventory_reservation(order_id,idempotency_key,status,expires_at) VALUES (?,?, 'RESERVED', ?)",
+        request.orderId(), idempotencyKey, java.sql.Timestamp.from(request.expiresAt()));
+      for (ReservationItem item : items) {
+        jdbc.update("INSERT INTO inventory_reservation_item(order_id,item_type,item_id,quantity,expected_version) VALUES (?,?,?,?,?)",
+          request.orderId(), item.itemType(), item.itemId(), item.quantity(), item.expectedVersion());
+      }
+      return loadReservation(request.orderId());
+    }
+
+    InventoryReservation existing = reservations.get(request.orderId());
+    if (existing != null) {
+      if (!idempotencyKey.equals(reservationKeys.get(request.orderId())) || !itemsEqual(items, existing.items())) {
+        throw new IllegalStateException("库存预占幂等键或商品载荷不一致");
+      }
+      return existing;
+    }
+    if (request.expiresAt() == null || !request.expiresAt().isAfter(Instant.now())) {
+      throw new IllegalArgumentException("库存预占过期时间必须晚于当前时间");
+    }
+    List<Product> productUpdates = new ArrayList<>();
+    List<GroupDeal> dealUpdates = new ArrayList<>();
+    for (ReservationItem item : items) {
+      if ("PRODUCT".equals(item.itemType())) {
+        Product current = product(item.itemId());
+        if (!current.listed() || current.stock() < item.quantity()) throw new IllegalStateException("商品库存不足");
+        productUpdates.add(new Product(current.id(), current.merchantId(), current.name(), current.description(), current.priceCent(), current.stock() - item.quantity(), current.listed()));
+      } else {
+        GroupDeal current = deal(item.itemId());
+        if (!current.active() || current.stock() < item.quantity()) throw new IllegalStateException("套餐库存不足");
+        dealUpdates.add(new GroupDeal(current.id(), current.merchantId(), current.title(), current.description(), current.priceCent(), current.stock() - item.quantity(), current.active()));
+      }
+    }
+    productUpdates.forEach(this::replaceProduct);
+    dealUpdates.forEach(updated -> deals.put(updated.id(), updated));
+    InventoryReservation created = new InventoryReservation(request.orderId(), "RESERVED", request.expiresAt(), items);
+    reservations.put(request.orderId(), created);
+    reservationKeys.put(request.orderId(), idempotencyKey);
+    return created;
+  }
+
+  public synchronized InventoryReservation inventoryReservation(long orderId) {
+    if (jdbc == null) {
+      InventoryReservation reservation = reservations.get(orderId);
+      if (reservation == null) throw new IllegalArgumentException("库存预占不存在");
+      return reservation;
+    }
+    return loadReservation(orderId);
+  }
+
+  @Transactional
+  public synchronized InventoryReservation releaseInventory(long orderId, String idempotencyKey) {
+    if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
+      throw new IllegalArgumentException("Idempotency-Key 不能为空且长度不能超过 128");
+    }
+    if (jdbc == null) {
+      InventoryReservation current = inventoryReservation(orderId);
+      if ("CONFIRMED".equals(current.status())) throw new IllegalStateException("已确认的库存不可释放");
+      if (!"RESERVED".equals(current.status())) return current;
+      current.items().forEach(item -> restoreMemoryItem(item));
+      InventoryReservation released = new InventoryReservation(orderId, "RELEASED", current.expiresAt(), current.items());
+      reservations.put(orderId, released);
+      return released;
+    }
+    ReservationHeader header = lockedReservation(orderId);
+    if ("CONFIRMED".equals(header.status())) throw new IllegalStateException("已确认的库存不可释放");
+    if (!"RESERVED".equals(header.status())) return loadReservation(orderId);
+    boolean restorable = true;
+    for (ReservationItem item : reservationItems(orderId)) {
+      restorable &= restoreJdbcItem(item);
+    }
+    String status = restorable ? "RELEASED" : "CHECK_REQUIRED";
+    jdbc.update("UPDATE inventory_reservation SET status=? WHERE order_id=?", status, orderId);
+    return loadReservation(orderId);
+  }
+
+  @Transactional
+  public synchronized InventoryReservation confirmInventory(long orderId) {
+    if (jdbc == null) {
+      InventoryReservation current = inventoryReservation(orderId);
+      if ("RELEASED".equals(current.status())) throw new IllegalStateException("已释放的库存不可确认");
+      InventoryReservation confirmed = new InventoryReservation(orderId, "CONFIRMED", current.expiresAt(), current.items());
+      reservations.put(orderId, confirmed);
+      return confirmed;
+    }
+    ReservationHeader header = lockedReservation(orderId);
+    if ("RELEASED".equals(header.status())) throw new IllegalStateException("已释放的库存不可确认");
+    if (!"CONFIRMED".equals(header.status())) jdbc.update("UPDATE inventory_reservation SET status='CONFIRMED' WHERE order_id=?", orderId);
+    return loadReservation(orderId);
+  }
+
+  private List<ReservationItem> normalizeReservationItems(ReservationRequest request) {
+    if (request == null || request.orderId() <= 0) throw new IllegalArgumentException("订单号必须为正数");
+    if (request.expiresAt() == null || !request.expiresAt().isAfter(Instant.now())) {
+      throw new IllegalArgumentException("库存预占过期时间必须晚于当前时间");
+    }
+    if (request.items() == null || request.items().isEmpty()) throw new IllegalArgumentException("库存预占至少需要一件商品");
+    List<ReservationItem> normalized = request.items().stream().map(item -> {
+      if (item == null || item.itemType() == null) throw new IllegalArgumentException("库存预占商品类型不能为空");
+      String itemType = item.itemType().trim().toUpperCase(Locale.ROOT);
+      if (!"PRODUCT".equals(itemType) && !"GROUP_DEAL".equals(itemType)) throw new IllegalArgumentException("库存预占商品类型不支持");
+      if (item.itemId() <= 0 || item.quantity() <= 0 || item.expectedVersion() < 0) throw new IllegalArgumentException("库存预占商品参数不合法");
+      return new ReservationItem(itemType, item.itemId(), item.quantity(), item.expectedVersion());
+    }).sorted(Comparator.comparing(ReservationItem::itemType).thenComparingLong(ReservationItem::itemId)).toList();
+    for (int i = 1; i < normalized.size(); i++) {
+      ReservationItem previous = normalized.get(i - 1);
+      ReservationItem current = normalized.get(i);
+      if (previous.itemType().equals(current.itemType()) && previous.itemId() == current.itemId()) {
+        throw new IllegalArgumentException("库存预占不能重复包含同一商品");
+      }
+    }
+    return normalized;
+  }
+
+  private boolean itemsEqual(List<ReservationItem> left, List<ReservationItem> right) {
+    return left.equals(right);
+  }
+
+  private List<ReservationItem> reservationItems(long orderId) {
+    if (jdbc == null) return reservations.getOrDefault(orderId, new InventoryReservation(orderId, "", Instant.EPOCH, List.of())).items();
+    return jdbc.query("SELECT item_type,item_id,quantity,expected_version FROM inventory_reservation_item WHERE order_id=? ORDER BY item_type,item_id",
+      (rs, n) -> new ReservationItem(rs.getString(1), rs.getLong(2), rs.getInt(3), rs.getLong(4)), orderId);
+  }
+
+  private InventoryReservation loadReservation(long orderId) {
+    List<ReservationHeader> headers = jdbc.query(
+      "SELECT order_id,idempotency_key,status,expires_at FROM inventory_reservation WHERE order_id=?",
+      (rs, n) -> new ReservationHeader(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getTimestamp(4).toInstant()), orderId);
+    if (headers.isEmpty()) throw new IllegalArgumentException("库存预占不存在");
+    ReservationHeader header = headers.get(0);
+    return new InventoryReservation(header.orderId(), header.status(), header.expiresAt(), reservationItems(orderId));
+  }
+
+  private ReservationHeader lockedReservation(long orderId) {
+    List<ReservationHeader> headers = jdbc.query(
+      "SELECT order_id,idempotency_key,status,expires_at FROM inventory_reservation WHERE order_id=? FOR UPDATE",
+      (rs, n) -> new ReservationHeader(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getTimestamp(4).toInstant()), orderId);
+    if (headers.isEmpty()) throw new IllegalArgumentException("库存预占不存在");
+    return headers.get(0);
+  }
+
+  private void reserveJdbcItem(ReservationItem item) {
+    if ("PRODUCT".equals(item.itemType())) {
+      List<StockRow> rows = jdbc.query("SELECT stock,listed,version FROM merchant_catalog WHERE id=? FOR UPDATE",
+        (rs, n) -> new StockRow(rs.getInt(1), rs.getBoolean(2), rs.getLong(3)), item.itemId());
+      if (rows.isEmpty() || !rows.get(0).saleable()) throw new IllegalStateException("商品不存在或未上架");
+      StockRow row = rows.get(0);
+      if (item.expectedVersion() > 0 && item.expectedVersion() != row.version()) throw new IllegalStateException("商品库存版本已变化");
+      int updated = item.expectedVersion() > 0
+        ? jdbc.update("UPDATE merchant_catalog SET stock=stock-?,version=version+1 WHERE id=? AND listed=1 AND stock>=? AND version=?", item.quantity(), item.itemId(), item.quantity(), item.expectedVersion())
+        : jdbc.update("UPDATE merchant_catalog SET stock=stock-?,version=version+1 WHERE id=? AND listed=1 AND stock>=?", item.quantity(), item.itemId(), item.quantity());
+      if (updated != 1) throw new IllegalStateException("商品库存不足或状态已变化");
+      return;
+    }
+    List<StockRow> rows = jdbc.query("SELECT stock,is_active,version FROM group_deal WHERE id=? AND is_deleted=0 FOR UPDATE",
+      (rs, n) -> new StockRow(rs.getInt(1), rs.getBoolean(2), rs.getLong(3)), item.itemId());
+    if (rows.isEmpty() || !rows.get(0).saleable()) throw new IllegalStateException("团购套餐不存在或未上架");
+    StockRow row = rows.get(0);
+    if (item.expectedVersion() > 0 && item.expectedVersion() != row.version()) throw new IllegalStateException("团购库存版本已变化");
+    int updated = item.expectedVersion() > 0
+      ? jdbc.update("UPDATE group_deal SET stock=stock-?,version=version+1 WHERE id=? AND is_active=1 AND is_deleted=0 AND stock>=? AND version=?", item.quantity(), item.itemId(), item.quantity(), item.expectedVersion())
+      : jdbc.update("UPDATE group_deal SET stock=stock-?,version=version+1 WHERE id=? AND is_active=1 AND is_deleted=0 AND stock>=?", item.quantity(), item.itemId(), item.quantity());
+    if (updated != 1) throw new IllegalStateException("团购库存不足或状态已变化");
+  }
+
+  private boolean restoreJdbcItem(ReservationItem item) {
+    String table = "PRODUCT".equals(item.itemType()) ? "merchant_catalog" : "group_deal";
+    String deletedFilter = "PRODUCT".equals(item.itemType()) ? "" : " AND is_deleted=0";
+    return jdbc.update("UPDATE " + table + " SET stock=stock+?,version=version+1 WHERE id=?" + deletedFilter,
+      item.quantity(), item.itemId()) == 1;
+  }
+
+  private record StockRow(int stock, boolean saleable, long version) {}
+
+  private void replaceProduct(Product updated) {
+    products.computeIfAbsent(updated.merchantId(), ignored -> new ArrayList<>()).removeIf(item -> item.id() == updated.id());
+    products.computeIfAbsent(updated.merchantId(), ignored -> new ArrayList<>()).add(updated);
+  }
+
+  private void restoreMemoryItem(ReservationItem item) {
+    if ("PRODUCT".equals(item.itemType())) {
+      Product current = product(item.itemId());
+      replaceProduct(new Product(current.id(), current.merchantId(), current.name(), current.description(), current.priceCent(), current.stock() + item.quantity(), current.listed()));
+      return;
+    }
+    GroupDeal current = deal(item.itemId());
+    deals.put(item.itemId(), new GroupDeal(current.id(), current.merchantId(), current.title(), current.description(), current.priceCent(), current.stock() + item.quantity(), current.active()));
   }
 
   public synchronized List<GroupDeal> deals(long merchantId) {

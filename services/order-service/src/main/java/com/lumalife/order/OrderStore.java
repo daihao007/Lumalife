@@ -80,16 +80,24 @@ public class OrderStore {
   private final Map<String, Payment> payments = new LinkedHashMap<>();
   private final Map<Long, Review> reviews = new LinkedHashMap<>();
   private final Map<Long, String> orderTypes = new HashMap<>();
+  private final MerchantInventoryClient inventoryClient;
 
   @Autowired
-  public OrderStore(ObjectProvider<JdbcTemplate> provider) { this(provider.getIfAvailable()); }
+  public OrderStore(ObjectProvider<JdbcTemplate> provider, ObjectProvider<MerchantInventoryClient> inventoryProvider) {
+    this(provider.getIfAvailable(), inventoryProvider.getIfAvailable());
+  }
 
   OrderStore(JdbcTemplate jdbc) {
+    this(jdbc, null);
+  }
+
+  OrderStore(JdbcTemplate jdbc, MerchantInventoryClient inventoryClient) {
     this.jdbc = jdbc;
+    this.inventoryClient = inventoryClient;
     refreshIdSequence();
   }
 
-  public OrderStore() { this((JdbcTemplate) null); }
+  public OrderStore() { this((JdbcTemplate) null, null); }
 
   private void refreshIdSequence() {
     if (jdbc == null) return;
@@ -126,6 +134,7 @@ public class OrderStore {
     Order order = findOrder(id).orElse(null);
     if (order == null || order.userId() != userId) throw new IllegalArgumentException("订单不存在");
     if (!"PENDING_PAYMENT".equals(order.status())) throw new IllegalStateException("当前状态不可取消");
+    if (jdbc != null && inventoryClient != null) inventoryClient.releaseIfPresent(order, "cancel-" + order.id());
     Order cancelled = withStatus(order, "CANCELLED");
     orders.put(id, cancelled);
     if (jdbc != null) jdbc.update("UPDATE order_record SET status=? WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'", "CANCELLED", id, userId);
@@ -195,22 +204,36 @@ public class OrderStore {
 
     boolean groupBuy = "GROUP_BUY".equals(current.type()) || "GROUP_BUY".equals(orderType(orderId));
     String couponCode = groupBuy ? String.format("%012d", orderId) : null;
-    if (jdbc != null) {
-      jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)",
-        userId, orderId, requestId, chargedAmount, "SUCCESS");
-      int updated = jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, coupon_code=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'",
-        requestId, couponCode, orderId, userId);
-      if (updated != 1) throw new IllegalStateException("订单状态已变化，支付未完成");
-      if (groupBuy) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)",
-        couponCode, orderId, current.merchantId());
-      appendEvent(orderId, userId, "PAID");
+    boolean remoteInventory = jdbc != null && inventoryClient != null;
+    if (remoteInventory) inventoryClient.reserve(current, requestId);
+    try {
+      if (jdbc != null) {
+        jdbc.update("INSERT INTO service_payment(user_id,order_id,client_request_id,amount_cent,status,paid_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)",
+          userId, orderId, requestId, chargedAmount, "SUCCESS");
+        int updated = jdbc.update("UPDATE order_record SET status='PAID', client_request_id=?, coupon_code=?, version=version+1 WHERE id=? AND user_id=? AND status='PENDING_PAYMENT'",
+          requestId, couponCode, orderId, userId);
+        if (updated != 1) throw new IllegalStateException("订单状态已变化，支付未完成");
+        if (groupBuy) jdbc.update("INSERT INTO service_coupon(code,order_id,merchant_id,status) VALUES (?,?,?,'UNUSED') ON DUPLICATE KEY UPDATE order_id=VALUES(order_id), merchant_id=VALUES(merchant_id)",
+          couponCode, orderId, current.merchantId());
+        appendEvent(orderId, userId, "PAID");
+      }
+      Order paid = withStatusAndCoupon(current, "PAID", couponCode);
+      orders.put(orderId, paid);
+      if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
+      if (remoteInventory) inventoryClient.confirm(current, requestId);
+      Payment payment = new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
+      payments.put(paymentKey, payment);
+      return payment;
+    } catch (RuntimeException error) {
+      if (remoteInventory) {
+        try {
+          inventoryClient.release(current, requestId);
+        } catch (RuntimeException compensationError) {
+          error.addSuppressed(compensationError);
+        }
+      }
+      throw error;
     }
-    Order paid = withStatusAndCoupon(current, "PAID", couponCode);
-    orders.put(orderId, paid);
-    if (groupBuy) coupons.putIfAbsent(couponCode, new Coupon(couponCode, orderId, current.merchantId(), "UNUSED"));
-    Payment payment = new Payment(userId, orderId, requestId, chargedAmount, "SUCCESS");
-    payments.put(paymentKey, payment);
-    return payment;
   }
 
   private Payment replayPayment(Order current, long requestedOrderId, long amount, Payment existing) {

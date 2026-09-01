@@ -7,6 +7,9 @@ spring:
 lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
+  services:
+    merchant:
+      base-url: ${MERCHANT_SERVICE_URL:http://localhost:8082}
 management:
   endpoint:
     health:

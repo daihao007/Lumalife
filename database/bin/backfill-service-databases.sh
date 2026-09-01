@@ -70,10 +70,10 @@ FROM ${MYSQL_DATABASE}.merchant
 ON DUPLICATE KEY UPDATE category_id=VALUES(category_id), name=VALUES(name), cover_url=VALUES(cover_url), avg_score=VALUES(avg_score), avg_price_cent=VALUES(avg_price_cent), monthly_sales=VALUES(monthly_sales), distance_km=VALUES(distance_km), status=VALUES(status), address=VALUES(address), recommend_reason=VALUES(recommend_reason), updated_at=VALUES(updated_at), is_deleted=VALUES(is_deleted);
 
 INSERT INTO ${MYSQL_MERCHANT_DATABASE}.merchant_catalog
-  (id, merchant_id, name, description, price_cent, stock, listed, updated_at)
-SELECT id, merchant_id, name, description, price_cent, stock, listed, updated_at
+  (id, merchant_id, name, description, price_cent, stock, listed, version, updated_at)
+SELECT id, merchant_id, name, description, price_cent, stock, listed, version, updated_at
 FROM ${MYSQL_DATABASE}.merchant_catalog
-ON DUPLICATE KEY UPDATE merchant_id=VALUES(merchant_id), name=VALUES(name), description=VALUES(description), price_cent=VALUES(price_cent), stock=VALUES(stock), listed=VALUES(listed), updated_at=VALUES(updated_at);
+ON DUPLICATE KEY UPDATE merchant_id=VALUES(merchant_id), name=VALUES(name), description=VALUES(description), price_cent=VALUES(price_cent), stock=VALUES(stock), listed=VALUES(listed), version=VALUES(version), updated_at=VALUES(updated_at);
 
 INSERT INTO ${MYSQL_MERCHANT_DATABASE}.group_deal
   (id, merchant_id, title, description, price_cent, stock, is_active, version, created_at, updated_at, is_deleted)

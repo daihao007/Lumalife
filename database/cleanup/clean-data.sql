@@ -2,6 +2,8 @@
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE business_state;
 TRUNCATE TABLE order_record;
+TRUNCATE TABLE inventory_reservation_item;
+TRUNCATE TABLE inventory_reservation;
 TRUNCATE TABLE merchant_catalog;
 TRUNCATE TABLE operation_log;
 TRUNCATE TABLE chat_message;

@@ -116,6 +116,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_ORDER_DATABASE:-life_assistant_order}
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MERCHANT_SERVICE_URL: http://merchant-service:8082
     ports:
       - "8083:8083"
     depends_on:

@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import java.util.Arrays;
+import java.time.Instant;
 import java.util.UUID;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -111,6 +112,59 @@ class MerchantServiceBusinessTest {
     MerchantStore.Merchant[] matches = http.exchange("/internal/v1/merchants?keyword=毛血旺", HttpMethod.GET,
       new HttpEntity<>(serviceHeaders()), MerchantStore.Merchant[].class).getBody();
     assertThat(matches).extracting(MerchantStore.Merchant::id).contains(1L);
+  }
+
+  @Test
+  void reservesConfirmsAndReleasesMerchantOwnedInventoryIdempotently() {
+    long orderId = Math.abs(System.nanoTime());
+    String reserveKey = "inventory-" + UUID.randomUUID();
+    String releaseKey = "release-" + UUID.randomUUID();
+    HttpHeaders reserveHeaders = serviceHeaders();
+    reserveHeaders.set("Idempotency-Key", reserveKey);
+    MerchantStore.Product before = http.exchange("/internal/v1/products/1001", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), MerchantStore.Product.class).getBody();
+    MerchantStore.ReservationRequest request = new MerchantStore.ReservationRequest(
+      orderId, Instant.now().plusSeconds(300),
+      java.util.List.of(new MerchantStore.ReservationItem("PRODUCT", 1001, 2, 0)));
+
+    ResponseEntity<MerchantStore.InventoryReservation> reserved = http.exchange("/internal/v1/inventory/reservations",
+      HttpMethod.POST, new HttpEntity<>(request, reserveHeaders), MerchantStore.InventoryReservation.class);
+    assertThat(reserved.getStatusCode().value()).isEqualTo(200);
+    assertThat(reserved.getBody().status()).isEqualTo("RESERVED");
+
+    ResponseEntity<MerchantStore.InventoryReservation> replay = http.exchange("/internal/v1/inventory/reservations",
+      HttpMethod.POST, new HttpEntity<>(request, reserveHeaders), MerchantStore.InventoryReservation.class);
+    assertThat(replay.getBody().status()).isEqualTo("RESERVED");
+    MerchantStore.Product held = http.exchange("/internal/v1/products/1001", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), MerchantStore.Product.class).getBody();
+    assertThat(held.stock()).isEqualTo(before.stock() - 2);
+
+    HttpHeaders releaseHeaders = serviceHeaders();
+    releaseHeaders.set("Idempotency-Key", releaseKey);
+    MerchantStore.InventoryReservation released = http.exchange("/internal/v1/inventory/reservations/" + orderId + ":release",
+      HttpMethod.POST, new HttpEntity<>(releaseHeaders), MerchantStore.InventoryReservation.class).getBody();
+    assertThat(released.status()).isEqualTo("RELEASED");
+    MerchantStore.Product restored = http.exchange("/internal/v1/products/1001", HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()), MerchantStore.Product.class).getBody();
+    assertThat(restored.stock()).isEqualTo(before.stock());
+
+    long confirmedOrderId = orderId + 1;
+    String confirmedKey = "inventory-" + UUID.randomUUID();
+    HttpHeaders confirmedHeaders = serviceHeaders();
+    confirmedHeaders.set("Idempotency-Key", confirmedKey);
+    MerchantStore.ReservationRequest confirmedRequest = new MerchantStore.ReservationRequest(
+      confirmedOrderId, Instant.now().plusSeconds(300),
+      java.util.List.of(new MerchantStore.ReservationItem("PRODUCT", 1001, 1, 0)));
+    http.exchange("/internal/v1/inventory/reservations", HttpMethod.POST,
+      new HttpEntity<>(confirmedRequest, confirmedHeaders), MerchantStore.InventoryReservation.class);
+    MerchantStore.InventoryReservation confirmed = http.exchange("/internal/v1/inventory/reservations/" + confirmedOrderId + ":confirm",
+      HttpMethod.POST, new HttpEntity<>(serviceHeaders()), MerchantStore.InventoryReservation.class).getBody();
+    assertThat(confirmed.status()).isEqualTo("CONFIRMED");
+    HttpHeaders rejectedReleaseHeaders = serviceHeaders();
+    rejectedReleaseHeaders.set("Idempotency-Key", "release-" + UUID.randomUUID());
+    ResponseEntity<String> rejectedRelease = http.exchange("/internal/v1/inventory/reservations/" + confirmedOrderId + ":release",
+      HttpMethod.POST, new HttpEntity<>(rejectedReleaseHeaders), String.class);
+    assertThat(rejectedRelease.getStatusCode().value()).isEqualTo(409);
   }
 
   private HttpHeaders serviceHeaders() {

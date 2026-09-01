@@ -127,6 +127,8 @@ spec:
               valueFrom: {secretKeyRef: {name: lumalife-mysql, key: username}}
             - name: MYSQL_PASSWORD
               valueFrom: {secretKeyRef: {name: lumalife-mysql, key: password}}
+            - name: MERCHANT_SERVICE_URL
+              value: http://merchant-service:8082
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
               value: compose-internal-token
           readinessProbe: {httpGet: {path: /actuator/health, port: http}, periodSeconds: 5}

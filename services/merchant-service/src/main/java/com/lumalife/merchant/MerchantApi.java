@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/internal/v1")
@@ -120,6 +121,47 @@ public class MerchantApi {
 
   @GetMapping("/products/{id}")
   MerchantStore.Product product(@PathVariable long id) { return readResource(() -> store.product(id)); }
+
+  @PostMapping("/inventory/reservations")
+  ResponseEntity<MerchantStore.InventoryReservation> reserveInventory(
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @RequestBody MerchantStore.ReservationRequest request) {
+    try {
+      return ResponseEntity.ok(store.reserveInventory(request, idempotencyKey));
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    } catch (IllegalStateException error) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, error.getMessage());
+    }
+  }
+
+  @GetMapping("/inventory/reservations/{orderId}")
+  MerchantStore.InventoryReservation inventoryReservation(@PathVariable long orderId) {
+    return readResource(() -> store.inventoryReservation(orderId));
+  }
+
+  @PostMapping("/inventory/reservations/{orderId}:release")
+  ResponseEntity<MerchantStore.InventoryReservation> releaseInventory(
+      @PathVariable long orderId, @RequestHeader("Idempotency-Key") String idempotencyKey) {
+    try {
+      return ResponseEntity.ok(store.releaseInventory(orderId, idempotencyKey));
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    } catch (IllegalStateException error) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, error.getMessage());
+    }
+  }
+
+  @PostMapping("/inventory/reservations/{orderId}:confirm")
+  ResponseEntity<MerchantStore.InventoryReservation> confirmInventory(@PathVariable long orderId) {
+    try {
+      return ResponseEntity.ok(store.confirmInventory(orderId));
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    } catch (IllegalStateException error) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, error.getMessage());
+    }
+  }
 
   @PostMapping("/merchants/{id}/products")
   MerchantStore.Product saveProduct(@PathVariable long id, @RequestHeader("X-Merchant-Id") long actorMerchantId,

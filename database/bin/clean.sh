@@ -33,6 +33,8 @@ SQL
 service_mysql_exec "$MYSQL_MERCHANT_DATABASE" <<'SQL'
 DELETE FROM chat_message;
 DELETE FROM merchant_favorite;
+DELETE FROM inventory_reservation_item;
+DELETE FROM inventory_reservation;
 DELETE FROM group_deal;
 DELETE FROM merchant_catalog;
 DELETE FROM merchant;

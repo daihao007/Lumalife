@@ -26,6 +26,8 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V010__order_main_payment_projection.sql");
   private static final Path ORDER_ADDRESS_SNAPSHOT_MIGRATION =
     Path.of("..", "database", "migrations", "V011__order_address_snapshot.sql");
+  private static final Path INVENTORY_RESERVATION_MIGRATION =
+    Path.of("..", "database", "migrations", "V012__inventory_reservation_saga.sql");
   private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
@@ -107,6 +109,17 @@ class DatabaseAssetsTest {
     assertThat(migration).contains("ALTER TABLE order_record");
     assertThat(migration).contains("ADD COLUMN address_snapshot");
     assertThat(backfill).contains("address_snapshot");
+  }
+
+  @Test
+  void inventoryReservationMigrationKeepsStockOwnershipInMerchantService() throws IOException {
+    String migration = Files.readString(INVENTORY_RESERVATION_MIGRATION);
+
+    assertThat(migration).contains("ALTER TABLE merchant_catalog");
+    assertThat(migration).contains("CREATE TABLE IF NOT EXISTS inventory_reservation");
+    assertThat(migration).contains("CREATE TABLE IF NOT EXISTS inventory_reservation_item");
+    assertThat(migration).contains("uk_inventory_reservation_idempotency");
+    assertThat(migration).contains("CHECK (status IN ('RESERVED', 'CONFIRMED', 'RELEASED', 'CHECK_REQUIRED'))");
   }
 
   private String passwordHash(String sql, String phone) {

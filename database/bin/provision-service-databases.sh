@@ -11,6 +11,15 @@ MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
 MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
 MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
 
+if [ -n "${MYSQL_SOCKET:-}" ] && [ ! -S "$MYSQL_SOCKET" ]; then
+  for candidate_socket in /var/lib/mysql/mysql.sock /var/run/mysqld/mysqld.sock; do
+    if [ -S "$candidate_socket" ]; then
+      MYSQL_SOCKET="$candidate_socket"
+      break
+    fi
+  done
+fi
+
 validate_identifier() {
   value=$1
   label=$2
@@ -71,9 +80,14 @@ for table_name in schema_migration user_account user_address auth_session; do
   copy_table "$MYSQL_IDENTITY_DATABASE" "$table_name"
 done
 
-for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message; do
+for table_name in schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item; do
   copy_table "$MYSQL_MERCHANT_DATABASE" "$table_name"
 done
+
+# CREATE TABLE ... LIKE is intentionally idempotent, but it does not evolve an
+# already provisioned service table.  V012 adds this column to the merchant
+# catalog, so upgrade old service databases before the backfill runs.
+mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.merchant_catalog ADD COLUMN IF NOT EXISTS version BIGINT UNSIGNED NOT NULL DEFAULT 0"
 
 for table_name in schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event; do
   copy_table "$MYSQL_ORDER_DATABASE" "$table_name"
