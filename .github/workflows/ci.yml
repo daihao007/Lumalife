@@ -236,6 +236,12 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
+          mysql_count() {
+            local database="$1"
+            local query="$2"
+            docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
+          }
           login_response=$(curl --fail --silent --show-error \
             -H 'Content-Type: application/json' \
             -d '{"phone":"13800000001","password":"abc123456"}' \
