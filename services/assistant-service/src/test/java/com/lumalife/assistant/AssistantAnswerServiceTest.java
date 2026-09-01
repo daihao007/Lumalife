@@ -33,7 +33,7 @@ class AssistantAnswerServiceTest {
   }
 
   @Test
-  void rejectsUnauthenticatedInternalCalls() {
+  void rejectsUnauthenticatedInternalCalls() throws Exception {
     mockMvc.perform(post("/internal/v1/assistant/answer")
             .contentType("application/json")
             .content("{\"mode\":\"PLATFORM\",\"question\":\"你好\",\"context\":\"\",\"history\":[]}"))
