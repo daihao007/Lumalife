@@ -11,16 +11,6 @@ on:
       - "scripts/detect-changed-services.sh"
       - "scripts/smoke-services-k8s.sh"
       - ".github/workflows/services-cd.yml"
-  push:
-    branches: [main]
-    paths:
-      - "services/**"
-      - "k8s/services.yaml"
-      - "k8s/kustomization.yaml"
-      - "k8s/healthcheck/**"
-      - "scripts/detect-changed-services.sh"
-      - "scripts/smoke-services-k8s.sh"
-      - ".github/workflows/services-cd.yml"
   workflow_dispatch:
 
 permissions:
@@ -106,8 +96,8 @@ jobs:
             type=ref,event=pr
 
       # ci.yml is the sole publisher of canonical sha-* tags. Keeping this
-      # incremental build validation-only prevents its single-platform image
-      # from racing the amd64/arm64 manifest published by the main CI workflow.
+      # incremental build validation-only prevents it from racing the main
+      # CI workflow's image publication.
       - name: Build affected image
         uses: docker/build-push-action@v7
         with:

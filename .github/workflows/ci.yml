@@ -4,9 +4,33 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "services/**"
+      - "database/**"
+      - "e2e/**"
+      - "ui-e2e/**"
+      - "k8s/**"
+      - "scripts/**"
+      - "docker-compose*.yml"
+      - ".env.example"
+      - ".github/**"
   push:
     branches:
       - main
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "services/**"
+      - "database/**"
+      - "e2e/**"
+      - "ui-e2e/**"
+      - "k8s/**"
+      - "scripts/**"
+      - "docker-compose*.yml"
+      - ".env.example"
+      - ".github/**"
   workflow_dispatch:
     inputs:
       demonstrate_failure_gate:
@@ -629,12 +653,22 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file || format('{0}/Dockerfile', matrix.context) }}
-          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ github.event_name == 'pull_request' && format('{0}:ci-{1}', matrix.image, github.sha) || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.component }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          outputs: ${{ github.event_name == 'pull_request' && format('type=docker,dest=/tmp/{0}.tar', matrix.component) || '' }}
+
+      - name: Upload pull request smoke image
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-smoke-image-${{ matrix.component }}
+          path: /tmp/${{ matrix.component }}.tar
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Verify published image platforms
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
@@ -642,12 +676,15 @@ jobs:
         run: |
           image_tag="sha-${GITHUB_SHA::7}"
           docker buildx imagetools inspect "${{ matrix.image }}:${image_tag}" --raw \
-            | jq -e '[.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64", "arm64"]'
+            | jq -e '[.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64"]'
 
   kubernetes-smoke:
     name: Kubernetes rollout smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
     needs:
       - images
     steps:
@@ -659,20 +696,64 @@ jobs:
         with:
           cluster_name: lumalife-ci
 
-      - name: Build images for the disposable cluster
+      - name: Log in to GHCR for the main-branch smoke test
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load published images for the disposable cluster
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         shell: bash
         run: |
+          image_tag="sha-${GITHUB_SHA::7}"
+          images=(
+            "ghcr.io/daihao007/lumalife-backend:${image_tag}"
+            "ghcr.io/daihao007/lumalife-frontend:${image_tag}"
+            "ghcr.io/daihao007/lumalife-identity-service:${image_tag}"
+            "ghcr.io/daihao007/lumalife-merchant-service:${image_tag}"
+            "ghcr.io/daihao007/lumalife-order-service:${image_tag}"
+            "ghcr.io/daihao007/lumalife-assistant-service:${image_tag}"
+          )
+          for image in "${images[@]}"; do docker pull "${image}"; done
+          kind load docker-image --name lumalife-ci "${images[@]}"
+
+      - name: Download pull request smoke images
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: k8s-smoke-image-*
+          path: /tmp/k8s-smoke-images
+          merge-multiple: true
+
+      - name: Load pull request smoke images
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          for archive in /tmp/k8s-smoke-images/*.tar; do docker load --input "${archive}"; done
           image_tag="ci-${GITHUB_SHA::7}"
-          retry_build() { for attempt in 1 2 3; do "$@" && return 0; echo "build retry ${attempt}"; sleep 10; done; return 1; }
-          retry_build docker build --provenance=false --tag "lumalife-backend:${image_tag}" backend
-          retry_build docker build --provenance=false --tag "lumalife-frontend:${image_tag}" frontend
-          retry_build docker build --provenance=false --tag "lumalife-identity-service:${image_tag}" -f services/identity-service/Dockerfile services
-          retry_build docker build --provenance=false --tag "lumalife-merchant-service:${image_tag}" -f services/merchant-service/Dockerfile services
-          retry_build docker build --provenance=false --tag "lumalife-order-service:${image_tag}" -f services/order-service/Dockerfile services
-          retry_build docker build --provenance=false --tag "lumalife-assistant-service:${image_tag}" -f services/assistant-service/Dockerfile services
+          full_tag="ci-${GITHUB_SHA}"
+          sources=(
+            "ghcr.io/daihao007/lumalife-backend:${full_tag}"
+            "ghcr.io/daihao007/lumalife-frontend:${full_tag}"
+            "ghcr.io/daihao007/lumalife-identity-service:${full_tag}"
+            "ghcr.io/daihao007/lumalife-merchant-service:${full_tag}"
+            "ghcr.io/daihao007/lumalife-order-service:${full_tag}"
+            "ghcr.io/daihao007/lumalife-assistant-service:${full_tag}"
+          )
+          targets=(
+            "lumalife-backend:${image_tag}"
+            "lumalife-frontend:${image_tag}"
+            "lumalife-identity-service:${image_tag}"
+            "lumalife-merchant-service:${image_tag}"
+            "lumalife-order-service:${image_tag}"
+            "lumalife-assistant-service:${image_tag}"
+          )
+          for index in "${!sources[@]}"; do docker tag "${sources[index]}" "${targets[index]}"; done
           kind load docker-image --name lumalife-ci \
-            "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}" \
-            "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}" "lumalife-assistant-service:${image_tag}"
+            "${targets[@]}"
 
       - name: Generate Kubernetes smoke credentials
         shell: bash
@@ -681,7 +762,15 @@ jobs:
           echo "RABBITMQ_USER=lumalife" >> "$GITHUB_ENV"
           echo "RABBITMQ_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
-      - name: Deploy and verify probes in the disposable cluster
+      - name: Deploy published images and verify probes in the main-branch cluster
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        shell: bash
+        env:
+          ROLLOUT_TIMEOUT: 120s
+        run: bash scripts/deploy-k8s.sh "sha-${GITHUB_SHA::7}"
+
+      - name: Deploy pull request images and verify probes
+        if: ${{ github.event_name == 'pull_request' }}
         shell: bash
         env:
           BACKEND_IMAGE: lumalife-backend
