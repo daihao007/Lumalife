@@ -455,6 +455,48 @@ public class OrderStore {
     return findOrder(id).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
   }
 
+  /** Minimal order-owned projection used by merchant expiry reconciliation. */
+  public synchronized PaymentState paymentState(long orderId) {
+    if (jdbc == null) {
+      Order current = order(orderId);
+      String paymentStatus = payments.values().stream()
+          .filter(payment -> payment.orderId() == orderId)
+          .map(Payment::status)
+          .sorted(java.util.Comparator.comparingInt(this::paymentStatusPriority))
+          .findFirst()
+          .orElse(null);
+      return new PaymentState(orderId, effectivePaymentState(current.status(), paymentStatus));
+    }
+    List<PaymentStateRow> rows = jdbc.query(
+        "SELECT o.status,p.status FROM order_record o LEFT JOIN service_payment p ON p.order_id=o.id "
+            + "WHERE o.id=? ORDER BY CASE p.status WHEN 'SUCCESS' THEN 0 WHEN 'PROCESSING' THEN 1 "
+            + "WHEN 'FAILED' THEN 2 ELSE 3 END LIMIT 1",
+        (rs, n) -> new PaymentStateRow(rs.getString(1), rs.getString(2)), orderId);
+    if (rows.isEmpty()) throw new IllegalArgumentException("订单不存在");
+    PaymentStateRow row = rows.get(0);
+    return new PaymentState(orderId, effectivePaymentState(row.orderStatus(), row.paymentStatus()));
+  }
+
+  private int paymentStatusPriority(String status) {
+    return switch (status) {
+      case "SUCCESS" -> 0;
+      case "PROCESSING" -> 1;
+      case "FAILED" -> 2;
+      default -> 3;
+    };
+  }
+
+  private String effectivePaymentState(String orderStatus, String paymentStatus) {
+    if ("SUCCESS".equals(paymentStatus)) return "SUCCESS";
+    if ("PROCESSING".equals(paymentStatus)) return "PROCESSING";
+    if ("CANCELLED".equals(orderStatus)) return "CANCELLED";
+    if ("PENDING_PAYMENT".equals(orderStatus) && "FAILED".equals(paymentStatus)) return "FAILED";
+    // A missing payment, or a payment/order contradiction, is deliberately
+    // reported as a non-release state. Merchant must never infer failure from
+    // an incomplete order projection.
+    return "PENDING";
+  }
+
   private String orderType(long id) {
     if (jdbc == null) return orderTypes.getOrDefault(id, "DELIVERY");
     var types = jdbc.query("SELECT order_type FROM order_record WHERE id=?", (rs, n) -> rs.getString(1), id);
@@ -727,6 +769,8 @@ public class OrderStore {
   }
 
   public record Payment(long userId, long orderId, String clientRequestId, long amountCent, String status) {}
+  public record PaymentState(long orderId, String paymentState) {}
+  private record PaymentStateRow(String orderStatus, String paymentStatus) {}
   public record GroupOrderRequest(long userId, long dealId, long merchantId, long priceCent, int quantity,
                                   String title, String merchantName) {
     public GroupOrderRequest(long userId, long dealId, long merchantId, long priceCent, int quantity) {

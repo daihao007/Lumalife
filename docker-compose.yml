@@ -107,6 +107,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_MERCHANT_DATABASE:-life_assistant_merchant}
       MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      ORDER_SERVICE_URL: http://order-service:8083
       LUMALIFE_EVENTS_BROKER_ENABLED: ${LUMALIFE_EVENTS_BROKER_ENABLED:-true}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672

@@ -64,7 +64,11 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
-              value: compose-internal-token
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: internal-service-token
+                  optional: false
             - name: MYSQL_HOST
               value: mysql-identity
             - name: MYSQL_PORT
@@ -224,7 +228,13 @@ spec:
                   name: lumalife-mysql
                   key: password
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
-              value: compose-internal-token
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: internal-service-token
+                  optional: false
+            - name: ORDER_SERVICE_URL
+              value: http://order-service:8083
             - name: LUMALIFE_EVENTS_BROKER_ENABLED
               value: "true"
             - name: RABBITMQ_HOST
@@ -232,9 +242,17 @@ spec:
             - name: RABBITMQ_PORT
               value: "5672"
             - name: RABBITMQ_USER
-              value: lumalife
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: rabbitmq-user
+                  optional: false
             - name: RABBITMQ_PASSWORD
-              value: lumalife-ci-password
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: rabbitmq-password
+                  optional: false
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -370,11 +388,23 @@ spec:
             - name: RABBITMQ_PORT
               value: "5672"
             - name: RABBITMQ_USER
-              value: lumalife
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: rabbitmq-user
+                  optional: false
             - name: RABBITMQ_PASSWORD
-              value: lumalife-ci-password
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: rabbitmq-password
+                  optional: false
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
-              value: compose-internal-token
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: internal-service-token
+                  optional: false
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -479,7 +509,11 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
-              value: compose-internal-token
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: internal-service-token
+                  optional: false
             - name: AGNES_ENDPOINT
               value: https://apihub.agnes-ai.com/v1/chat/completions
             - name: AGNES_MODEL

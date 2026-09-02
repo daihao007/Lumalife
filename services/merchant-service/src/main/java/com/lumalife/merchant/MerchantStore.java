@@ -369,6 +369,40 @@ public class MerchantStore {
     return loadReservation(orderId);
   }
 
+  /** Locks a bounded batch so only one merchant replica reconciles each row. */
+  public synchronized List<Long> expiredReservationOrderIds(int limit) {
+    if (jdbc == null || limit <= 0) return List.of();
+    return jdbc.query("SELECT order_id FROM inventory_reservation "
+        + "WHERE status='RESERVED' AND expires_at <= CURRENT_TIMESTAMP(3) "
+        + "ORDER BY expires_at,order_id LIMIT ? FOR UPDATE SKIP LOCKED",
+        (rs, n) -> rs.getLong(1), limit);
+  }
+
+  public synchronized void recordExpiryAttempt(long orderId) {
+    if (jdbc == null) return;
+    jdbc.update("UPDATE inventory_reservation SET expiry_attempts=expiry_attempts+1, "
+        + "expiry_last_attempt_at=CURRENT_TIMESTAMP(3),expiry_last_error=NULL "
+        + "WHERE order_id=? AND status='RESERVED'", orderId);
+  }
+
+  @Transactional
+  public synchronized InventoryReservation markCheckRequired(long orderId, String reason) {
+    String safeReason = reason == null || reason.isBlank() ? "库存预占需要人工核对" : reason;
+    if (jdbc == null) {
+      InventoryReservation current = inventoryReservation(orderId);
+      if (!"RESERVED".equals(current.status())) return current;
+      InventoryReservation checked = new InventoryReservation(orderId, "CHECK_REQUIRED", current.expiresAt(), current.items());
+      reservations.put(orderId, checked);
+      return checked;
+    }
+    ReservationHeader header = lockedReservation(orderId);
+    if ("RESERVED".equals(header.status())) {
+      jdbc.update("UPDATE inventory_reservation SET status='CHECK_REQUIRED',expiry_last_error=? WHERE order_id=?",
+          safeReason, orderId);
+    }
+    return loadReservation(orderId);
+  }
+
   @Transactional
   public synchronized InventoryReservation releaseInventory(long orderId, String idempotencyKey) {
     if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
@@ -400,12 +434,14 @@ public class MerchantStore {
     if (jdbc == null) {
       InventoryReservation current = inventoryReservation(orderId);
       if ("RELEASED".equals(current.status())) throw new IllegalStateException("已释放的库存不可确认");
+      if ("CHECK_REQUIRED".equals(current.status())) throw new IllegalStateException("需要人工核对的库存不可确认");
       InventoryReservation confirmed = new InventoryReservation(orderId, "CONFIRMED", current.expiresAt(), current.items());
       reservations.put(orderId, confirmed);
       return confirmed;
     }
     ReservationHeader header = lockedReservation(orderId);
     if ("RELEASED".equals(header.status())) throw new IllegalStateException("已释放的库存不可确认");
+    if ("CHECK_REQUIRED".equals(header.status())) throw new IllegalStateException("需要人工核对的库存不可确认");
     if (!"CONFIRMED".equals(header.status())) jdbc.update("UPDATE inventory_reservation SET status='CONFIRMED' WHERE order_id=?", orderId);
     return loadReservation(orderId);
   }

@@ -72,6 +72,9 @@ jobs:
         env:
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          LUMALIFE_INTERNAL_SERVICE_TOKEN: ${{ secrets.LUMALIFE_INTERNAL_SERVICE_TOKEN || secrets.MYSQL_PASSWORD }}
+          RABBITMQ_USER: ${{ secrets.RABBITMQ_USER || 'lumalife' }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD || secrets.MYSQL_PASSWORD }}
           IMAGE_PULL_TIMEOUT: 1800s
           ROLLOUT_TIMEOUT: 900s
           GITHUB_RUN_ID: ${{ github.run_id }}
@@ -80,6 +83,9 @@ jobs:
           set -Eeuo pipefail
           test -n "${MYSQL_PASSWORD}"
           test -n "${MYSQL_ROOT_PASSWORD}"
+          test -n "${LUMALIFE_INTERNAL_SERVICE_TOKEN}"
+          test -n "${RABBITMQ_USER}"
+          test -n "${RABBITMQ_PASSWORD}"
           bash scripts/deploy-k8s.sh "${IMAGE_TAG}"
 
       - name: Publish deployment summary

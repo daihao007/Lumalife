@@ -2,20 +2,20 @@ asyncapi: 2.6.0
 id: urn:com:lumalife:domain-events
 info:
   title: LumaLife Domain Events
-  version: 0.1.0-draft
-  description: At-least-once service events for Issue #23. Consumers must deduplicate by eventId.
+  version: 0.2.0-draft
+  description: At-least-once service and inventory Saga events. Consumers must deduplicate by eventId.
   contact:
     name: LumaLife project team
     url: https://github.com/daihao007/Lumalife
   license:
     name: Course project - repository terms apply
-x-contract-status: draft-2026-08-26
+x-contract-status: draft-2026-09-02
 defaultContentType: application/json
 servers:
   cluster:
-    url: event-bus:9092
-    protocol: kafka
-    description: Logical cluster endpoint; the concrete infrastructure remains a review item.
+    url: amqp://event-bus:5672
+    protocol: amqp
+    description: RabbitMQ durable topic exchange used by the deployed inventory Saga.
 tags:
   - name: identity
     description: Identity-owned account events
@@ -68,6 +68,42 @@ channels:
     publish:
       operationId: publishReviewCreatedV1
       message: {$ref: '#/components/messages/ReviewCreatedV1'}
+  inventory.reserve.requested:
+    publish:
+      operationId: requestInventoryReservation
+      message: {$ref: '#/components/messages/InventoryReserveRequestedV1'}
+  inventory.confirm.requested:
+    publish:
+      operationId: confirmInventoryReservation
+      message: {$ref: '#/components/messages/InventoryConfirmRequestedV1'}
+  inventory.release.requested:
+    publish:
+      operationId: releaseInventoryReservation
+      message: {$ref: '#/components/messages/InventoryReleaseRequestedV1'}
+  inventory.result.reserved:
+    publish:
+      operationId: publishInventoryReservedV1
+      message: {$ref: '#/components/messages/InventoryReservedResultV1'}
+  inventory.result.confirmed:
+    publish:
+      operationId: publishInventoryConfirmedV1
+      message: {$ref: '#/components/messages/InventoryConfirmedResultV1'}
+  inventory.result.released:
+    publish:
+      operationId: publishInventoryReleasedV1
+      message: {$ref: '#/components/messages/InventoryReleasedResultV1'}
+  inventory.result.check_required:
+    publish:
+      operationId: publishInventoryCheckRequiredV1
+      message: {$ref: '#/components/messages/InventoryCheckRequiredResultV1'}
+  inventory.result.release_failed:
+    publish:
+      operationId: publishInventoryReleaseFailedV1
+      message: {$ref: '#/components/messages/InventoryReleaseFailedResultV1'}
+  inventory.result.failed:
+    publish:
+      operationId: publishInventoryFailedV1
+      message: {$ref: '#/components/messages/InventoryFailedResultV1'}
 components:
   messages:
     UserRegisteredV1:
@@ -147,6 +183,69 @@ components:
       x-producer: order-service
       x-consumers: [merchant-service]
       payload: {$ref: '#/components/schemas/ReviewCreatedEnvelope'}
+    InventoryReserveRequestedV1:
+      name: inventory.reserve.requested.v1
+      messageId: inventory.reserve.requested.v1
+      title: Order requests an idempotent inventory reservation
+      x-producer: order-service
+      x-consumers: [merchant-service]
+      payload: {$ref: '#/components/schemas/InventoryCommandEnvelope'}
+    InventoryConfirmRequestedV1:
+      name: inventory.confirm.requested.v1
+      messageId: inventory.confirm.requested.v1
+      title: Order requests confirmation of a reservation
+      x-producer: order-service
+      x-consumers: [merchant-service]
+      payload: {$ref: '#/components/schemas/InventoryCommandEnvelope'}
+    InventoryReleaseRequestedV1:
+      name: inventory.release.requested.v1
+      messageId: inventory.release.requested.v1
+      title: Order requests idempotent release or compensation
+      x-producer: order-service
+      x-consumers: [merchant-service]
+      payload: {$ref: '#/components/schemas/InventoryCommandEnvelope'}
+    InventoryReservedResultV1:
+      name: inventory.result.reserved.v1
+      messageId: inventory.result.reserved.v1
+      title: Merchant accepted the reservation
+      x-producer: merchant-service
+      x-consumers: [order-service]
+      payload: {$ref: '#/components/schemas/InventoryResultEnvelope'}
+    InventoryConfirmedResultV1:
+      name: inventory.result.confirmed.v1
+      messageId: inventory.result.confirmed.v1
+      title: Merchant confirmed the reservation
+      x-producer: merchant-service
+      x-consumers: [order-service]
+      payload: {$ref: '#/components/schemas/InventoryResultEnvelope'}
+    InventoryReleasedResultV1:
+      name: inventory.result.released.v1
+      messageId: inventory.result.released.v1
+      title: Inventory was fully restored; order Saga may become RELEASED
+      x-producer: merchant-service
+      x-consumers: [order-service]
+      payload: {$ref: '#/components/schemas/InventoryResultEnvelope'}
+    InventoryCheckRequiredResultV1:
+      name: inventory.result.check_required.v1
+      messageId: inventory.result.check_required.v1
+      title: Inventory could not be safely reconciled and needs manual handling
+      x-producer: merchant-service
+      x-consumers: [order-service]
+      payload: {$ref: '#/components/schemas/InventoryResultEnvelope'}
+    InventoryReleaseFailedResultV1:
+      name: inventory.result.release_failed.v1
+      messageId: inventory.result.release_failed.v1
+      title: Inventory release failed without a safe automatic conclusion
+      x-producer: merchant-service
+      x-consumers: [order-service]
+      payload: {$ref: '#/components/schemas/InventoryResultEnvelope'}
+    InventoryFailedResultV1:
+      name: inventory.result.failed.v1
+      messageId: inventory.result.failed.v1
+      title: Reservation or confirmation command reached a business failure
+      x-producer: merchant-service
+      x-consumers: [order-service]
+      payload: {$ref: '#/components/schemas/InventoryResultEnvelope'}
   schemas:
     EventEnvelope:
       type: object
@@ -371,6 +470,37 @@ components:
                 serviceScore: {type: integer, minimum: 1, maximum: 5}
                 content: {type: string, minLength: 1, maxLength: 2000}
                 createdAt: {type: string, format: date-time}
+    InventoryCommandEnvelope:
+      type: object
+      additionalProperties: false
+      required: [eventId, aggregateType, aggregateId, eventType, payload]
+      properties:
+        eventId: {type: string, minLength: 1, maxLength: 128}
+        aggregateType: {const: ORDER}
+        aggregateId: {type: integer, format: int64, minimum: 1}
+        eventType: {type: string, enum: [inventory.reserve.requested, inventory.confirm.requested, inventory.release.requested]}
+        payload: {type: object}
+    InventoryResultEnvelope:
+      type: object
+      additionalProperties: false
+      required: [eventId, aggregateType, aggregateId, eventType, payload]
+      properties:
+        eventId: {type: string, minLength: 1, maxLength: 128}
+        aggregateType: {const: ORDER}
+        aggregateId: {type: integer, format: int64, minimum: 1}
+        eventType: {type: string, enum: [inventory.result.reserved, inventory.result.confirmed, inventory.result.released, inventory.result.check_required, inventory.result.release_failed, inventory.result.failed]}
+        payload:
+          type: object
+          additionalProperties: false
+          required: [orderId, reservationStatus, sourceEventId, sourceEventType, outcome, occurredAt]
+          properties:
+            orderId: {type: integer, format: int64, minimum: 1}
+            reservationStatus: {type: string, enum: [RESERVED, CONFIRMED, RELEASED, CHECK_REQUIRED, FAILED]}
+            sourceEventId: {type: string, minLength: 1, maxLength: 128}
+            sourceEventType: {type: string, minLength: 1, maxLength: 128}
+            outcome: {type: string, enum: [RESERVED, CONFIRMED, RELEASED, CHECK_REQUIRED, RELEASE_FAILED, FAILED]}
+            error: {type: [string, 'null'], maxLength: 1000}
+            occurredAt: {type: string, format: date-time}
     OrderStatus:
       type: string
       enum: [PENDING_PAYMENT, PAID, ACCEPTED, DELIVERING, RECEIVED, COMPLETED, USED, EXPIRED, CANCELLED]

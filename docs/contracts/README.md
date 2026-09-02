@@ -1,15 +1,18 @@
-# 三服务机器可读契约
+# 四服务机器可读契约
+
+> 文件名和早期 Issue 仍保留“三服务”历史称呼；当前运行边界为 identity、merchant、order、assistant 四个独立服务。backend/frontend 另计，完整运行时应用镜像共 6 个。
 
 本目录承接 Issue [#23](https://github.com/daihao007/Lumalife/issues/23) 的 `draft-2026-08-26` 契约候选，并作为 Issue [#33](https://github.com/daihao007/Lumalife/issues/33) 的接口机器可读附件：
 
 | 文件 | 所有者 | 内容 |
 |---|---|---|
-| `identity-service.openapi.yaml` | identity-service | 9 个外部 API、token introspection、地址快照内部 API |
-| `merchant-service.openapi.yaml` | merchant-service | 25 个外部 API、批量商品快照、库存预占/查询/释放内部 API |
-| `order-service.openapi.yaml` | order-service | 18 个外部 API、评价查询和支付状态内部 API |
-| `domain-events.asyncapi.yaml` | 三服务 | 11 个版本化领域事件、公共信封和载荷约束（含商家注册 Saga） |
+| `identity-service.openapi.yaml` | identity-service | 目标外部 API、token introspection、地址快照内部 API；当前源码 13 个业务 mapping |
+| `merchant-service.openapi.yaml` | merchant-service | 目标外部 API、批量商品快照、库存预占/查询/释放内部 API；当前源码 30 个业务 mapping |
+| `order-service.openapi.yaml` | order-service | 目标外部 API、评价查询和支付状态内部 API；当前源码 19 个业务 mapping，另有 1 个评价投影 mapping |
+| （尚无独立文件） | assistant-service | 当前源码 1 个 `/internal/v1/assistant/answer` mapping；机器可读 assistant OpenAPI 仍是文档缺口，不把缺失文件写成已交付 |
+| `domain-events.asyncapi.yaml` | order-service ↔ merchant-service | 11 个版本化领域事件，以及库存预占/确认/释放命令和显式结果事件（含 `CHECK_REQUIRED` / `RELEASE_FAILED`） |
 
-规范文件仍包含迁移目标，尤其是 JWT、独立数据库 Schema、库存预占、Outbox/Inbox 和事件总线；但当前三个服务已经实际实现 39 个 `/internal/v1/**` 业务接口。未列入服务源码/测试的目标接口不能视为已部署能力；当前实际路由、数据表和差异记录在 [`../28_D07服务接口数据归属与需求追溯.md`](../28_D07服务接口数据归属与需求追溯.md)，目标模型仍见 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
+规范文件仍包含迁移目标，尤其是 JWT、独立数据库 Schema、库存预占、Outbox/Inbox 和事件总线；当前四个服务实际实现 64 个 `/internal/v1/**` 业务 mapping，assistant 的 1 个入口也纳入当前运行边界。未列入服务源码/测试的目标接口不能视为已部署能力；当前实际路由、数据表和差异记录在 [`../28_D07服务接口数据归属与需求追溯.md`](../28_D07服务接口数据归属与需求追溯.md)，目标模型仍见 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
 
 ## 校验
 

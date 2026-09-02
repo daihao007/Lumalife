@@ -1,0 +1,2 @@
+NAME                      STATUS   ROLES           AGE    VERSION        INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION               CONTAINER-RUNTIME
+iz2ze45nn072gmmp54dzf7z   Ready    control-plane   2d4h   v1.36.3+k3s1   172.27.116.161   <none>        Ubuntu 22.04.5 LTS   5.15.0-187-generic (amd64)   containerd://2.3.2-k3s2

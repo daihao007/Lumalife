@@ -53,13 +53,41 @@ jobs:
           docker compose -p lumalife-performance --profile db-tools run --rm db-backfill-services
           bash 04_tests/performance/run-comparison.sh
 
+      - name: Record performance artifact metadata
+        if: always()
+        shell: bash
+        env:
+          PERF_REQUESTS: ${{ inputs.requests }}
+          PERF_CONCURRENCY: ${{ inputs.concurrency }}
+        run: |
+          mkdir -p 04_tests/performance/results/ci
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "workflow_run=${GITHUB_RUN_ID}"
+            echo "requests_per_repeat=${PERF_REQUESTS}"
+            echo "concurrency=${PERF_CONCURRENCY}"
+            echo "repeats=3"
+            echo "apis=merchant-search,categories,merchant-detail"
+            echo "modes=microservices,monolith"
+            echo "validator=04_tests/performance/validate-results.sh"
+          } > 04_tests/performance/results/ci/run-metadata.txt
+
+      - name: Validate performance matrix and artifacts
+        if: always()
+        shell: bash
+        env:
+          OUTPUT_DIR: 04_tests/performance/results/ci
+          PERF_REQUESTS: ${{ inputs.requests }}
+          PERF_CONCURRENCY: ${{ inputs.concurrency }}
+        run: bash 04_tests/performance/validate-results.sh "${OUTPUT_DIR}" "${PERF_REQUESTS}" "${PERF_CONCURRENCY}" 3
+
       - name: Upload raw performance results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: performance-comparison-results
-          path: 04_tests/performance/results
-          if-no-files-found: warn
+          path: 04_tests/performance/results/ci
+          if-no-files-found: error
           retention-days: 14
 
       - name: Remove performance stack

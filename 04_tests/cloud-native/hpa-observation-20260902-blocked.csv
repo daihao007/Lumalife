@@ -1,0 +1,2 @@
+phase,timestamp,pods,ready_pods,hpa_current,hpa_desired,current_cpu_percent,cpu_target,cpu_usage,memory_usage,cumulative_requests,cumulative_errors,error_rate_percent,throughput_rps,avg_latency_ms,p95_latency_ms
+preflight-blocked,2026-09-02T05:03:42Z,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A

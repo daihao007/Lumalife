@@ -164,9 +164,9 @@ kustomize：PASS
 3. `isolate-service-databases.sh` 在导入前移除跨服务外键，并在同一 MySQL 会话中关闭/恢复 `FOREIGN_KEY_CHECKS`；已用新数据库名执行物理 overlay 验证。
 4. RabbitMQ 增加 Compose named volume、Kubernetes PVC 和持久消息投递；新增结构性 durability 检查，真实 Microservice E2E UC01–UC09 9/9 通过。
 
-当前仍保留以下非本轮范围：Kubernetes Secret 化、release `CHECK_REQUIRED` 故障实验、HPA/metrics-server、性能对比和文档最终同步。
+截至本轮复审仍保留以下非本轮范围：Kubernetes Secret 化、release `CHECK_REQUIRED` 故障实验、HPA/metrics-server、性能对比和文档最终同步；后续执行结果见下节及统一 evidence。
 
 ## 夜间第二阶段执行更新（2026-09-02）
 
-上一节结论已按当时复审范围保留。随后已完成 Microservice E2E 9/9、merchant-service 故障注入 before/during/after 恢复验证和同机三 API 性能对比；HPA 已切换为 merchant-service 优先并完成真实负载记录，但 Docker Desktop 缺少 `metrics.k8s.io`，scale-up/scale-down 仍待目标集群复测。最终汇总见 `docs/NIGHTLY_SECOND_STAGE_EXECUTION_REPORT.md`。
+上一节结论已按当时复审范围保留。随后已完成 Microservice E2E 9/9、merchant-service 故障注入 before/during/after 恢复验证、同机三 API 性能对比，以及远端 ECS/K3s 上 `metrics.k8s.io` 与 merchant-service HPA 的真实 `1→2→3→1` 观测；HPA 当前为 PASS。最终汇总见 `docs/NIGHTLY_SECOND_STAGE_EXECUTION_REPORT.md`。
 ```

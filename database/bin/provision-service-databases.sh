@@ -104,6 +104,34 @@ if [ "$order_merchant_name_snapshot_count" -eq 0 ]; then
   mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_record ADD COLUMN merchant_name_snapshot VARCHAR(160) NOT NULL DEFAULT ''"
 fi
 
+# V019 adds stable outbox deduplication and expiry reconciliation bookkeeping.
+merchant_outbox_dedup_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='merchant_outbox_event' AND column_name='deduplication_key'")
+if [ "$merchant_outbox_dedup_count" -eq 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.merchant_outbox_event ADD COLUMN deduplication_key VARCHAR(255) NULL"
+fi
+merchant_outbox_index_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='merchant_outbox_event' AND index_name='uk_merchant_outbox_deduplication'")
+if [ "$merchant_outbox_index_count" -eq 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.merchant_outbox_event ADD UNIQUE KEY uk_merchant_outbox_deduplication (deduplication_key)"
+fi
+for column_definition in \
+  'expiry_attempts INT UNSIGNED NOT NULL DEFAULT 0' \
+  'expiry_last_attempt_at DATETIME(3) NULL' \
+  'expiry_last_error VARCHAR(1000) NULL'; do
+  column_name=${column_definition%% *}
+  expiry_column_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='inventory_reservation' AND column_name='${column_name}'")
+  if [ "$expiry_column_count" -eq 0 ]; then
+    mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.inventory_reservation ADD COLUMN ${column_definition}"
+  fi
+done
+service_outbox_dedup_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${MYSQL_ORDER_DATABASE}' AND table_name='service_outbox_event' AND column_name='deduplication_key'")
+if [ "$service_outbox_dedup_count" -eq 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.service_outbox_event ADD COLUMN deduplication_key VARCHAR(255) NULL"
+fi
+service_outbox_index_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='${MYSQL_ORDER_DATABASE}' AND table_name='service_outbox_event' AND index_name='uk_service_outbox_deduplication'")
+if [ "$service_outbox_index_count" -eq 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.service_outbox_event ADD UNIQUE KEY uk_service_outbox_deduplication (deduplication_key)"
+fi
+
 # The public conversation projection uses MERCHANT and MERCHANT_AI. Upgrade an
 # already provisioned merchant database as well as freshly copied tables.
 merchant_chat_sender_constraint_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='chat_message' AND constraint_name='ck_chat_sender_role'")
@@ -119,7 +147,7 @@ order_saga_status_constraint_count=$(mysql_root --batch --skip-column-names --ex
 if [ "$order_saga_status_constraint_count" -gt 0 ]; then
   mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_inventory_saga DROP CHECK ck_order_inventory_saga_status"
 fi
-mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_inventory_saga ADD CONSTRAINT ck_order_inventory_saga_status CHECK (status IN ('RESERVE_PENDING','RESERVED','RESERVE_FAILED','CONFIRM_PENDING','CONFIRMED','CONFIRM_FAILED','RELEASE_PENDING','RELEASED','FAILED'))"
+mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_inventory_saga ADD CONSTRAINT ck_order_inventory_saga_status CHECK (status IN ('RESERVE_PENDING','RESERVED','RESERVE_FAILED','CONFIRM_PENDING','CONFIRMED','CONFIRM_FAILED','RELEASE_PENDING','RELEASED','CHECK_REQUIRED','RELEASE_FAILED','FAILED'))"
 
 for target_database in "$MYSQL_IDENTITY_DATABASE" "$MYSQL_MERCHANT_DATABASE" "$MYSQL_ORDER_DATABASE"; do
   mysql_root --execute="INSERT INTO ${target_database}.schema_migration(version,description,checksum,installed_at) SELECT version,description,checksum,installed_at FROM ${MYSQL_DATABASE}.schema_migration ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum),installed_at=VALUES(installed_at)"

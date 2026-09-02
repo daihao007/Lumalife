@@ -1,5 +1,7 @@
 # D05 Kubernetes 自动部署与健康检查
 
+> 当前 main 收口注记（2026-09-02）：正式运行包含 backend、frontend、identity-service、merchant-service、order-service、assistant-service 六个应用镜像；内部 token 和 RabbitMQ 凭据由 `lumalife-runtime` Secret 注入。本文早期五镜像/三服务记录保留为历史快照，当前 CI/Kubernetes/ECS 结果以 [`统一 evidence`](../04_tests/evidence/README.md) 为准。
+
 ## 1. 交付目标
 
 本文对应 Issue #40。流水线在代码进入 `main` 或从 `main` 手动触发后，按以下顺序执行：
@@ -66,7 +68,7 @@ kubectl -n lumalife patch serviceaccount default \
 
 ## 4. 自动部署与健康检查
 
-PR 阶段的 `Kubernetes rollout smoke test` 会创建一次性 Kind 集群、本地构建并加载五张应用镜像、应用同一套清单，然后等待 MySQL 和全部应用滚动发布完成。
+PR 阶段的 `Kubernetes rollout smoke test` 会创建一次性 Kind 集群、本地构建并加载六张应用镜像、应用同一套清单，然后等待 MySQL 和全部应用滚动发布完成。
 
 `main` 的 `Deploy Kubernetes` 使用不可变的 `sha-*` 镜像更新目标集群；未配置外部目标时，从 GHCR 拉取同标签镜像并加载到一次性 Kind 集群。随后执行：
 
@@ -96,6 +98,6 @@ kubectl -n lumalife rollout status deployment/frontend --timeout=300s
 
 ## 6. Issue #40 验收证据
 
-成功记录：合并后保存一次 `main` 的 Actions 运行链接，并确认质量门禁、五张版本镜像、Kind 冒烟与 `Deploy Kubernetes` 均成功；下载 `kubernetes-manifests` Artifact，保存部署作业末尾的 Pod/探针输出。
+成功记录：合并后保存一次 `main` 的 Actions 运行链接，并确认质量门禁、六张版本镜像、Kind 冒烟与 `Deploy Kubernetes` 均成功；下载 `kubernetes-manifests` Artifact，保存部署作业末尾的 Pod/探针输出。
 
 失败阻断记录：在 Actions 中从 `main` 手动运行 `Monolith CI`，将 `demonstrate_failure_gate` 设为 `true`。确认 `Quality gate` 预期失败，镜像、Kind 冒烟和真实部署作业均为 `Skipped`，然后把运行链接附到 Issue #40。该开关不修改应用代码或集群。

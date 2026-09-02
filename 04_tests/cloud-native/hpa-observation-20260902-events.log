@@ -1,0 +1,1274 @@
+===== 2026-09-02T06:32:39Z | preflight events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+36m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+36m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+36m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+36m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+36m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+34m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+34m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+34m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+34m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+34m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+===== 2026-09-02T06:32:41Z | baseline events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+36m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+36m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+36m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+36m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+36m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+34m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+34m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+34m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+34m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+34m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+===== 2026-09-02T06:32:56Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+14s         Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+36m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+36m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+36m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+36m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+36m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+34m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+34m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+34m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+34m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+34m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+13s         Normal    Started             pod/hpa-load-26159                         Container started
+13s         Normal    Created             pod/hpa-load-26159                         Container created
+13s         Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+===== 2026-09-02T06:33:11Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2s          Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+28s         Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+36m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+36m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+36m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+36m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+36m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+34m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+34m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+34m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+34m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+34m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+28s         Normal    Created             pod/hpa-load-26159                         Container created
+28s         Normal    Started             pod/hpa-load-26159                         Container started
+28s         Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+3s          Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3s          Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3s          Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+2s          Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2s          Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+2s          Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+===== 2026-09-02T06:33:25Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+16s         Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+42s         Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+37m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+37m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+37m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+37m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+35m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+35m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+35m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+35m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+35m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+42s         Normal    Started             pod/hpa-load-26159                         Container started
+42s         Normal    Created             pod/hpa-load-26159                         Container created
+42s         Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+17s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+17s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+17s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+16s         Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+16s         Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+16s         Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+1s          Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+===== 2026-09-02T06:33:40Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+31s         Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+57s         Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+37m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+37m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+37m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+37m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+35m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+35m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+35m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+35m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+35m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+57s         Normal    Started             pod/hpa-load-26159                         Container started
+57s         Normal    Created             pod/hpa-load-26159                         Container created
+57s         Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+32s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+32s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+32s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+31s         Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+31s         Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+31s         Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+16s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+===== 2026-09-02T06:33:54Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+45s         Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+72s         Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+37m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+37m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+37m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+37m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+35m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+35m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+35m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+35m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+35m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+71s         Normal    Started             pod/hpa-load-26159                         Container started
+71s         Normal    Created             pod/hpa-load-26159                         Container created
+71s         Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+46s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+46s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+46s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+45s         Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+45s         Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+45s         Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+30s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+===== 2026-09-02T06:34:08Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+59s         Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+86s         Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+37m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+37m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+37m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+37m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+35m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+35m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+35m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+35m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+35m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+85s         Normal    Started             pod/hpa-load-26159                         Container started
+85s         Normal    Created             pod/hpa-load-26159                         Container created
+85s         Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+60s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+60s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+60s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+59s         Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+59s         Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+59s         Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+44s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+===== 2026-09-02T06:34:23Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+14s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+101s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+75s         Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+38m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+38m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+36m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+36m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+100s        Normal    Started             pod/hpa-load-26159                         Container started
+100s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+100s        Normal    Created             pod/hpa-load-26159                         Container created
+75s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+75s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+75s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+74s         Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+74s         Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+74s         Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+59s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+15s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+15s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+14s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+13s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+13s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+13s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3s          Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:34:38Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+28s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+116s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+89s         Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+38m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+38m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+36m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+36m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+115s        Normal    Started             pod/hpa-load-26159                         Container started
+115s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+115s        Normal    Created             pod/hpa-load-26159                         Container created
+90s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+90s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+90s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+89s         Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+89s         Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+89s         Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+74s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+30s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+30s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+29s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+28s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+28s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+28s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+13s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:34:53Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+43s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+2m10s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+104s        Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+38m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+38m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+36m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+36m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m10s       Normal    Started             pod/hpa-load-26159                         Container started
+2m10s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+2m10s       Normal    Created             pod/hpa-load-26159                         Container created
+105s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+105s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+105s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+104s        Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+104s        Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+104s        Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+89s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+45s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+45s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+44s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+43s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+43s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+43s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+28s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:35:07Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+58s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+2m25s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+119s        Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+38m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+38m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+38m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+36m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+36m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+36m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+36m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+36m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m24s       Normal    Started             pod/hpa-load-26159                         Container started
+2m24s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+2m24s       Normal    Created             pod/hpa-load-26159                         Container created
+119s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+119s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+119s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+118s        Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+118s        Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+118s        Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+103s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+59s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+59s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+58s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+57s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+57s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+57s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+42s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:35:22Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+72s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+2m39s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+2m13s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+39m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+39m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+37m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+37m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+37m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m39s       Normal    Started             pod/hpa-load-26159                         Container started
+2m39s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+2m39s       Normal    Created             pod/hpa-load-26159                         Container created
+2m14s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+2m14s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+2m14s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+2m13s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+2m13s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+2m13s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+118s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+74s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+74s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+73s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+72s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+72s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+72s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+57s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:35:36Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+86s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+2m53s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+2m27s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+39m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+39m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+37m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+37m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+37m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m53s       Normal    Started             pod/hpa-load-26159                         Container started
+2m53s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+2m53s       Normal    Created             pod/hpa-load-26159                         Container created
+2m28s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+2m28s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+2m28s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+2m27s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+2m27s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+2m27s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m12s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+88s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+88s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+87s         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+86s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+86s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+86s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+71s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:35:49Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+99s         Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+3m6s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+2m40s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+39m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+39m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+37m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+37m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+37m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+3m6s        Normal    Started             pod/hpa-load-26159                         Container started
+3m6s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+3m6s        Normal    Created             pod/hpa-load-26159                         Container created
+2m41s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+2m41s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+2m41s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+2m40s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+2m40s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+2m40s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m25s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+101s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+101s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+100s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+99s         Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+99s         Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+99s         Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+84s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:36:02Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+112s        Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+3m19s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+2m53s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+39m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+39m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+37m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+37m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+37m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+3m19s       Normal    Started             pod/hpa-load-26159                         Container started
+3m19s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+3m19s       Normal    Created             pod/hpa-load-26159                         Container created
+2m54s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+2m54s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+2m54s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+2m53s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+2m53s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+2m53s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m38s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+114s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+114s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+113s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+112s        Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+112s        Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+112s        Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+97s         Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:36:14Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2m4s        Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+3m31s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+3m5s        Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+39m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+39m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+39m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+37m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+37m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+37m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+37m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+37m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+3m31s       Normal    Started             pod/hpa-load-26159                         Container started
+3m31s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+3m31s       Normal    Created             pod/hpa-load-26159                         Container created
+3m6s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3m6s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+3m6s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3m5s        Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+3m5s        Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+3m5s        Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m50s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+2m6s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+2m6s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m5s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+2m4s        Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+2m4s        Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+2m4s        Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+109s        Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:36:26Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2m17s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+3m44s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+3m18s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+40m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+40m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+38m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+38m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+3m43s       Normal    Started             pod/hpa-load-26159                         Container started
+3m43s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+3m43s       Normal    Created             pod/hpa-load-26159                         Container created
+3m18s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3m18s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+3m18s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3m17s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+3m17s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+3m17s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m2s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+2m18s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+2m18s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m17s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+2m16s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+2m16s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+2m16s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m1s        Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:36:39Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2m30s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+3m57s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+3m31s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+40m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+40m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+38m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+38m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+3m56s       Normal    Started             pod/hpa-load-26159                         Container started
+3m56s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+3m56s       Normal    Created             pod/hpa-load-26159                         Container created
+3m31s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3m31s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+3m31s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3m30s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+3m30s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+3m30s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m15s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+2m31s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+2m31s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m30s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+2m29s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+2m29s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+2m29s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m14s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:36:52Z | load events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2m42s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+4m9s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+3m43s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+40m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+40m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+38m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+38m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+4m9s        Normal    Started             pod/hpa-load-26159                         Container started
+4m9s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+4m9s        Normal    Created             pod/hpa-load-26159                         Container created
+3m44s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3m44s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+3m44s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3m43s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+3m43s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+3m43s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m28s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+2m44s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+2m44s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m43s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+2m42s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+2m42s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+2m42s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m27s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:36:55Z | load-complete events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2m45s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+4m12s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+3m46s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+40m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+40m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+38m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+38m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+4m12s       Normal    Started             pod/hpa-load-26159                         Container started
+4m12s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+4m12s       Normal    Created             pod/hpa-load-26159                         Container created
+3m47s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3m47s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+3m47s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3m46s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+3m46s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+3m46s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m31s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+2m47s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+2m47s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m46s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+2m45s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+2m45s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+2m45s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m30s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:37:07Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+2m57s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+4m25s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+3m58s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+40m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+40m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+38m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+38m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+4m24s       Normal    Started             pod/hpa-load-26159                         Container started
+4m24s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+4m24s       Normal    Created             pod/hpa-load-26159                         Container created
+3m59s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+3m59s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+3m59s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+3m58s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+3m58s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+3m58s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m43s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+2m59s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+2m59s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m58s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+2m57s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+2m57s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+2m57s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m42s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:37:20Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+3m10s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+4m37s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+4m11s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+40m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+40m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+40m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+38m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+38m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+38m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+38m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+4m37s       Normal    Started             pod/hpa-load-26159                         Container started
+4m37s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+4m37s       Normal    Created             pod/hpa-load-26159                         Container created
+4m12s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+4m12s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+4m12s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+4m11s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+4m11s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+4m11s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m56s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+3m12s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+3m12s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+3m11s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+3m10s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+3m10s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+3m10s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+2m55s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:37:32Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+3m23s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+4m50s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+4m24s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+41m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+41m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+39m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+39m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+39m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+4m49s       Normal    Started             pod/hpa-load-26159                         Container started
+4m49s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+4m49s       Normal    Created             pod/hpa-load-26159                         Container created
+4m24s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+4m24s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+4m24s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+4m23s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+4m23s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+4m23s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m8s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+3m24s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+3m24s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+3m23s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+3m22s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+3m22s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+3m22s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m7s        Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:37:45Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+3m35s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+5m2s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+4m36s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+41m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+41m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+39m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+39m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+39m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+5m2s        Normal    Started             pod/hpa-load-26159                         Container started
+5m2s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m2s        Normal    Created             pod/hpa-load-26159                         Container created
+4m37s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+4m37s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+4m37s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+4m36s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+4m36s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+4m36s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m21s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+3m37s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+3m37s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+3m36s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+3m35s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+3m35s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+3m35s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m20s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:37:57Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+3m48s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+5m15s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+4m49s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+41m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+41m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+39m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+39m         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+39m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+5m14s       Normal    Started             pod/hpa-load-26159                         Container started
+5m14s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m14s       Normal    Created             pod/hpa-load-26159                         Container created
+4m49s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+4m49s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+4m49s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+4m48s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+4m48s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+4m48s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m33s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+3m49s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+3m49s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+3m48s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+3m47s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+3m47s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+3m47s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m32s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+===== 2026-09-02T06:38:10Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+5m1s        Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+5m28s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+4m          Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+41m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+41m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+41m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+39m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+39m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+39m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+39m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+5m27s       Normal    Started             pod/hpa-load-26159                         Container started
+5m27s       Normal    Created             pod/hpa-load-26159                         Container created
+5m27s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m2s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+5m2s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+5m2s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+5m1s        Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+5m1s        Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+5m1s        Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m46s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+4m2s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+4m2s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+4m1s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+4m          Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+4m          Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+4m          Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m45s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+1s          Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+1s          Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+1s          Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+1s          Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+1s          Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+1s          Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+1s          Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:38:23Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+5m14s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+5m40s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+4m13s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+42m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+42m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+40m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+40m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+5m40s       Normal    Started             pod/hpa-load-26159                         Container started
+5m40s       Normal    Created             pod/hpa-load-26159                         Container created
+5m40s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m15s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+5m15s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+5m15s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+5m14s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+5m14s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+5m14s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m59s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+4m15s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+4m15s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+4m14s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+4m13s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+4m13s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+4m13s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+3m58s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+14s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+14s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+14s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+14s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+14s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+14s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+14s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:38:35Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+5m26s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+5m52s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+4m25s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+42m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+42m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+40m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+40m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+5m52s       Normal    Started             pod/hpa-load-26159                         Container started
+5m52s       Normal    Created             pod/hpa-load-26159                         Container created
+5m52s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m27s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+5m27s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+5m27s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+5m26s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+5m26s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+5m26s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m11s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+4m27s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+4m27s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+4m26s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+4m25s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+4m25s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+4m25s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m10s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+26s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+26s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+26s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+26s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+26s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+26s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+26s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:38:47Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+5m39s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+6m5s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+4m37s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+42m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+42m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+42m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+40m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+40m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+6m4s        Normal    Started             pod/hpa-load-26159                         Container started
+6m4s        Normal    Created             pod/hpa-load-26159                         Container created
+6m4s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m39s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+5m39s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+5m39s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+5m38s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+5m38s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+5m38s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m23s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+4m39s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+4m39s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+4m38s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+4m37s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+4m37s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+4m37s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m22s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+38s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+38s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+38s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+38s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+38s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+38s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+38s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:39:00Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+5m51s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+6m17s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+4m50s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+42m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+42m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+42m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+40m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+40m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+6m17s       Normal    Started             pod/hpa-load-26159                         Container started
+6m17s       Normal    Created             pod/hpa-load-26159                         Container created
+6m17s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+5m52s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+5m52s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+5m52s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+5m51s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+5m51s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+5m51s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m36s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+4m52s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+4m52s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+4m51s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+4m50s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+4m50s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+4m50s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m35s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+51s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+51s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+51s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+51s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+51s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+51s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+51s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:39:12Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+6m4s        Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+6m30s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+5m3s        Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+42m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+42m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+42m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+42m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+40m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+40m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+40m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+40m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+6m29s       Normal    Started             pod/hpa-load-26159                         Container started
+6m29s       Normal    Created             pod/hpa-load-26159                         Container created
+6m29s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+6m4s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+6m4s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+6m4s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+6m3s        Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+6m3s        Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+6m3s        Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m48s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+5m4s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+5m4s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+5m3s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+5m2s        Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+5m2s        Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+5m2s        Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+4m47s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+63s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+63s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+63s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+63s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+63s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+63s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+63s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:39:25Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+6m16s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+6m42s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+5m15s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+43m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+43m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+43m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+42m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+41m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+41m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+6m42s       Normal    Started             pod/hpa-load-26159                         Container started
+6m42s       Normal    Created             pod/hpa-load-26159                         Container created
+6m42s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+6m17s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+6m17s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+6m17s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+6m16s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+6m16s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+6m16s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m1s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+5m17s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+5m17s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+5m16s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+5m15s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+5m15s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+5m15s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m          Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+76s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+76s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+76s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+76s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+76s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+76s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+76s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:39:37Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+6m28s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+6m55s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+5m27s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+43m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+43m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+43m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+43m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+41m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+41m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+6m54s       Normal    Started             pod/hpa-load-26159                         Container started
+6m54s       Normal    Created             pod/hpa-load-26159                         Container created
+6m54s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+6m29s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+6m29s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+6m29s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+6m28s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+6m28s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+6m28s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m13s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+5m29s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+5m29s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+5m28s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+5m27s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+5m27s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+5m27s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m12s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+88s         Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+88s         Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+88s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+88s         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+88s         Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+88s         Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+88s         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:39:50Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+6m41s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+7m7s        Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+5m40s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+43m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+43m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+43m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+43m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+41m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+41m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+7m7s        Normal    Started             pod/hpa-load-26159                         Container started
+7m7s        Normal    Created             pod/hpa-load-26159                         Container created
+7m7s        Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+6m42s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+6m42s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+6m42s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+6m41s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+6m41s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+6m41s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m26s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+5m42s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+5m42s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+5m41s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+5m40s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+5m40s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+5m40s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m25s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+101s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+101s        Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+101s        Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+101s        Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+101s        Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+101s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+101s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:40:02Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+6m54s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+7m20s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+5m53s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+43m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+43m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+43m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+43m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+41m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+41m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+7m19s       Normal    Started             pod/hpa-load-26159                         Container started
+7m19s       Normal    Created             pod/hpa-load-26159                         Container created
+7m19s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+6m54s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+6m54s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+6m54s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+6m53s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+6m53s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+6m53s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m38s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+5m54s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+5m54s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+5m53s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+5m52s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+5m52s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+5m52s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m37s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+113s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+113s        Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+113s        Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+113s        Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+113s        Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+113s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+113s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:40:15Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+7m6s        Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+7m32s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+6m5s        Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+43m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+43m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+43m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+43m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+43m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+41m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+41m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+41m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+41m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+7m32s       Normal    Started             pod/hpa-load-26159                         Container started
+7m32s       Normal    Created             pod/hpa-load-26159                         Container created
+7m32s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+7m7s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+7m7s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+7m7s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+7m6s        Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+7m6s        Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+7m6s        Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m51s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+6m7s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+6m7s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+6m6s        Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+6m5s        Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+6m5s        Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+6m5s        Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+5m50s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+2m6s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m6s        Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+2m6s        Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+2m6s        Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+2m6s        Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+2m6s        Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+2m6s        Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:40:27Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+7m18s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+44m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+7m45s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+6m17s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+44m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+44m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+44m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+44m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+43m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+42m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+42m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+42m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+7m44s       Normal    Started             pod/hpa-load-26159                         Container started
+7m44s       Normal    Created             pod/hpa-load-26159                         Container created
+7m44s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+7m19s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+7m19s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+7m19s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+7m18s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+7m18s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+7m18s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+7m3s        Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+6m19s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+6m19s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+6m18s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+6m17s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+6m17s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+6m17s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m2s        Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+2m18s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m18s       Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+2m18s       Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+2m18s       Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+2m18s       Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+2m18s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+2m18s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1
+===== 2026-09-02T06:40:40Z | cooldown events | exit=0 =====
+LAST SEEN   TYPE      REASON              OBJECT                                     MESSAGE
+7m31s       Normal    Scheduled           pod/merchant-service-544dcf949c-skdx9      Successfully assigned lumalife/merchant-service-544dcf949c-skdx9 to iz2ze45nn072gmmp54dzf7z
+44m         Normal    Scheduled           pod/merchant-service-544dcf949c-xg57k      Successfully assigned lumalife/merchant-service-544dcf949c-xg57k to iz2ze45nn072gmmp54dzf7z
+7m57s       Normal    Scheduled           pod/hpa-load-26159                         Successfully assigned lumalife/hpa-load-26159 to iz2ze45nn072gmmp54dzf7z
+6m30s       Normal    Scheduled           pod/merchant-service-544dcf949c-2msg5      Successfully assigned lumalife/merchant-service-544dcf949c-2msg5 to iz2ze45nn072gmmp54dzf7z
+44m         Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-xg57k
+44m         Normal    Pulled              pod/merchant-service-544dcf949c-xg57k      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+44m         Normal    Started             pod/merchant-service-544dcf949c-xg57k      Container started
+44m         Normal    Created             pod/merchant-service-544dcf949c-xg57k      Container created
+44m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Startup probe failed: Get "http://10.42.0.235:8082/actuator/health/liveness": dial tcp 10.42.0.235:8082: connect: connection refused
+42m         Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-xg57k
+42m         Normal    Killing             pod/merchant-service-544dcf949c-xg57k      Stopping container merchant-service
+42m         Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 2 to 1
+42m         Warning   Unhealthy           pod/merchant-service-544dcf949c-xg57k      Readiness probe failed: HTTP probe failed with statuscode: 503
+7m57s       Normal    Started             pod/hpa-load-26159                         Container started
+7m57s       Normal    Created             pod/hpa-load-26159                         Container created
+7m57s       Normal    Pulled              pod/hpa-load-26159                         Container image "curlimages/curl:8.12.1" already present on machine and can be accessed by the pod
+7m32s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 2; reason: cpu resource utilization (percentage of request) above target
+7m32s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 1 to 2
+7m32s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-skdx9
+7m31s       Normal    Created             pod/merchant-service-544dcf949c-skdx9      Container created
+7m31s       Normal    Started             pod/merchant-service-544dcf949c-skdx9      Container started
+7m31s       Normal    Pulled              pod/merchant-service-544dcf949c-skdx9      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+7m16s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Startup probe failed: Get "http://10.42.0.237:8082/actuator/health/liveness": dial tcp 10.42.0.237:8082: connect: connection refused
+6m32s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 3; reason: cpu resource utilization (percentage of request) above target
+6m32s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled up replica set merchant-service-544dcf949c from 2 to 3
+6m31s       Normal    SuccessfulCreate    replicaset/merchant-service-544dcf949c     Created pod: merchant-service-544dcf949c-2msg5
+6m30s       Normal    Started             pod/merchant-service-544dcf949c-2msg5      Container started
+6m30s       Normal    Created             pod/merchant-service-544dcf949c-2msg5      Container created
+6m30s       Normal    Pulled              pod/merchant-service-544dcf949c-2msg5      Container image "ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b" already present on machine and can be accessed by the pod
+6m15s       Warning   Unhealthy           pod/merchant-service-544dcf949c-2msg5      Startup probe failed: Get "http://10.42.0.238:8082/actuator/health/liveness": dial tcp 10.42.0.238:8082: connect: connection refused
+2m31s       Warning   Unhealthy           pod/merchant-service-544dcf949c-skdx9      Readiness probe failed: HTTP probe failed with statuscode: 503
+2m31s       Normal    Killing             pod/merchant-service-544dcf949c-skdx9      Stopping container merchant-service
+2m31s       Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-skdx9
+2m31s       Normal    SuccessfulDelete    replicaset/merchant-service-544dcf949c     Deleted pod: merchant-service-544dcf949c-2msg5
+2m31s       Normal    Killing             pod/merchant-service-544dcf949c-2msg5      Stopping container merchant-service
+2m31s       Normal    SuccessfulRescale   horizontalpodautoscaler/merchant-service   New size: 1; reason: All metrics below target
+2m31s       Normal    ScalingReplicaSet   deployment/merchant-service                Scaled down replica set merchant-service-544dcf949c from 3 to 1

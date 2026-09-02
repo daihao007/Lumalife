@@ -1,0 +1,2 @@
+NAME                              READY   STATUS    RESTARTS   AGE    IP            NODE                      NOMINATED NODE   READINESS GATES
+metrics-server-6dc596dfb8-jvvhh   1/1     Running   0          2d4h   10.42.0.101   iz2ze45nn072gmmp54dzf7z   <none>           <none>

@@ -1,0 +1,27 @@
+===== 2026-09-02T05:03:41Z | current context | exit=1 =====
+error: current-context is not set
+===== 2026-09-02T05:03:41Z | metrics APIService | exit=1 =====
+E0902 13:03:41.293926    4176 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:41.325281    4176 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:41.326342    4176 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:41.327893    4176 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:41.328952    4176 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+Unable to connect to the server: dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it.
+===== 2026-09-02T05:03:41Z | metrics API | exit=1 =====
+Unable to connect to the server: dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it.
+===== 2026-09-02T05:03:41Z | node metrics | exit=1 =====
+Unable to connect to the server: dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it.
+===== 2026-09-02T05:03:42Z | target deployment preflight | exit=1 =====
+E0902 13:03:42.017043   16592 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.040224   16592 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.042491   16592 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.044653   16592 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.045684   16592 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+Unable to connect to the server: dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it.
+===== 2026-09-02T05:03:42Z | target hpa preflight | exit=1 =====
+E0902 13:03:42.262243   24328 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.285645   24328 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.287317   24328 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.288925   24328 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.291053   24328 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+Unable to connect to the server: dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it.

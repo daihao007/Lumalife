@@ -17,7 +17,13 @@ spring:
 lumalife:
   internal:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
+  services:
+    order:
+      base-url: ${ORDER_SERVICE_URL:http://localhost:8083}
   events:
+    expiry:
+      fixed-delay-ms: ${LUMALIFE_EVENTS_EXPIRY_FIXED_DELAY_MS:5000}
+      batch-size: ${LUMALIFE_EVENTS_EXPIRY_BATCH_SIZE:50}
     broker:
       enabled: ${LUMALIFE_EVENTS_BROKER_ENABLED:false}
       exchange: ${LUMALIFE_EVENTS_EXCHANGE:lumalife.events}

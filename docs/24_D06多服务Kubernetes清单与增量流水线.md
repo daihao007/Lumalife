@@ -2,6 +2,8 @@
 
 关联任务：[#45](https://github.com/daihao007/Lumalife/issues/45)
 
+> 当前 main 收口口径（2026-09-02）：业务服务为 identity、merchant、order、assistant 四个独立 Spring Boot 服务；完整运行时应用镜像为 backend、frontend 加四个服务镜像，共 6 个。下文 2026-08-31 的三服务 Kind 数字属于历史验收快照，当前 CI/Kubernetes 结果见 [main CI](https://github.com/daihao007/Lumalife/actions/runs/33584079761)、[Kubernetes rollout smoke](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105159011) 和 [Deploy Kubernetes](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105958216)。内部 token/RabbitMQ 密码由 `lumalife-runtime` Secret 提供。
+
 ## 交付范围
 
 | 服务 | 应用版本 | 容器端口 | 独立镜像 | Kubernetes 资源 |
@@ -9,6 +11,7 @@
 | identity-service | 0.1.0 | 8081 | `ghcr.io/daihao007/lumalife-identity-service` | Deployment + Service |
 | merchant-service | 0.1.0 | 8082 | `ghcr.io/daihao007/lumalife-merchant-service` | Deployment + Service |
 | order-service | 0.1.0 | 8083 | `ghcr.io/daihao007/lumalife-order-service` | Deployment + Service |
+| assistant-service | 0.1.0 | 8084 | `ghcr.io/daihao007/lumalife-assistant-service` | Deployment + Service |
 
 每个 Deployment 都配置了：
 
@@ -33,8 +36,9 @@
 | `services/identity-service/**`、`k8s/services.yaml` | identity-service |
 | `services/merchant-service/**`、`k8s/services.yaml` | merchant-service |
 | `services/order-service/**`、`k8s/services.yaml` | order-service |
-| `services/pom.xml`、`k8s/healthcheck/**`、增量流水线或其检测/冒烟脚本 | 全部三个服务 |
-| 前端、正式生产清单 `k8s/services.yaml` 或普通文档等无关路径 | 无，不运行微服务增量作业 |
+| `services/assistant-service/**`、`k8s/services.yaml` | assistant-service |
+| `services/pom.xml`、`k8s/healthcheck/**`、增量流水线或其检测/冒烟脚本 | 全部四个服务 |
+| 前端、普通文档等无关路径 | 无，不运行微服务增量作业 |
 
 Pull Request 只构建受影响镜像而不推送，并在一次性 Kind 集群执行相同服务的 smoke test。Kind 健康检查
 镜像固定使用 `linux/amd64`、关闭 provenance 并以 `--load` 载入本机，避免多架构 manifest list 在
@@ -72,7 +76,7 @@ printf 'services/identity-service/src/main/java/App.java\n' \
 ```bash
 mvn -B -ntp -f services/pom.xml verify
 kubectl kustomize k8s > rendered-k8s.yaml
-kubectl kustomize k8s/services > rendered-services-smoke.yaml
+kubectl kustomize k8s > rendered-services.yaml
 ```
 
 ### 3. 独立构建镜像
@@ -83,6 +87,7 @@ Docker 构建上下文必须是 `services/`，因为每个服务都继承同级�
 docker build -f services/identity-service/Dockerfile -t lumalife-identity-service:dev services
 docker build -f services/merchant-service/Dockerfile -t lumalife-merchant-service:dev services
 docker build -f services/order-service/Dockerfile -t lumalife-order-service:dev services
+docker build -f services/assistant-service/Dockerfile -t lumalife-assistant-service:dev services
 ```
 
 Dockerfile 使用 BuildKit Maven 缓存。第一个服务下载依赖后，其他服务可复用缓存。
@@ -115,12 +120,12 @@ IMAGE_REGISTRY=ghcr.io/daihao007 \
 
 - `actionlint .github/workflows/services-cd.yml`：通过。
 - `bash scripts/test-detect-changed-services.sh`：8 组路径映射全部通过。
-- `mvn -B -ntp -f services/pom.xml verify`：3 个服务健康测试全部通过，0 失败。
-- `kubectl kustomize k8s`：成功渲染，包括 3 个新增 Deployment 和 3 个新增 Service。
-- 三个 Dockerfile 均完成真实镜像构建；三个容器本地 readiness 均为 `UP`，`/actuator/info` 返回对应服务名和 `0.1.0`。
+- `mvn -B -ntp -f services/pom.xml verify`：四个服务入口均纳入聚合验证；本段保留 2026-08-31 历史三服务 smoke 记录，当前 CI 结果见 [最新 main CI](https://github.com/daihao007/Lumalife/actions/runs/33584079761)。
+- `kubectl kustomize k8s`：当前清单成功渲染，包含 backend、frontend、RabbitMQ、四个业务 Deployment 及三套 service DB。
+- 2026-08-31 的三个服务 Dockerfile/readiness 记录属于历史快照；当前正式 CI 已构建并验证四个服务镜像，详见 [Microservice E2E job](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100104417404)。
 - 一次性 Kind 集群完成三服务部署；identity、merchant、order 均为 `2/2 READY`，镜像标签和 Deployment
   版本均为 `issue45`，三个集群内 readiness 检查全部通过。验收后临时集群已删除。
-- 原子部署复验中每个服务只有 1 个目标 ReplicaSet，首次创建直接使用 `issue45` 镜像；集群内没有
+- 原子部署复验中的 `issue45` 镜像和三服务 ReplicaSet 结论属于历史快照；当前部署仍以同一 `k8s/services.yaml` 为唯一来源，并保留六镜像版本化发布。集群内没有
   `Failed` 事件，也没有尝试拉取默认 `0.1.0` 镜像。
 
 最终部署摘要：

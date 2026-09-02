@@ -1,0 +1,11 @@
+commit=not-recorded-in-original-nightly-run
+workflow_run=local-nightly-20260902
+requests_per_repeat=10
+concurrency=4
+repeats=3
+apis=merchant-search,categories,merchant-detail
+modes=microservices,monolith
+validator=04_tests/performance/validate-results.sh
+
+# Supplemental manifest reconstructed from the committed nightly README and
+# result files; it is not a replacement for a GitHub Actions run metadata file.

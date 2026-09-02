@@ -126,7 +126,7 @@ docker compose --profile db-tools run --rm db-clean
 ```text
 LumaLife/
   backend/      Spring Boot API 服务
-  services/     identity、merchant、order 三服务的独立构建、内部 API 与健康检查
+  services/     identity、merchant、order、assistant 四服务的独立构建、内部 API 与健康检查
   database/     MySQL 版本迁移、显式演示 seed、清理和验证脚本
   frontend/     React/Vite 前端，已按 App、api、types、pages、components 拆分
   e2e/          独立真实 HTTP 黑盒 E2E 运行器与报告输出
@@ -142,23 +142,23 @@ LumaLife/
 [![Deploy ECS K3s](https://github.com/daihao007/Lumalife/actions/workflows/deploy-ecs-k3s.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/deploy-ecs-k3s.yml)
 [![Performance comparison](https://github.com/daihao007/Lumalife/actions/workflows/performance.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/performance.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的五个应用镜像，并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查；该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。CI 全部成功后，ECS 自托管 Runner 会把同一版本自动部署到阿里云 ECS 的 k3s 集群，并执行集群内健康检查。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)、[Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md) 和 [ECS 自动部署配置](docs/26_ECS自动部署配置.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的六个应用镜像（backend、frontend、identity、merchant、order、assistant），并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查；该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。CI 全部成功后，ECS 自托管 Runner 会把同一版本自动部署到阿里云 ECS 的 k3s 集群，并执行集群内健康检查。Kubernetes 的内部服务令牌和 RabbitMQ 凭据由部署脚本创建的 `lumalife-runtime` Secret 注入，不写入清单。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)、[Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md) 和 [ECS 自动部署配置](docs/26_ECS自动部署配置.md)。
 
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
-- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离。三项独立业务服务已提供 9/12/18 个内部接口，服务库按 identity/merchant/order 逻辑归属隔离；backend 仍是稳定的 BFF 入口，未纳入三服务事实源的兼容能力保留在 `DemoStore`。当前边界和追溯见 [D07 服务接口、数据归属与需求追溯](docs/28_D07服务接口数据归属与需求追溯.md) 和 [D08 云原生实验与性能对比计划](docs/29_D08云原生实验与性能对比计划.md)。
-- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前实测 76 个后端测试（43 个业务规则测试 + 25 个接口集成测试 + 4 个服务边界契约测试 + 4 个数据库资产测试），E2E 覆盖 CR-01～CR-06 六条代表性业务链；详见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E 执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E 执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)。
-- MySQL Schema、V001～V009 版本迁移、演示 seed、清理机制和关系表业务读写已落地，见 `docs/06_数据库设计.md`；V004 及后续服务迁移为渐进切流后的 identity/merchant/order 服务提供自有表，V009 增加头像容量和 Outbox 基础表。CI 会直接检查购物车关系行，并在重启后端后通过 API 验证恢复结果。
-- 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案明确排除骑手领域。
-- 三服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。库存预占/确认/释放已由 merchant-service 提供幂等 HTTP 边界，订单服务在支付/取消链路调用并做补偿；跨服务异步 Outbox/事件总线仍是后续增强项。
+- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离。当前四个独立服务的业务 mapping 为 identity 13、merchant 30、order 19 加 1 个评价投影、assistant 1；服务库按 identity/merchant/order 逻辑归属隔离；backend 仍是稳定的 BFF 入口，未纳入远程事实源的兼容能力保留在 `DemoStore`。当前边界和追溯见 [D07 服务接口、数据归属与需求追溯](docs/28_D07服务接口数据归属与需求追溯.md) 和 [D08 云原生实验与性能对比计划](docs/29_D08云原生实验与性能对比计划.md)。
+- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前 main 的 [Monolith CI 33584079761](https://github.com/daihao007/Lumalife/actions/runs/33584079761) 已成功，并提供 Backend、Microservice E2E UC01～UC09、API/UI E2E、Kubernetes smoke 和 quality gate 作业/Artifact。历史测试数量与范围仍见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)；本机 Java 24 失败不作为 Java 17 业务结论。
+- MySQL Schema、V001～V019 版本迁移、演示 seed、清理机制和关系表业务读写已落地，见 `docs/06_数据库设计.md`；V001～V018 为已存在的基线/渐进迁移，V019 补充库存释放结果去重、过期预占重试字段和 `CHECK_REQUIRED`/`RELEASE_FAILED` 状态约束。CI 会直接检查购物车关系行，并在重启后端后通过 API 验证恢复结果。
+- 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案是历史设计快照，明确排除骑手领域，当前四服务事实以 D07/架构矩阵为准。
+- 四服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。库存预占/确认/释放已由 merchant-service 通过 RabbitMQ transactional Outbox/Inbox 实现至少一次投递和幂等消费，释放结果明确区分 `RELEASED`、`CHECK_REQUIRED`、`RELEASE_FAILED`，order Saga 不会把人工核对写成 `RELEASED`。
 - D03 服务边界落地、错误响应兼容和可运行契约样例见 `docs/17_D03服务边界落地记录.md`。
 - D05 中期全量测试报告与失败注入记录见 `docs/19_D05中期全量测试报告_2026-08-27.md`。
 - Issue #33 的中期检查入口（架构图、边界/接口/数据归属、故障策略、构建证据、风险与决策记录）见 `docs/19_D04C微服务边界接口与数据归属初稿.md`。
-- Issue #38 的微服务方案评审、三服务独立构建/配置/健康检查骨架与回滚边界见 `docs/20_D05C微服务方案评审与拆分骨架.md`；当前仍由单体承接业务流量。
+- Issue #38 的微服务方案评审、历史三服务独立构建/配置/健康检查骨架与回滚边界见 `docs/20_D05C微服务方案评审与拆分骨架.md`；当前正式运行口径为四服务，单体路径仍保留用于兼容、迁移和回滚。
 - 本次微服务拆分的实施批次、数据回填、发布顺序、验收口径和回滚开关见 [微服务拆分实施与验收计划](docs/27_微服务拆分实施与验收计划.md)。
 - 课程评分项对应的 HPA、故障处理和性能实验入口见 [D08 云原生实验与性能对比计划](docs/29_D08云原生实验与性能对比计划.md)；性能结果必须使用脚本实际生成的 JSON/CSV，不能以截图或理论数据替代。
 
 ## 说明
 
-当前版本是从零搭建的课程演示版。本地直接运行默认使用文件状态，Compose/Kubernetes 默认使用 MySQL 关系表持久化。三项业务服务已可独立构建、测试、部署和健康检查；backend 入口已配置 CPU HPA（1～3 副本），实际扩缩容实验需要目标集群提供 metrics-server 并运行 `04_tests/cloud-native/run-hpa-experiment.sh`。
+当前版本是从零搭建的课程演示版。本地直接运行默认使用文件状态，Compose/Kubernetes 默认使用 MySQL 关系表持久化。四项独立服务和 backend/frontend 共六个应用镜像可独立构建、测试、部署和健康检查；merchant-service 入口已配置 CPU HPA（1～3 副本），远端 K3s 已通过 `metrics.k8s.io` 完成真实 1→2→3→1 验收，复现入口为 `04_tests/cloud-native/run-hpa-experiment.sh`。其他目标集群若未真实观察到 1→2/3→1，状态必须保持 BLOCKED。

@@ -19,6 +19,9 @@ readonly MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-life_assistant_order}"
 readonly MYSQL_USER="${MYSQL_USER:-lifeassist}"
 readonly MYSQL_PASSWORD="${MYSQL_PASSWORD:-lumalife-ci-password}"
 readonly MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-lumalife-ci-root-password}"
+readonly LUMALIFE_INTERNAL_SERVICE_TOKEN="${LUMALIFE_INTERNAL_SERVICE_TOKEN:?set LUMALIFE_INTERNAL_SERVICE_TOKEN from a secret manager}"
+readonly RABBITMQ_USER="${RABBITMQ_USER:?set RABBITMQ_USER from a secret manager}"
+readonly RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD from a secret manager}"
 readonly BACKFILL_PATH="database/backfill-services.sql"
 
 source scripts/lib/legacy-migrations.sh
@@ -143,6 +146,11 @@ apply_versioned_manifests() {
 }
 
 kubectl apply -f k8s/namespace.yaml
+kubectl -n "${NAMESPACE}" create secret generic lumalife-runtime \
+  --from-literal=internal-service-token="${LUMALIFE_INTERNAL_SERVICE_TOKEN}" \
+  --from-literal=rabbitmq-user="${RABBITMQ_USER}" \
+  --from-literal=rabbitmq-password="${RABBITMQ_PASSWORD}" \
+  --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n "${NAMESPACE}" create secret generic lumalife-mysql \
   --from-literal=database="${MYSQL_DATABASE}" \
   --from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}" \
@@ -174,6 +182,7 @@ kubectl -n "${NAMESPACE}" create configmap lumalife-mysql-migrations \
   --from-file=V016__async_inventory_reservation_saga.sql=database/migrations/V016__async_inventory_reservation_saga.sql \
   --from-file=V017__inventory_saga_failure_compensation.sql=database/migrations/V017__inventory_saga_failure_compensation.sql \
   --from-file=V018__chat_sender_role_contract.sql=database/migrations/V018__chat_sender_role_contract.sql \
+  --from-file=V019__inventory_release_outcomes_and_expiry.sql=database/migrations/V019__inventory_release_outcomes_and_expiry.sql \
   --from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh \
   --from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh \
   --from-file=isolate-service-databases.sh=database/bin/isolate-service-databases.sh \

@@ -228,7 +228,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\",\"V015\",\"V016\",\"V017\",\"V018\")"' | grep -qx 18
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\",\"V015\",\"V016\",\"V017\",\"V018\",\"V019\")"' | grep -qx 19
           MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
           MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
           MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
@@ -237,9 +237,9 @@ jobs:
             local query="$2"
             docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
           }
-          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 18
-          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 18
-          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 18
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 19
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 19
+          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 19
           test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM user_account")" -eq 6
           test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM merchant_catalog")" -eq 7
 
@@ -674,6 +674,13 @@ jobs:
             "lumalife-backend:${image_tag}" "lumalife-frontend:${image_tag}" \
             "lumalife-identity-service:${image_tag}" "lumalife-merchant-service:${image_tag}" "lumalife-order-service:${image_tag}" "lumalife-assistant-service:${image_tag}"
 
+      - name: Generate Kubernetes smoke credentials
+        shell: bash
+        run: |
+          echo "LUMALIFE_INTERNAL_SERVICE_TOKEN=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "RABBITMQ_USER=lumalife" >> "$GITHUB_ENV"
+          echo "RABBITMQ_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
       - name: Deploy and verify probes in the disposable cluster
         shell: bash
         env:
@@ -738,6 +745,13 @@ jobs:
           )
           for image in "${images[@]}"; do docker pull "$image"; done
           kind load docker-image --name lumalife "${images[@]}"
+
+      - name: Generate Kubernetes acceptance credentials
+        shell: bash
+        run: |
+          echo "LUMALIFE_INTERNAL_SERVICE_TOKEN=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "RABBITMQ_USER=lumalife" >> "$GITHUB_ENV"
+          echo "RABBITMQ_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
       - name: Deploy versioned images and verify health
         shell: bash

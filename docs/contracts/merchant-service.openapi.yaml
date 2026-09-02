@@ -231,7 +231,7 @@ paths:
         - {$ref: '#/components/parameters/CallerService'}
         - {$ref: '#/components/parameters/IdempotencyKey'}
       responses:
-        '200': {description: Released or already released, content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
+        '200': {description: "Released, already terminal, or CHECK_REQUIRED when stock cannot be safely reconciled", content: {application/json: {schema: {$ref: '#/components/schemas/Reservation'}}}}
         '409': {$ref: '#/components/responses/Error'}
 components:
   securitySchemes:

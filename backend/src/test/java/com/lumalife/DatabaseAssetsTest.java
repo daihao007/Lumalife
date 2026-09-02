@@ -35,6 +35,8 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V015__inventory_saga_result_delivery.sql");
   private static final Path INVENTORY_SAGA_FAILURE_MIGRATION =
     Path.of("..", "database", "migrations", "V017__inventory_saga_failure_compensation.sql");
+  private static final Path INVENTORY_RELEASE_OUTCOMES_MIGRATION =
+    Path.of("..", "database", "migrations", "V019__inventory_release_outcomes_and_expiry.sql");
   private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
@@ -161,6 +163,14 @@ class DatabaseAssetsTest {
 
     assertThat(migration).contains("RESERVE_PENDING", "RESERVE_FAILED", "CONFIRM_PENDING",
       "CONFIRM_FAILED", "RELEASE_PENDING", "RELEASED");
+  }
+
+  @Test
+  void inventoryReleaseMigrationSeparatesManualOutcomesAndExpiryRetries() throws IOException {
+    String migration = Files.readString(INVENTORY_RELEASE_OUTCOMES_MIGRATION);
+
+    assertThat(migration).contains("deduplication_key", "expiry_attempts", "expiry_last_error",
+      "'CHECK_REQUIRED'", "'RELEASE_FAILED'");
   }
 
   @Test

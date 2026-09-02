@@ -44,8 +44,14 @@ public class OrderSagaEventStore {
     Instant occurredAt = Instant.now();
     String lastError = failureStatus + (errorMessage == null || errorMessage.isBlank() ? "" : ": " + errorMessage);
     jdbc.update("INSERT INTO order_inventory_saga(order_id,user_id,client_request_id,status,last_error) VALUES (?,?,?, 'RELEASE_PENDING',?) "
-        + "ON DUPLICATE KEY UPDATE status='RELEASE_PENDING',last_error=?,updated_at=CURRENT_TIMESTAMP(3)",
+        + "ON DUPLICATE KEY UPDATE last_error=CASE WHEN status IN ('RELEASED','CHECK_REQUIRED','RELEASE_FAILED') "
+        + "THEN last_error ELSE ? END,status=CASE WHEN status IN "
+        + "('RELEASED','CHECK_REQUIRED','RELEASE_FAILED') THEN status ELSE 'RELEASE_PENDING' END,"
+        + "updated_at=CURRENT_TIMESTAMP(3)",
         orderId, actorId, clientRequestId, lastError, lastError);
+    String currentStatus = jdbc.queryForObject(
+        "SELECT status FROM order_inventory_saga WHERE order_id=? FOR UPDATE", String.class, orderId);
+    if (!"RELEASE_PENDING".equals(currentStatus)) return;
     try {
       LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
       payload.put("orderId", orderId);
@@ -55,8 +61,10 @@ public class OrderSagaEventStore {
       payload.put("error", errorMessage);
       payload.put("clientRequestId", clientRequestId);
       payload.put("occurredAt", occurredAt.toString());
-      jdbc.update("INSERT INTO service_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
+      jdbc.update("INSERT INTO service_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,deduplication_key,occurred_at) "
+          + "VALUES (?,?,?,?, 'PENDING',?,?) ON DUPLICATE KEY UPDATE id=id",
           "ORDER", orderId, "inventory.release.requested", mapper.writeValueAsString(payload),
+          "inventory.release.requested:" + orderId + ":" + failureStatus,
           java.sql.Timestamp.from(occurredAt));
     } catch (JsonProcessingException error) {
       throw new IllegalStateException("库存补偿事件序列化失败", error);

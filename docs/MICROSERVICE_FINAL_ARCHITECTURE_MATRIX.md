@@ -36,7 +36,7 @@
 | assistant-service | 无业务数据库 | 请求级上下文处理和 AI provider/fallback | 上下文由 backend 注入 |
 | legacy source | `life_assistant` | 拆分前遗留数据、迁移/backfill/rollback 源 | `prod,remote` 不作为业务读写源 |
 
-三项 service DB 的目标名称由 `application-prod.yml` 固定为 identity、merchant、order 对应数据库；环境变量缺失时不 fallback 到 `life_assistant`。
+三个有状态 service DB 的目标名称由 `application-prod.yml` 固定为 identity、merchant、order 对应数据库；assistant-service 无业务 DB；环境变量缺失时不 fallback 到 `life_assistant`。
 
 ## 4. 跨服务调用
 
@@ -67,3 +67,5 @@ Microservice E2E 使用真实 HTTP 黑盒 runner，在 `prod,remote`、独立 Co
 | UC09 | 运营看板、用户/商家/订单/金额投影 | PASS | 同上 |
 
 详细执行环境和 run ID 见 `docs/MICROSERVICE_E2E_REPORT.md`；单体 E2E 仍独立保留，不能与该远程链路证据混写。
+
+当前 main 的 CI/CD 链接、性能原始结果和 HPA 远端 PASS/历史 BLOCKED 证据已统一收录于 [`04_tests/evidence/README.md`](../04_tests/evidence/README.md)。

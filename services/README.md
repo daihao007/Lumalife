@@ -19,7 +19,7 @@ mvn -B -ntp -f services/identity-service/pom.xml verify
 mvn -f services/identity-service/pom.xml spring-boot:run
 ```
 
-把路径中的 `identity-service` 替换为 `merchant-service` 或 `order-service` 即可。默认端口和覆盖变量如下：
+把路径中的 `identity-service` 替换为 `merchant-service`、`order-service` 或 `assistant-service` 即可。默认端口和覆盖变量如下：
 
 | 服务 | 默认端口 | 环境变量 |
 |---|---:|---|
@@ -39,14 +39,14 @@ mvn -f services/identity-service/pom.xml spring-boot:run
 
 业务契约入口：
 
-- identity-service：`/internal/v1/auth/*`、`/internal/v1/users/*`（9 个业务接口）
-- merchant-service：`/internal/v1/merchants/*`、`/internal/v1/products/*`、`/internal/v1/deals/*`（12 个业务接口）
-- order-service：`/internal/v1/orders/*`（18 个业务接口）
-- assistant-service：`POST /internal/v1/assistant/answer`（内部 AI 答案契约）
+- identity-service：`/internal/v1/auth/*`、`/internal/v1/users/*`（13 个业务 mapping）
+- merchant-service：`/internal/v1/merchants/*`、`/internal/v1/products/*`、`/internal/v1/deals/*`（30 个业务 mapping，含库存与会话）
+- order-service：`/internal/v1/orders/*`（19 个业务 mapping）；另有 1 个 `/internal/v1/merchants/*` 评价只读投影
+- assistant-service：`POST /internal/v1/assistant/answer`（1 个业务 mapping，内部 AI 答案契约）
 
 单体网关只有在显式 `monolith` profile 下才保持单体路由。Compose/Kubernetes 打开 identity、merchant、order、assistant 四类远程路由；生产配置不加载 `monolith`，因此 `DemoStore` 不会作为隐式回退创建，漏配远程实现会直接暴露为启动错误。通过 `GET /internal/migration/status` 查看实时路由。筛选排序已由远程 adapter 和 `MerchantStore` 实现，团购在 JDBC 可用时持久化到 `group_deal`。order-service 会保存商品名称、商家名称和配送地址快照，订单详情不依赖商家服务在线才能显示历史信息。
 
-远程切流后，管理员看板由 backend 的 `RemoteMetricsServicePort` 聚合三个有状态服务的只读投影。order-service 的状态变更和库存命令在本地事务中写入 `service_outbox_event`；启用 `LUMALIFE_EVENTS_BROKER_ENABLED=true` 后由 RabbitMQ Topic Exchange 投递。生产支付链路按 `RESERVE_PENDING → RESERVED → CONFIRM_PENDING → CONFIRMED` 运行：merchant-service 以 `merchant_inbox_event` 幂等消费预占/确认/释放命令，再以 `merchant_outbox_event` 发布结果；order-service 以 `order_inbox_event` 幂等消费结果并推进 `order_inventory_saga`。同步 HTTP 预占仅在显式关闭 broker 的兼容模式使用。AI provider 和 deterministic fallback 已移入 assistant-service，backend 只负责上下文编排。
+远程切流后，管理员看板由 backend 的 `RemoteMetricsServicePort` 聚合三个有状态服务的只读投影。order-service 的状态变更和库存命令在本地事务中写入 `service_outbox_event`；启用 `LUMALIFE_EVENTS_BROKER_ENABLED=true` 后由 RabbitMQ Topic Exchange 投递。生产支付链路按 `RESERVE_PENDING → RESERVED → CONFIRM_PENDING → CONFIRMED` 运行：merchant-service 以 `merchant_inbox_event` 幂等消费预占/确认/释放命令，再以 `merchant_outbox_event` 发布结果；释放结果严格区分 `inventory.result.released`、`inventory.result.check_required` 和 `inventory.result.release_failed`，order-service 以 `order_inbox_event` 幂等消费并推进 `RELEASED`、`CHECK_REQUIRED` 或 `RELEASE_FAILED`。merchant-service 定时扫描过期的 `RESERVED` 预占，先通过 order-service 的 `GET /internal/v1/orders/{orderId}/payment-state` 核验；只有 `FAILED/CANCELLED` 才自动释放，成功、未知或依赖不可用均转人工核对。同步 HTTP 预占仅在显式关闭 broker 的兼容模式使用。AI provider 和 deterministic fallback 已移入 assistant-service，backend 只负责上下文编排。
 
 物理数据库隔离示例：
 

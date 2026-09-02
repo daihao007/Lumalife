@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    objectset.rio.cattle.io/applied: H4sIAAAAAAAA/5xVYW8aORD9K6f5vJvsEkialfiACFeqS1NU6J1OVYSMdwAfXtvnmaXhIv77aXaTlFxD0+sXtNjj5zfvjWfuQQXzO0Yy3kEBKgQ63eaQwMa4Egq4wmD9rkLHkECFrErFCop7UM55Vmy8I/nrF3+hZkI+icafaMVs8cT4UyMgkBzd918cxnS13UABmzM62NnmyS+/GVf2B2Xp3asQTlUIhVCMRlNKGLcY0/KQ/usAFJQWlE29wJR2xFjBPgGrFmibNDdvKFUhfHPRd9DXitZQAOYZdro9zM+we64uOj19WZZl2V1e4qJzdrnMuxcXF91lKfe9mAu060coUkAtBCNujXg5NsQ+7q5NZRiKLAFCi5p9lKBKsV5fv57UXoA5KsbVrgH31hq3+hRKxdgC3X1yaquMVQuLUOT7BHgXhN/HZ7GyjlWwj+cOCukHxD0qyUHi2jtWxmEkKD7fg4or+YA01Rg5LU3sn3IVIIE0JdR1xDT4yP086/SyZlUEtchpiLjEGLFMVVlGJEolI+q/c4zRKftukozunj7HnrjhdghRE6bOl5gSK66puakJaOmnEcnbWt5OP+9Rs8OWUm3CGmNKtWGk/ux6Oh8Nr8Yj+Z0O5n+8m43ng9F03umdz98O38+n48HZm27yNe7jD0X9By3vvHmM6/TOj6EdjTpAG44Hw/Ggk80nH67/zM+y3ktg3wTBbQKmUitxNyqn1xhPKxOjFwee211ss5PLE3HLmi06JJpEv2gKaqmMrSPO1hFp7W0JxVkCa+bwFln2g2J5hKdy8B9IoHGkaCJEf9JrbOprPJtNplJWxhk2yl6hVbspau9KguI8SyBgNL58WsrladVaI9HB5XkCbCr0NX8N/M67FjZt2T5V8aQh2FTn07lHtiF69tpbKGA2nMD+NoGIqjQ/pYic3P28JN8q0vkfgshDqKNGalvX3zUSN9861FBAnmVVM3YqH3dQwEX23rRNSV6w4d3QO8a7Jh9lrf8yiWZrLK5wRFrZZjpBsVSWsJXog7O7j97zr8biQ+8sONayW7sB3Xgnu8/WPhFGMSLL9glsva0rfO9r9+BXJZ+TBynb/vJgFldBug7sb8Uf6QbTgw4snSI6ZKRmABEUYI2r70TnEI1vkrOK6KZFa8m2TUVHw0YrKyZh3BqNA62Fx82R8mJvMT6O6s/3sEERc/gA04xXEmVkiAWJFI4wujNixj65B1wuUUtx3PipXmNZW+l3LUxDKXqLJ89zkkqO3qbBKocvI98+CtrSwirw7sqIPvuXZNzv9/8GAAD//16qvX+uCAAA
+    objectset.rio.cattle.io/id: ""
+    objectset.rio.cattle.io/owner-gvk: k3s.cattle.io/v1, Kind=Addon
+    objectset.rio.cattle.io/owner-name: metrics-server-deployment
+    objectset.rio.cattle.io/owner-namespace: kube-system
+  creationTimestamp: "2026-08-31T02:36:43Z"
+  generation: 1
+  labels:
+    k8s-app: metrics-server
+    objectset.rio.cattle.io/hash: e10e245e13e46a725c9dddd4f9eb239f147774fd
+  name: metrics-server
+  namespace: kube-system
+  resourceVersion: "1091"
+  uid: 4e7ebb04-e793-471c-81cc-1fc2ef59b471
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        k8s-app: metrics-server
+      name: metrics-server
+    spec:
+      containers:
+      - args:
+        - --cert-dir=/tmp
+        - --secure-port=10250
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+        - --kubelet-use-node-status-port
+        - --metric-resolution=15s
+        - --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        image: rancher/mirrored-metrics-server:v0.9.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /livez
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: metrics-server
+        ports:
+        - containerPort: 10250
+          name: https
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: https
+            scheme: HTTPS
+          periodSeconds: 2
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 70Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-dir
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: metrics-server
+      serviceAccountName: metrics-server
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      volumes:
+      - emptyDir: {}
+        name: tmp-dir
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2026-08-31T02:36:43Z"
+    lastUpdateTime: "2026-08-31T02:36:43Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2026-08-31T02:36:43Z"
+    lastUpdateTime: "2026-08-31T02:45:03Z"
+    message: ReplicaSet "metrics-server-6dc596dfb8" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+  terminatingReplicas: 0
+  updatedReplicas: 1

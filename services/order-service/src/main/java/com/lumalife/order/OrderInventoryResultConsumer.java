@@ -42,19 +42,26 @@ public class OrderInventoryResultConsumer {
           event.path("payload").toString(), java.sql.Timestamp.from(Instant.now()));
       if (inserted == 0 && isProcessed(eventId)) return;
 
-      String sourceEventType = event.path("payload").path("sourceEventType").asText("");
-      String sagaStatus = switch (eventType) {
-        case "inventory.result.reserved" -> "RESERVED";
-        case "inventory.result.confirmed" -> "CONFIRMED";
-        case "inventory.result.released" -> "RELEASED";
-        case "inventory.result.failed" -> failureStatus(sourceEventType);
-        default -> throw new IllegalArgumentException("不支持的库存结果事件: " + eventType);
-      };
+      JsonNode payload = event.path("payload");
+      String sourceEventType = payload.path("sourceEventType").asText("");
+      String sagaStatus = sagaStatus(eventType, payload, sourceEventType);
       String errorMessage = event.path("payload").path("error").asText("");
-      int updated = jdbc.update("UPDATE order_inventory_saga SET status=?,last_error=? WHERE order_id=?",
+      if (errorMessage.isBlank()) errorMessage = defaultError(sagaStatus);
+      int updated = jdbc.update("UPDATE order_inventory_saga SET status=?,last_error=? WHERE order_id=? "
+          + "AND status IN " + allowedPreviousStatuses(sagaStatus),
           sagaStatus, sagaStatus.endsWith("_FAILED") || "FAILED".equals(sagaStatus)
-              ? (errorMessage.isBlank() ? "库存事件失败" : errorMessage) : null, orderId);
-      if (updated != 1) throw new IllegalStateException("订单库存 Saga 不存在: " + orderId);
+              ? errorMessage : ("CHECK_REQUIRED".equals(sagaStatus) ? errorMessage : null), orderId);
+      if (updated != 1) {
+        // A second delivery with a different broker message id, or a late
+        // result from an older attempt, must not move a terminal outcome back
+        // to RELEASED. The row still has to be ACKed after it is observed.
+        String currentStatus = currentSagaStatus(orderId);
+        if (currentStatus == null || currentStatus.isBlank()) {
+          throw new IllegalStateException("订单库存 Saga 不存在: " + orderId);
+        }
+        markProcessed(eventId);
+        return;
+      }
       if ("RESERVED".equals(sagaStatus)) appendConfirmCommand(orderId);
       if ("RESERVE_FAILED".equals(sagaStatus)) {
         failPaidOrder(orderId);
@@ -62,7 +69,7 @@ public class OrderInventoryResultConsumer {
       if ("CONFIRM_FAILED".equals(sagaStatus)) {
         failPaidOrderAndScheduleRelease(orderId, errorMessage);
       }
-      jdbc.update("UPDATE order_inbox_event SET status='PROCESSED',processed_at=CURRENT_TIMESTAMP,last_error=NULL WHERE event_id=?", eventId);
+      markProcessed(eventId);
     } catch (Exception error) {
       throw new IllegalStateException("库存结果事件处理失败", error);
     }
@@ -77,8 +84,64 @@ public class OrderInventoryResultConsumer {
     return switch (sourceEventType) {
       case "inventory.reserve.requested" -> "RESERVE_FAILED";
       case "inventory.confirm.requested" -> "CONFIRM_FAILED";
+      case "inventory.release.requested", "inventory.expiration.reconciliation" -> "RELEASE_FAILED";
       default -> "FAILED";
     };
+  }
+
+  private String sagaStatus(String eventType, JsonNode payload, String sourceEventType) {
+    return switch (eventType) {
+      case "inventory.result.reserved" -> "RESERVED";
+      case "inventory.result.confirmed" -> "CONFIRMED";
+      case "inventory.result.check_required" -> "CHECK_REQUIRED";
+      case "inventory.result.release_failed" -> "RELEASE_FAILED";
+      case "inventory.result.released" -> releaseStatus(payload);
+      case "inventory.result.failed" -> failureStatus(sourceEventType);
+      default -> throw new IllegalArgumentException("不支持的库存结果事件: " + eventType);
+    };
+  }
+
+  private String releaseStatus(JsonNode payload) {
+    String reservationStatus = payload.path("reservationStatus").asText("");
+    String declaredOutcome = payload.path("outcome").asText("");
+    if ("CHECK_REQUIRED".equals(reservationStatus) || "CHECK_REQUIRED".equals(declaredOutcome)) {
+      return "CHECK_REQUIRED";
+    }
+    if ("RELEASED".equals(reservationStatus) || "RELEASED".equals(declaredOutcome)) {
+      return "RELEASED";
+    }
+    return "RELEASE_FAILED";
+  }
+
+  private String defaultError(String sagaStatus) {
+    return switch (sagaStatus) {
+      case "CHECK_REQUIRED" -> "库存释放需要人工核对";
+      case "RELEASE_FAILED" -> "库存释放失败";
+      case "RESERVE_FAILED", "CONFIRM_FAILED", "FAILED" -> "库存事件失败";
+      default -> "";
+    };
+  }
+
+  private String allowedPreviousStatuses(String sagaStatus) {
+    return switch (sagaStatus) {
+      case "RESERVED", "RESERVE_FAILED" -> "('RESERVE_PENDING')";
+      case "CONFIRMED", "CONFIRM_FAILED" -> "('CONFIRM_PENDING')";
+      case "RELEASED", "CHECK_REQUIRED", "RELEASE_FAILED" -> "('RESERVED','RELEASE_PENDING')";
+      default -> "('RESERVE_PENDING','RESERVED','CONFIRM_PENDING','CONFIRMED','RELEASE_PENDING')";
+    };
+  }
+
+  private String currentSagaStatus(long orderId) {
+    try {
+      return jdbc.queryForObject("SELECT status FROM order_inventory_saga WHERE order_id=? FOR UPDATE",
+          String.class, orderId);
+    } catch (RuntimeException error) {
+      throw new IllegalStateException("订单库存 Saga 状态读取失败: " + orderId, error);
+    }
+  }
+
+  private void markProcessed(String eventId) {
+    jdbc.update("UPDATE order_inbox_event SET status='PROCESSED',processed_at=CURRENT_TIMESTAMP,last_error=NULL WHERE event_id=?", eventId);
   }
 
   private void appendConfirmCommand(long orderId) {

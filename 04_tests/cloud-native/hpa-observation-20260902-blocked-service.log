@@ -1,0 +1,6 @@
+===== 2026-09-02T05:03:42Z | preflight merchant-service logs | exit=1 =====
+E0902 13:03:42.763000   22896 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.793523   22896 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.795103   22896 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+E0902 13:03:42.796650   22896 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=10s\": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it."
+Unable to connect to the server: dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it.

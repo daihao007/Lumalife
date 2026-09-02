@@ -59,7 +59,11 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: prod,remote
             - name: LUMALIFE_INTERNAL_SERVICE_TOKEN
-              value: compose-internal-token
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: internal-service-token
+                  optional: false
             - name: IDENTITY_SERVICE_URL
               value: http://identity-service:8081
             - name: MERCHANT_SERVICE_URL

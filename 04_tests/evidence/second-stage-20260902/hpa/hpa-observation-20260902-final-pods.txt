@@ -1,0 +1,2 @@
+NAME                                READY   STATUS    RESTARTS   AGE     IP            NODE                      NOMINATED NODE   READINESS GATES
+merchant-service-544dcf949c-xvzm7   1/1     Running   0          3h28m   10.42.0.222   iz2ze45nn072gmmp54dzf7z   <none>           <none>

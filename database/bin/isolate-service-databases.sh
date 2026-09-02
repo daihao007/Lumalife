@@ -78,10 +78,10 @@ copy_owned_tables() {
 sync_latest_migration_marker() {
   target_host=$1
   target_database=$2
-  migration_file=/database/migrations/V018__chat_sender_role_contract.sql
+  migration_file=/database/migrations/V019__inventory_release_outcomes_and_expiry.sql
   migration_checksum=$(sha256sum "$migration_file" | awk '{print $1}')
   MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
-    --database="$target_database" --execute="INSERT INTO schema_migration(version,description,checksum) VALUES ('V018','chat_sender_role_contract','${migration_checksum}') ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum)"
+    --database="$target_database" --execute="INSERT INTO schema_migration(version,description,checksum) VALUES ('V019','inventory_release_outcomes_and_expiry','${migration_checksum}') ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum)"
 }
 
 upgrade_merchant_chat_constraint() {
@@ -109,7 +109,40 @@ upgrade_order_saga_constraint() {
       --database="$target_database" --execute='ALTER TABLE order_inventory_saga DROP CHECK ck_order_inventory_saga_status'
   fi
   MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
-    --database="$target_database" --execute="ALTER TABLE order_inventory_saga ADD CONSTRAINT ck_order_inventory_saga_status CHECK (status IN ('RESERVE_PENDING','RESERVED','RESERVE_FAILED','CONFIRM_PENDING','CONFIRMED','CONFIRM_FAILED','RELEASE_PENDING','RELEASED','FAILED'))"
+    --database="$target_database" --execute="ALTER TABLE order_inventory_saga ADD CONSTRAINT ck_order_inventory_saga_status CHECK (status IN ('RESERVE_PENDING','RESERVED','RESERVE_FAILED','CONFIRM_PENDING','CONFIRMED','CONFIRM_FAILED','RELEASE_PENDING','RELEASED','CHECK_REQUIRED','RELEASE_FAILED','FAILED'))"
+}
+
+upgrade_inventory_reconciliation_schema() {
+  merchant_host=$1
+  merchant_database=$2
+  order_host=$3
+  order_database=$4
+  merchant_outbox_dedup_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$merchant_host" --user="$MYSQL_USER" --database="$merchant_database" --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${merchant_database}' AND table_name='merchant_outbox_event' AND column_name='deduplication_key'")
+  if [ "$merchant_outbox_dedup_count" -eq 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$merchant_host" --user="$MYSQL_USER" --database="$merchant_database" --execute='ALTER TABLE merchant_outbox_event ADD COLUMN deduplication_key VARCHAR(255) NULL'
+  fi
+  merchant_outbox_index_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$merchant_host" --user="$MYSQL_USER" --database="$merchant_database" --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='${merchant_database}' AND table_name='merchant_outbox_event' AND index_name='uk_merchant_outbox_deduplication'")
+  if [ "$merchant_outbox_index_count" -eq 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$merchant_host" --user="$MYSQL_USER" --database="$merchant_database" --execute='ALTER TABLE merchant_outbox_event ADD UNIQUE KEY uk_merchant_outbox_deduplication (deduplication_key)'
+  fi
+  for column_definition in \
+    'expiry_attempts INT UNSIGNED NOT NULL DEFAULT 0' \
+    'expiry_last_attempt_at DATETIME(3) NULL' \
+    'expiry_last_error VARCHAR(1000) NULL'; do
+    column_name=${column_definition%% *}
+    count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$merchant_host" --user="$MYSQL_USER" --database="$merchant_database" --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${merchant_database}' AND table_name='inventory_reservation' AND column_name='${column_name}'")
+    if [ "$count" -eq 0 ]; then
+      MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$merchant_host" --user="$MYSQL_USER" --database="$merchant_database" --execute="ALTER TABLE inventory_reservation ADD COLUMN ${column_definition}"
+    fi
+  done
+  order_outbox_dedup_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$order_host" --user="$MYSQL_USER" --database="$order_database" --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='${order_database}' AND table_name='service_outbox_event' AND column_name='deduplication_key'")
+  if [ "$order_outbox_dedup_count" -eq 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$order_host" --user="$MYSQL_USER" --database="$order_database" --execute='ALTER TABLE service_outbox_event ADD COLUMN deduplication_key VARCHAR(255) NULL'
+  fi
+  order_outbox_index_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$order_host" --user="$MYSQL_USER" --database="$order_database" --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema='${order_database}' AND table_name='service_outbox_event' AND index_name='uk_service_outbox_deduplication'")
+  if [ "$order_outbox_index_count" -eq 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$order_host" --user="$MYSQL_USER" --database="$order_database" --execute='ALTER TABLE service_outbox_event ADD UNIQUE KEY uk_service_outbox_deduplication (deduplication_key)'
+  fi
 }
 
 wait_for_mysql "$MYSQL_HOST" "$MYSQL_DATABASE"
@@ -117,6 +150,7 @@ copy_owned_tables "$IDENTITY_MYSQL_HOST" "$MYSQL_IDENTITY_DATABASE" schema_migra
 copy_owned_tables "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE" schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event merchant_outbox_event
 copy_owned_tables "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE" schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event order_inbox_event order_inventory_saga
 upgrade_merchant_chat_constraint "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE"
+upgrade_inventory_reconciliation_schema "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE" "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE"
 sync_latest_migration_marker "$IDENTITY_MYSQL_HOST" "$MYSQL_IDENTITY_DATABASE"
 sync_latest_migration_marker "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE"
 upgrade_order_saga_constraint "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE"

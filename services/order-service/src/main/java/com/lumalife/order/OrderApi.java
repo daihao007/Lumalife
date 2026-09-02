@@ -34,6 +34,9 @@ public class OrderApi {
   @GetMapping("/metrics")
   java.util.Map<String, Object> metrics() { return store.metrics(); }
 
+  @GetMapping("/{orderId}/payment-state")
+  OrderStore.PaymentState paymentState(@PathVariable long orderId) { return store.paymentState(orderId); }
+
   @GetMapping("/{id}")
   OrderStore.Order order(@PathVariable long id, @RequestHeader("X-User-Id") long userId) {
     OrderStore.Order order = store.order(id);

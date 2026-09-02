@@ -56,9 +56,17 @@ spec:
           image: rabbitmq:3.13-management
           env:
             - name: RABBITMQ_DEFAULT_USER
-              value: lumalife
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: rabbitmq-user
+                  optional: false
             - name: RABBITMQ_DEFAULT_PASS
-              value: lumalife-ci-password
+              valueFrom:
+                secretKeyRef:
+                  name: lumalife-runtime
+                  key: rabbitmq-password
+                  optional: false
           ports:
             - name: amqp
               containerPort: 5672

@@ -1,0 +1,8 @@
+Docker Desktop recovery attempt: 2026-09-02 (Asia/Shanghai)
+
+The Docker Desktop process was started, but its daemon exited before exposing
+the Docker API or a Kubernetes context. Relevant raw host log lines:
+
+[2026-09-02T04:46:40.559291000Z][com.docker.backend.exe] backend cancelling with error: starting services: initializing Inference manager: listening on unix://<HOME>\AppData\Local\Docker\run\dockerInference: remove <HOME>\AppData\Local\Docker\run\dockerInference: The file cannot be accessed by the system. (listener: The filename, directory name, or volume label syntax is incorrect.)
+[2026-09-02T04:47:12.568000000Z][com.docker.backend.exe] backend crashed; all local engines stopped
+[2026-09-02T04:47:17.103501500Z][com.docker.backend.exe.ipc] error: starting services: initializing Inference manager: listening on unix://<HOME>\AppData\Local\Docker\run\dockerInference; Docker Desktop encountered an unexpected error and needs to close.

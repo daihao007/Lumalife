@@ -1,14 +1,16 @@
 # LumaLife 第二阶段夜间自主执行报告
 
 执行日期：2026-09-02（Asia/Shanghai）  
-仓库：`/Users/daihao/Downloads/Lumalife-main`  
-执行范围：Microservice E2E、故障处理、HPA 实验准备/观测、性能对比、文档同步和最终回归。
+仓库：`D:\Projects\26summer\Lumalife`
+执行范围：Microservice E2E、故障处理、HPA 最终验收、性能对比、文档同步和最终回归。
+
+当前 main 对应 CI/CD 运行链接： [Monolith CI 33584079761](https://github.com/daihao007/Lumalife/actions/runs/33584079761)（含 Microservice E2E、Kubernetes smoke、Deploy Kubernetes）、[Microservice E2E job](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100104417404)、[Kubernetes rollout smoke job](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105159011)、[Deploy Kubernetes job](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105958216)、[ECS/K3s deployment 33584774218](https://github.com/daihao007/Lumalife/actions/runs/33584774218/job/100110913513)。性能 workflow 入口为 [Performance comparison](https://github.com/daihao007/Lumalife/actions/workflows/performance.yml)；远端最近一次旧版 run 为 [33488817667（failure）](https://github.com/daihao007/Lumalife/actions/runs/33488817667)，不能作为当前修复成功证据。统一证据索引见 [`04_tests/evidence/README.md`](../04_tests/evidence/README.md)。
 
 ## 1. 总体结论
 
 **Microservice E2E 阶段：PASS。** 当前仓库已经具备进入并完成完整 Microservice E2E 的条件，UC01～UC09 在真实 `prod,remote` 链路中 9/9 通过。
 
-**第二阶段云原生实验状态：PARTIAL。** 故障实验和性能对比已完成；merchant-service HPA 配置、负载和原始观测已完成，但 Docker Desktop 没有 `metrics.k8s.io`，因此自动扩容/缩容尚未取得可审计的真实副本转换证据。该项记录为 BLOCKED，不影响 Microservice E2E 结论，也不被写成 HPA 成功。
+**第二阶段云原生实验状态：PASS（HPA 已完成）。** 故障实验、性能对比和 merchant-service HPA 均已有真实证据；HPA 在远端 ECS/K3s 上确认 `metrics.k8s.io` 可用，并实际观察到 Ready 副本与 HPA current/desired 从 1 到 2/3 再冷却回 1。本机此前无 context 的 BLOCKED preflight 仍保留为历史证据，不覆盖远端结果。
 
 ## 2. Microservice E2E
 
@@ -55,13 +57,16 @@ UC03 实测库存 Saga 为 `CONFIRMED`、payment 为 `SUCCESS`；UC08 实测 sen
 | 项目 | 结果 |
 | --- | --- |
 | HPA target | merchant-service，min=1，max=3，CPU target=60% |
-| Load | 2 workers，5 秒，真实内部 HTTP 请求 2701 次，错误 0 |
-| Scale Up | BLOCKED；`metrics.k8s.io` 不存在，未观察到可审计的副本增加 |
-| Scale Down | BLOCKED；没有有效 Resource Metrics，不能把副本保持为 1 写成自动缩容成功 |
-| CPU / memory | N/A；`kubectl top` 返回 Metrics API not available |
-| 原始数据 | `04_tests/cloud-native/hpa-observation.csv`、load/top/HPA/deployment 日志 |
+| Context/API server | PASS；远端 K3s context `default`，Kubernetes v1.36.3+k3s1 |
+| `metrics.k8s.io` | PASS；APIService `Available=True`，raw API 与 `kubectl top` 均成功 |
+| metrics-server | PASS；集群已有 `kube-system/metrics-server`，本次无需安装替换 |
+| Load | PASS；20 workers、180 秒负载，10 秒采样 |
+| Scale Up | PASS；merchant-service Ready `1 → 2 → 3`，HPA current/desired 同步达到 `2/2`、`3/3` |
+| Scale Down | PASS；180 秒冷却后 Ready 与 HPA current/desired 均回到 `1/1` |
+| CPU / memory | PASS；每轮有 `kubectl top` CPU/Memory 原始采样 |
+| 原始数据 | `04_tests/cloud-native/hpa-observation-20260902*`；统一索引见 `04_tests/evidence/second-stage-20260902/hpa/` |
 
-实际错误为 Kubernetes 无法获取 `pods.metrics.k8s.io`。报告：`docs/HPA_EXPERIMENT_REPORT.md`。下一次必须在安装 metrics-server 或等价 Resource Metrics API 的验收集群重跑完整负载和冷却阶段。
+本次远端实验的原始 kubectl、metrics-server、事件、merchant-service 日志、请求日志和 CSV 均已保存；共 24,857 请求、0 错误。此前本地无 context 的 BLOCKED preflight 以及 2026-09-01 的短观测仍保留，但不覆盖本次 PASS。报告：`docs/HPA_EXPERIMENT_REPORT.md`。
 
 ## 6. Performance
 
@@ -101,7 +106,7 @@ confirm failure 后：
 
 `OrderInventoryResultConsumerTest` 已随 services verify 通过。尚未在本轮伪造或强行注入数据库级 confirm failure E2E；当前证据是代码路径、事务边界和针对性单元测试，不能扩大表述为生产级分布式事务。
 
-本次 PR 复审后已补充四项 P1 修复：Saga release 事务边界、remote OrderStore 数据库权威读取与条件更新、物理数据库 overlay 跨服务外键清理、RabbitMQ 存储卷与持久消息。修复后的 Microservice E2E 已重新运行并以当前修复提交生成 9/9 通过证据；上述 HPA 阻塞结论和后续故障实验范围保持不变。
+本次 PR 复审后已补充四项 P1 修复：Saga release 事务边界、remote OrderStore 数据库权威读取与条件更新、物理数据库 overlay 跨服务外键清理、RabbitMQ 存储卷与持久消息。修复后的 Microservice E2E 已重新运行并以当前修复提交生成 9/9 通过证据；HPA 随后在远端 K3s 完成真实 1→2→3→1 验收，剩余故障实验范围保持不变。
 
 ## 8. Documentation
 
@@ -110,12 +115,17 @@ confirm failure 后：
 - `docs/MICROSERVICE_FINAL_ARCHITECTURE_MATRIX.md`：controller mapping、数据归属、跨服务调用、UC 追溯；
 - `docs/FAULT_TOLERANCE_EXPERIMENT_REPORT.md`；
 - `docs/HPA_EXPERIMENT_REPORT.md`；
+- `04_tests/cloud-native/hpa-observation-20260902*`：远端最终验收 PASS 原始证据及此前本机 BLOCKED preflight；
 - `docs/29_D08云原生实验与性能对比计划.md`；
 - `docs/16_业务场景用例清单.md`、`docs/22_统一需求用例三层模型代码测试追溯表.md`；
 - `docs/24_D06多服务Kubernetes清单与增量流水线.md`：改为唯一 `k8s/services.yaml` 来源；
 - `docs/MICROSERVICE_E2E_REPORT.md`：补充后续实验实际状态。
 
 ## 9. Final Checks
+
+下表保留既有 nightly 回归结果；本次 HPA final acceptance 新增并核验了
+远端 K3s 的 metrics、扩缩容、冷却、事件和日志证据；此前本机 preflight 的
+BLOCKED 文件仍保留为历史失败，不与本次远端成功混用。
 
 | 检查项 | 结果 |
 | --- | --- |
@@ -128,9 +138,9 @@ confirm failure 后：
 | `bash scripts/test-service-data-ownership.sh` | PASS |
 | `bash scripts/test-deploy-k8s.sh` | PASS |
 | `git diff --check` | PASS |
-| Kubernetes 5 个 HTTP readiness | PASS：backend、identity、merchant、order、assistant |
-| RabbitMQ `rabbitmq-diagnostics -q ping` | PASS |
-| K8s 当前 Pod 基线 | PASS：业务服务、backend、RabbitMQ、legacy MySQL 和三个 service DB 均 Ready |
+| Kubernetes 5 个 HTTP readiness | 历史 nightly PASS：backend、identity、merchant、order、assistant；本次 HPA 目标 merchant-service 的远端扩缩容实验结束时 1/1 |
+| RabbitMQ `rabbitmq-diagnostics -q ping` | 历史 nightly PASS；本次 HPA 负载期间请求无错误，未单独执行诊断命令 |
+| K8s 当前 Pod 基线 | HPA final acceptance 远端 PASS；结束时 merchant-service 为 1/1，完整 Pod 快照已保存 |
 
 ## 10. 本轮改动文件与证据
 
@@ -168,15 +178,15 @@ confirm failure 后：
 
 ### 尚未完成
 
-1. HPA 在具备 `metrics.k8s.io` 的真实验收集群中完成 scale-up/scale-down 观测；
-2. merchant release `CHECK_REQUIRED`、消息重投和补偿失败/恢复的更深故障实验；
-3. GitHub Actions 实际运行记录和更大样本性能实验仍需在目标环境补充。
+1. merchant release `CHECK_REQUIRED`、`RELEASE_FAILED`、消息重复投递和人工恢复的更深故障实验；
+2. GitHub Actions 实际运行记录和更大样本性能实验仍需在目标环境补充；
+3. 多节点、metrics-server 故障和滚动发布同时扩缩容等 HPA 联合场景。
 
 ### Tomorrow first actions
 
-1. 在验收 Kubernetes 集群安装/确认 metrics-server，重跑 merchant-service HPA 完整负载和冷却窗口；
-2. 运行 release failure/retry 场景，确认 `RELEASE_PENDING` 不会被错误标记为 `RELEASED`；
-3. 触发 CI 的 Microservice E2E、性能 workflow，并把目标环境 artifact 回填文档。
+1. 运行 release failure/retry 场景，确认 `RELEASE_PENDING` 不会被错误标记为 `RELEASED`；
+2. 触发当前修复后的 Performance workflow，并把成功 artifact run 回填文档；
+3. 在多节点或故障注入环境补充 HPA 联合场景。
 
 ## 12. Terminal Summary
 
@@ -194,9 +204,9 @@ UC08: PASS
 UC09: PASS
 CI Gate: CONFIGURED; GitHub run not executed locally
 Fault Experiment: PASS
-HPA: BLOCKED - metrics.k8s.io unavailable
-Scale Up: NOT VERIFIED
-Scale Down: NOT VERIFIED
+HPA: PASS - remote K3s metrics.k8s.io available; merchant-service 1->2->3->1 observed
+Scale Up: PASS - Ready replicas and HPA current/desired reached 2 and 3
+Scale Down: PASS - Ready replicas and HPA current/desired returned to 1 after cooldown
 Performance: PASS
 API Count: 3 APIs x 2 modes x 3 repeats
 Monolith Runs: 3 API groups, 0 errors
@@ -204,16 +214,16 @@ Microservice Runs: 3 API groups, 0 errors
 CPU/Memory: PASS - Docker stats raw samples saved
 Documentation: PASS
 Backend Tests: PASS 92/92
-Services Tests: PASS 15/15
+Services Tests: PASS 40/40
 Ownership: PASS
 Kustomize: PASS
-Overall status: PARTIAL - HPA external metrics blocker
+Overall status: PARTIAL - remaining workflow/fault-depth evidence
 Remaining blockers:
-1. Target cluster has no metrics.k8s.io / metrics-server
-2. Release failure and retry path needs a separate fault experiment
-3. GitHub Actions target-environment artifacts are not produced by this local run
+1. Release failure and retry path needs a separate fault experiment
+2. GitHub Actions target-environment performance artifact for the current workflow fix is not produced by this local run
+3. Multi-node and metrics-server fault HPA scenarios remain untested
 Tomorrow first actions:
-1. Enable metrics-server and rerun full merchant-service HPA experiment
-2. Run release failure/retry compensation experiment
-3. Trigger CI E2E/performance workflows and sync target artifacts
+1. Run release failure/retry compensation experiment
+2. Trigger the current Performance workflow and sync its artifact
+3. Add multi-node/metrics-server fault HPA coverage when such a cluster is available
 ```

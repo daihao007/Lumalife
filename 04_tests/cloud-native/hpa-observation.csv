@@ -1,5 +1,5 @@
-phase,timestamp,pods,ready_pods,hpa_current,hpa_desired,current_cpu_percent,cpu_target,cpu_usage,memory_usage,cumulative_requests,cumulative_errors,throughput_rps,avg_latency_ms,p95_latency_ms
-baseline,2026-09-01T18:21:12Z,1,1,1,0,N/A,60,N/A,N/A,0,0,0.00,N/A,N/A
-load,2026-09-01T18:21:19Z,1,1,1,0,N/A,60,N/A,N/A,2701,0,540.20,1.10,2
-load-complete,2026-09-01T18:21:19Z,1,1,1,0,N/A,60,N/A,N/A,2701,0,0.00,1.10,2
-cooldown,2026-09-01T18:21:25Z,1,1,1,0,N/A,60,N/A,N/A,2701,0,0.00,1.10,2
+phase,timestamp,pods,ready_pods,hpa_current,hpa_desired,current_cpu_percent,cpu_target,cpu_usage,memory_usage,cumulative_requests,cumulative_errors,error_rate_percent,throughput_rps,avg_latency_ms,p95_latency_ms
+baseline,2026-09-01T18:21:12Z,1,1,1,0,N/A,60,N/A,N/A,0,0,N/A,0.00,N/A,N/A
+load,2026-09-01T18:21:19Z,1,1,1,0,N/A,60,N/A,N/A,2701,0,0.00,540.20,1.10,2
+load-complete,2026-09-01T18:21:19Z,1,1,1,0,N/A,60,N/A,N/A,2701,0,0.00,0.00,1.10,2
+cooldown,2026-09-01T18:21:25Z,1,1,1,0,N/A,60,N/A,N/A,2701,0,0.00,0.00,1.10,2

@@ -1,16 +1,23 @@
 # HPA experiment summary
 
-- Target: merchant-service
-- Namespace: lumalife
-- Load: 2 workers for 5 seconds
-- HPA scaling active condition: False
-- HPA able-to-scale condition: True
-- Scaling message: the HPA was unable to compute the replica count: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
-- Raw observations: 04_tests/cloud-native/hpa-observation.csv
-- Raw request log: 04_tests/cloud-native/hpa-observation-load.log
-- Raw kubectl top log: 04_tests/cloud-native/hpa-observation-top.log
+## Latest final acceptance
 
-The experiment is considered complete only when Kubernetes resource metrics are
-available and the observed replica transition is supported by the raw CSV.
-Missing metrics are retained as N/A and are a blocked cloud-native experiment,
-not a successful scale result.
+- Status: **PASS**
+- Date: 2026-09-02 (Asia/Shanghai)
+- Target: `merchant-service` in namespace `lumalife`
+- Cluster: K3s `v1.36.3+k3s1`, context `default`
+- Metrics: `v1beta1.metrics.k8s.io` APIService `Available=True`; `kubectl top` returned node and Pod metrics
+- Load: 20 workers for 180 seconds; cooldown 180 seconds; 10 second sampling
+- Scale-up observed in raw CSV: `1/1 → 2/2 → 3/3` (HPA current/desired also reached `2/2` and `3/3`)
+- Scale-down observed in raw CSV: `3/3 → 1/1` after cooldown (HPA current/desired `1/1`)
+- Requests: 24,857; errors: 0; error rate: 0.00%
+- Raw observations: `hpa-observation-20260902.csv`
+- Raw request log: `hpa-observation-20260902-load.log`
+- Raw kubectl top log: `hpa-observation-20260902-top.log`
+- Raw kubectl transcript: `hpa-observation-20260902-kubectl.log`
+- Raw events transcript: `hpa-observation-20260902-events.log`
+- Raw merchant-service log transcript: `hpa-observation-20260902-service.log`
+
+The PASS status is based on the raw observations and Kubernetes events. The
+previous no-context `hpa-observation-20260902-blocked*` files remain preserved
+as a separate failed preflight and are not used as evidence for this result.

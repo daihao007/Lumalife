@@ -6,6 +6,8 @@
 
 本轮已在干净的独立 Docker Compose 环境中，以真实 `backend → remote microservices → service-owned databases / RabbitMQ` 链路完成 UC01–UC09。九个用例全部通过，基础设施和服务健康检查通过，原有 Monolith E2E 入口仍然保留。
 
+当前 main / CI 交付链接：[Monolith CI run 33584079761](https://github.com/daihao007/Lumalife/actions/runs/33584079761)、[Microservice E2E job](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100104417404)、[Kubernetes rollout smoke](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105159011)、[Deploy Kubernetes](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105958216)、[ECS/K3s deployment](https://github.com/daihao007/Lumalife/actions/runs/33584774218/job/100110913513)。统一原始证据索引见 [`04_tests/evidence/README.md`](../04_tests/evidence/README.md)。
+
 本报告对应的实际运行证据：
 
 - Run ID：`20260902T102500Z-p1-retry`
@@ -167,8 +169,9 @@ Microservice E2E 失败时，脚本会导出 backend、identity、merchant、ord
 本报告记录的 Microservice E2E 已完成；后续夜间阶段已经补充了故障处理、HPA 观测、性能对比和架构文档同步。对应结果分别见：
 
 - `docs/FAULT_TOLERANCE_EXPERIMENT_REPORT.md`：merchant-service 故障注入 PASS；
-- `docs/HPA_EXPERIMENT_REPORT.md`：merchant-service HPA 配置和负载观测完成，但 Docker Desktop 缺少 `metrics.k8s.io`，自动扩缩容结果待目标集群复测；
+- `docs/HPA_EXPERIMENT_REPORT.md`：merchant-service HPA 已在远端 K3s 完成最终验收；`metrics.k8s.io` APIService `Available=True`，真实观察到 1→2→3→1，当前为 PASS；本机无 context 的 BLOCKED preflight 作为历史证据保留；
 - `04_tests/performance/results/nightly-20260902/comparison-summary.csv`：同机、同数据、同脚本的两模式三 API 性能原始结果；
+- `.github/workflows/performance.yml`：当前修复会硬校验 2 模式 × 3 API × 3 重复、每组 JSON/CSV/CPU-Memory CSV/log，并以 `error` 方式上传 artifact；最近一次远端性能 run 是旧版失败记录，不能替代修复后的成功 run；
 - `docs/MICROSERVICE_FINAL_ARCHITECTURE_MATRIX.md`：当前 controller、数据归属、跨服务调用和 UC 追溯口径。
 
-`DemoStore`、monolith profile 及 legacy `life_assistant` 仍用于兼容、本地开发、迁移和回滚，不是 `prod,remote` 的业务事实源。不要继续拆分新的业务微服务；优先在目标验收集群补齐 metrics-server 后复测 HPA。
+`DemoStore`、monolith profile 及 legacy `life_assistant` 仍用于兼容、本地开发、迁移和回滚，不是 `prod,remote` 的业务事实源。不要继续拆分新的业务微服务；HPA 远端 1→2→3→1 已完成，后续仅补充多节点/metrics-server 故障联合场景。性能 workflow 成功 run 产生的 `performance-comparison-results` artifact 仍需在目标环境补跑后再回填实际 run 链接。

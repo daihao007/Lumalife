@@ -20,6 +20,12 @@ grep -Fq 's|value: main|value: ${IMAGE_TAG}|g' "${SCRIPT_PATH}"
 test "$(grep -c 'name: SERVICE_VERSION' k8s/services.yaml)" -eq 4
 grep -q '^source scripts/lib/legacy-migrations.sh$' "${SCRIPT_PATH}"
 grep -q '^readonly BACKFILL_PATH="database/backfill-services.sql"$' "${SCRIPT_PATH}"
+grep -q '^readonly LUMALIFE_INTERNAL_SERVICE_TOKEN=' "${SCRIPT_PATH}"
+grep -q '^readonly RABBITMQ_USER=' "${SCRIPT_PATH}"
+grep -q '^readonly RABBITMQ_PASSWORD=' "${SCRIPT_PATH}"
+grep -q 'create secret generic lumalife-runtime' "${SCRIPT_PATH}"
+grep -q -- '--from-literal=internal-service-token=' "${SCRIPT_PATH}"
+grep -q -- '--from-literal=rabbitmq-password=' "${SCRIPT_PATH}"
 grep -q '^if \[\[ ! -f "\${BACKFILL_PATH}" \]\]; then$' "${SCRIPT_PATH}"
 grep -q '< "\${BACKFILL_PATH}"$' "${SCRIPT_PATH}"
 grep -q '^adopt_legacy_migrations database/migrations$' "${SCRIPT_PATH}"
@@ -36,9 +42,10 @@ grep -q -- '--from-file=V015__inventory_saga_result_delivery.sql=database/migrat
 grep -q -- '--from-file=V016__async_inventory_reservation_saga.sql=database/migrations/V016__async_inventory_reservation_saga.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V017__inventory_saga_failure_compensation.sql=database/migrations/V017__inventory_saga_failure_compensation.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V018__chat_sender_role_contract.sql=database/migrations/V018__chat_sender_role_contract.sql' "${SCRIPT_PATH}"
+grep -q -- '--from-file=V019__inventory_release_outcomes_and_expiry.sql=database/migrations/V019__inventory_release_outcomes_and_expiry.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh' "${SCRIPT_PATH}"
 grep -q 'order_saga_status_constraint_count' database/bin/provision-service-databases.sh
-grep -q 'V018__chat_sender_role_contract.sql' database/bin/isolate-service-databases.sh
+grep -q 'V019__inventory_release_outcomes_and_expiry.sql' database/bin/isolate-service-databases.sh
 grep -q -- '--from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q 'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}"' "${SCRIPT_PATH}"
@@ -53,6 +60,7 @@ grep -q 'version IN (.*V015' .github/workflows/ci.yml
 grep -q 'version IN (.*V016' .github/workflows/ci.yml
 grep -q 'version IN (.*V017' .github/workflows/ci.yml
 grep -q 'version IN (.*V018' .github/workflows/ci.yml
+grep -q 'version IN (.*V019' .github/workflows/ci.yml
 grep -q '^            database/init$' .github/workflows/ci.yml
 grep -q '^            scripts/lib/legacy-migrations.sh$' .github/workflows/ci.yml
 grep -q '^            database/backfill-services.sql$' .github/workflows/ci.yml
@@ -72,6 +80,15 @@ grep -q 'averageUtilization: 60' k8s/hpa.yaml
 grep -q '^  - hpa.yaml$' k8s/kustomization.yaml
 grep -q 'startupProbe:' k8s/rabbitmq.yaml
 grep -q 'timeoutSeconds: 5' k8s/rabbitmq.yaml
+test "$(grep -c 'name: lumalife-runtime' k8s/backend.yaml k8s/services.yaml k8s/rabbitmq.yaml | awk -F: '{sum += $2} END {print sum}')" -ge 11
+grep -q 'key: internal-service-token' k8s/backend.yaml
+grep -q 'key: internal-service-token' k8s/services.yaml
+grep -q 'key: rabbitmq-password' k8s/rabbitmq.yaml
+
+if grep -Eq '^[[:space:]]+value: (compose-internal-token|lumalife-ci-password|lumalife)$' k8s/backend.yaml k8s/services.yaml k8s/rabbitmq.yaml; then
+  echo "Kubernetes manifests must reference runtime credentials through Secret." >&2
+  exit 1
+fi
 
 prefetch_call_line="$(grep -n '^prefetch_images$' "${SCRIPT_PATH}" | cut -d: -f1)"
 apply_call_line="$(grep -n '^apply_versioned_manifests$' "${SCRIPT_PATH}" | cut -d: -f1)"

@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.LinkedHashMap;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -20,12 +19,21 @@ public class MerchantInventoryInboxConsumer {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
   private final MerchantInventoryCommandHandler commandHandler;
+  private final MerchantInventoryResultOutbox resultOutbox;
 
+  @Autowired
   public MerchantInventoryInboxConsumer(JdbcTemplate jdbc, ObjectMapper mapper,
-                                        MerchantInventoryCommandHandler commandHandler) {
+                                        MerchantInventoryCommandHandler commandHandler,
+                                        MerchantInventoryResultOutbox resultOutbox) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.commandHandler = commandHandler;
+    this.resultOutbox = resultOutbox;
+  }
+
+  public MerchantInventoryInboxConsumer(JdbcTemplate jdbc, ObjectMapper mapper,
+                                        MerchantInventoryCommandHandler commandHandler) {
+    this(jdbc, mapper, commandHandler, new MerchantInventoryResultOutbox(jdbc, mapper));
   }
 
   @RabbitListener(queues = "${lumalife.events.broker.queue:merchant-inventory-events}")
@@ -50,7 +58,7 @@ public class MerchantInventoryInboxConsumer {
           appendResult(orderId, eventId, eventType, "inventory.result.confirmed", reservation, null);
         } else if ("inventory.release.requested".equals(eventType)) {
           MerchantStore.InventoryReservation reservation = commandHandler.release(orderId, "event-" + eventId);
-          appendResult(orderId, eventId, eventType, "inventory.result.released", reservation, null);
+          appendResult(orderId, eventId, eventType, releaseResultEventType(reservation), reservation, null);
         } else {
           throw new IllegalArgumentException("不支持的库存事件: " + eventType);
         }
@@ -58,7 +66,7 @@ public class MerchantInventoryInboxConsumer {
         // Validation/stock conflicts are terminal for this command. Persist a
         // result event and ACK the delivery; transient DB/network failures are
         // still thrown by the outer catch and will be retried by RabbitMQ.
-        appendResult(orderId, eventId, eventType, "inventory.result.failed", null, businessError.getMessage());
+        appendResult(orderId, eventId, eventType, failureResultEventType(eventType), null, businessError.getMessage());
       }
       jdbc.update("UPDATE merchant_inbox_event SET status='PROCESSED',processed_at=CURRENT_TIMESTAMP,last_error=NULL WHERE event_id=?", eventId);
     } catch (Exception error) {
@@ -85,19 +93,19 @@ public class MerchantInventoryInboxConsumer {
 
   private void appendResult(long orderId, String sourceEventId, String sourceEventType, String eventType,
                             MerchantStore.InventoryReservation reservation, String errorMessage) {
-    try {
-      LinkedHashMap<String, Object> result = new LinkedHashMap<>();
-      result.put("orderId", orderId);
-      result.put("reservationStatus", reservation == null ? "FAILED" : reservation.status());
-      result.put("sourceEventId", sourceEventId);
-      result.put("sourceEventType", sourceEventType);
-      if (errorMessage != null && !errorMessage.isBlank()) result.put("error", errorMessage);
-      result.put("occurredAt", Instant.now().toString());
-      String payload = mapper.writeValueAsString(result);
-      jdbc.update("INSERT INTO merchant_outbox_event(aggregate_type,aggregate_id,event_type,payload,status,occurred_at) VALUES (?,?,?,?, 'PENDING', ?)",
-          "ORDER", orderId, eventType, payload, java.sql.Timestamp.from(Instant.now()));
-    } catch (Exception error) {
-      throw new IllegalStateException("库存结果事件序列化失败", error);
-    }
+    resultOutbox.append(orderId, sourceEventId, sourceEventType, eventType, reservation, errorMessage);
+  }
+
+  private String releaseResultEventType(MerchantStore.InventoryReservation reservation) {
+    return switch (reservation.status()) {
+      case "RELEASED" -> "inventory.result.released";
+      case "CHECK_REQUIRED" -> "inventory.result.check_required";
+      default -> throw new IllegalStateException("库存释放返回未知状态: " + reservation.status());
+    };
+  }
+
+  private String failureResultEventType(String sourceEventType) {
+    return "inventory.release.requested".equals(sourceEventType)
+      ? "inventory.result.release_failed" : "inventory.result.failed";
   }
 }
