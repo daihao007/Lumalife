@@ -1,9 +1,9 @@
 {
   "suite": "Microservice E2E UC01–UC09",
-  "runId": "20260901T181647Z-85603",
-  "gitCommit": "cfde357583100763eb73ee4ee9e4faf171597c27",
-  "startedAt": "2026-09-01T18:17:37.992Z",
-  "completedAt": "2026-09-01T18:18:08.961Z",
+  "runId": "20260902T101500Z-review-fixes",
+  "gitCommit": "c8e45db5a7d33064966a2b3488fd0b66b404255c",
+  "startedAt": "2026-09-02T02:11:42.280Z",
+  "completedAt": "2026-09-02T02:12:22.692Z",
   "environmentFailure": null,
   "environment": {
     "backendProfile": "prod,remote",
@@ -30,7 +30,7 @@
         "body": {
           "type": "object"
         },
-        "durationMs": 64
+        "durationMs": 53
       },
       "identity": {
         "url": "http://127.0.0.1:18081",
@@ -46,7 +46,7 @@
         "body": {
           "type": "object"
         },
-        "durationMs": 9
+        "durationMs": 11
       },
       "order": {
         "url": "http://127.0.0.1:18083",
@@ -54,7 +54,7 @@
         "body": {
           "type": "object"
         },
-        "durationMs": 12
+        "durationMs": 8
       },
       "assistant": {
         "url": "http://127.0.0.1:18084",
@@ -62,7 +62,7 @@
         "body": {
           "type": "object"
         },
-        "durationMs": 12
+        "durationMs": 11
       }
     },
     "migration": {
@@ -78,8 +78,8 @@
     {
       "name": "UC01",
       "status": "passed",
-      "startedAt": "2026-09-01T18:17:38.167Z",
-      "durationMs": 584,
+      "startedAt": "2026-09-02T02:11:42.467Z",
+      "durationMs": 618,
       "evidence": {
         "userId": 7,
         "addressId": 103
@@ -88,8 +88,8 @@
     {
       "name": "UC02",
       "status": "passed",
-      "startedAt": "2026-09-01T18:17:38.751Z",
-      "durationMs": 364,
+      "startedAt": "2026-09-02T02:11:43.085Z",
+      "durationMs": 404,
       "evidence": {
         "userId": 8,
         "merchantId": 1
@@ -98,8 +98,8 @@
     {
       "name": "UC03",
       "status": "passed",
-      "startedAt": "2026-09-01T18:17:39.115Z",
-      "durationMs": 8656,
+      "startedAt": "2026-09-02T02:11:43.489Z",
+      "durationMs": 17576,
       "evidence": {
         "orderId": 4001,
         "saga": "CONFIRMED",
@@ -111,8 +111,8 @@
     {
       "name": "UC04",
       "status": "passed",
-      "startedAt": "2026-09-01T18:17:47.771Z",
-      "durationMs": 10391,
+      "startedAt": "2026-09-02T02:12:01.065Z",
+      "durationMs": 10273,
       "evidence": {
         "orderId": 4003,
         "reviewId": 4004,
@@ -122,8 +122,8 @@
     {
       "name": "UC05",
       "status": "passed",
-      "startedAt": "2026-09-01T18:17:58.162Z",
-      "durationMs": 9631,
+      "startedAt": "2026-09-02T02:12:11.338Z",
+      "durationMs": 9911,
       "evidence": {
         "orderId": 4006,
         "couponCode": "000000004006",
@@ -134,8 +134,8 @@
     {
       "name": "UC06",
       "status": "passed",
-      "startedAt": "2026-09-01T18:18:07.793Z",
-      "durationMs": 206,
+      "startedAt": "2026-09-02T02:12:21.249Z",
+      "durationMs": 232,
       "evidence": {
         "couponCode": "000000004006",
         "finalOrderStatus": "USED"
@@ -144,8 +144,8 @@
     {
       "name": "UC07",
       "status": "passed",
-      "startedAt": "2026-09-01T18:18:07.999Z",
-      "durationMs": 269,
+      "startedAt": "2026-09-02T02:12:21.481Z",
+      "durationMs": 294,
       "evidence": {
         "merchantId": 1,
         "productId": 3001,
@@ -159,8 +159,8 @@
     {
       "name": "UC08",
       "status": "passed",
-      "startedAt": "2026-09-01T18:18:08.268Z",
-      "durationMs": 444,
+      "startedAt": "2026-09-02T02:12:21.775Z",
+      "durationMs": 457,
       "evidence": {
         "userId": 12,
         "merchantId": 1,
@@ -175,8 +175,8 @@
     {
       "name": "UC09",
       "status": "passed",
-      "startedAt": "2026-09-01T18:18:08.712Z",
-      "durationMs": 247,
+      "startedAt": "2026-09-02T02:12:22.232Z",
+      "durationMs": 458,
       "evidence": {
         "overview": {
           "users": 7,

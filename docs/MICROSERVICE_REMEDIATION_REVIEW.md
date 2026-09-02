@@ -2,7 +2,7 @@
 
 审查时间：2026-09-02  
 审查范围：上一轮整改的 remote/compatibility、legacy DB 运行隔离、服务数据库隔离、Kubernetes 清单统一、库存 Saga confirm failure 补偿。  
-本次未继续修改业务代码，仅执行代码/配置审查、回归测试和运行态验证。
+初始复审阶段未继续修改业务代码，仅执行代码/配置审查、回归测试和运行态验证；随后已按本报告发现的四项 P1 完成第一轮修复，修复跟进记录见本文末尾。
 
 ## 结论
 
@@ -91,7 +91,7 @@ CONFIRM_PENDING
 CONFIRM_FAILED
     ↓ failPaidOrder
 order=CANCELLED, payment=FAILED
-    ↓ OrderSagaEventStore.scheduleRelease(REQUIRES_NEW)
+    ↓ OrderSagaEventStore.scheduleRelease（加入消费者现有事务）
 RELEASE_PENDING
     ↓ inventory.release.requested
 RELEASED
@@ -101,7 +101,7 @@ RELEASED
 
 - [OrderInventoryResultConsumer.java](../services/order-service/src/main/java/com/lumalife/order/OrderInventoryResultConsumer.java) 根据 `sourceEventType` 区分 `RESERVE_FAILED` 和 `CONFIRM_FAILED`。
 - `CONFIRM_FAILED` 会调用 `failPaidOrderAndScheduleRelease`，将 PAID 订单改成 `CANCELLED`，将 SUCCESS payment 改成 `FAILED`，并写入 release command。
-- [OrderSagaEventStore.java](../services/order-service/src/main/java/com/lumalife/order/OrderSagaEventStore.java) 用 `REQUIRES_NEW` 持久化 `RELEASE_PENDING` 和 `inventory.release.requested` Outbox 事件。
+- [OrderSagaEventStore.java](../services/order-service/src/main/java/com/lumalife/order/OrderSagaEventStore.java) 已改为加入消费者现有事务，避免外层事务持有 Saga 行锁时再次开启 `REQUIRES_NEW` 导致锁等待；同一事务持久化 `RELEASE_PENDING` 和 `inventory.release.requested` Outbox 事件。
 - Outbox publisher 会继续扫描 `PENDING`/`FAILED`，Rabbit listener 外层异常会重新抛出并允许消息重投，因此已有基础设施级 retry/failure path。
 - 新增的 `OrderInventoryResultConsumerTest` 通过，验证了 confirm failure、订单取消、支付失败和 release command。
 - Compose 的真实 RabbitMQ 库存预占/确认链路通过，未出现 `order=PAID + payment=SUCCESS + Saga=FAILED` 的无解释状态。
@@ -154,6 +154,17 @@ kustomize：PASS
 
 若不可进入，阻塞问题：
 无
+
+## 11. P1 修复跟进记录（2026-09-02）
+
+针对后续 PR 审查提出的四项 P1，已按“Saga → OrderStore → 数据库隔离 → RabbitMQ”顺序完成最小范围修复：
+
+1. `OrderSagaEventStore.scheduleRelease` 不再使用 `REQUIRES_NEW`，改为加入 `OrderInventoryResultConsumer` 的现有事务，并增加事务传播属性回归测试。
+2. remote `OrderStore` 以数据库为权威来源，不再优先返回 JVM 缓存；条件更新检查影响行数，失败时不追加状态事件。
+3. `isolate-service-databases.sh` 在导入前移除跨服务外键，并在同一 MySQL 会话中关闭/恢复 `FOREIGN_KEY_CHECKS`；已用新数据库名执行物理 overlay 验证。
+4. RabbitMQ 增加 Compose named volume、Kubernetes PVC 和持久消息投递；新增结构性 durability 检查，真实 Microservice E2E UC01–UC09 9/9 通过。
+
+当前仍保留以下非本轮范围：Kubernetes Secret 化、release `CHECK_REQUIRED` 故障实验、HPA/metrics-server、性能对比和文档最终同步。
 
 ## 夜间第二阶段执行更新（2026-09-02）
 

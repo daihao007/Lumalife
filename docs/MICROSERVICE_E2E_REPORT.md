@@ -8,10 +8,10 @@
 
 本报告对应的实际运行证据：
 
-- Run ID：`20260901T174631Z-79550`
-- Git HEAD：`cfde357583100763eb73ee4ee9e4faf171597c27`
-- 开始时间：`2026-09-01T17:47:23.938Z`
-- 结束时间：`2026-09-01T17:47:56.757Z`
+- Run ID：`20260902T101500Z-review-fixes`
+- Git HEAD：`c8e45db5a7d33064966a2b3488fd0b66b404255c`
+- 开始时间：`2026-09-02T02:11:42.280Z`
+- 结束时间：`2026-09-02T02:12:22.692Z`
 - 证据目录：`04_tests/e2e/microservices/latest/`
 - 机器结果：`microservice-e2e-summary.json`
 - 可读摘要：`microservice-e2e-summary.md`

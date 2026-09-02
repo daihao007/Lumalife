@@ -1,10 +1,10 @@
 # Microservice E2E Summary
 
-- Run ID: `20260901T181647Z-85603`
-- Git commit: `cfde357583100763eb73ee4ee9e4faf171597c27`
+- Run ID: `20260902T101500Z-review-fixes`
+- Git commit: `c8e45db5a7d33064966a2b3488fd0b66b404255c`
 - Backend mode: `prod,remote`
-- Started: 2026-09-01T18:17:37.992Z
-- Completed: 2026-09-01T18:18:08.961Z
+- Started: 2026-09-02T02:11:42.280Z
+- Completed: 2026-09-02T02:12:22.692Z
 
 ## Environment
 
@@ -16,15 +16,15 @@
 
 | UC | Status | Duration |
 |---|---|---:|
-| UC01 | PASSED | 584 ms |
-| UC02 | PASSED | 364 ms |
-| UC03 | PASSED | 8656 ms |
-| UC04 | PASSED | 10391 ms |
-| UC05 | PASSED | 9631 ms |
-| UC06 | PASSED | 206 ms |
-| UC07 | PASSED | 269 ms |
-| UC08 | PASSED | 444 ms |
-| UC09 | PASSED | 247 ms |
+| UC01 | PASSED | 618 ms |
+| UC02 | PASSED | 404 ms |
+| UC03 | PASSED | 17576 ms |
+| UC04 | PASSED | 10273 ms |
+| UC05 | PASSED | 9911 ms |
+| UC06 | PASSED | 232 ms |
+| UC07 | PASSED | 294 ms |
+| UC08 | PASSED | 457 ms |
+| UC09 | PASSED | 458 ms |
 
 - Total: 9
 - Passed: 9
@@ -40,7 +40,7 @@
     "body": {
       "type": "object"
     },
-    "durationMs": 64
+    "durationMs": 53
   },
   "identity": {
     "url": "http://127.0.0.1:18081",
@@ -56,7 +56,7 @@
     "body": {
       "type": "object"
     },
-    "durationMs": 9
+    "durationMs": 11
   },
   "order": {
     "url": "http://127.0.0.1:18083",
@@ -64,7 +64,7 @@
     "body": {
       "type": "object"
     },
-    "durationMs": 12
+    "durationMs": 8
   },
   "assistant": {
     "url": "http://127.0.0.1:18084",
@@ -72,7 +72,7 @@
     "body": {
       "type": "object"
     },
-    "durationMs": 12
+    "durationMs": 11
   }
 }
 ```

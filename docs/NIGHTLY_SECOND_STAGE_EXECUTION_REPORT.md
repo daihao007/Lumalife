@@ -14,7 +14,7 @@
 
 | 项目 | 结果 |
 | --- | --- |
-| Compose run | `20260901T181647Z-85603` |
+| Compose run | `20260902T101500Z-review-fixes` |
 | backend profile | `prod,remote` |
 | remote flags | identity、merchant、order、assistant 全部开启 |
 | compatibility store | 关闭 |
@@ -96,10 +96,12 @@ confirm failure 后：
 1. order-side Saga 先记录 `CONFIRM_FAILED`；
 2. 订单从 `PAID` 改为 `CANCELLED`；
 3. payment 从 `SUCCESS` 改为 `FAILED`；
-4. `OrderSagaEventStore` 通过 `REQUIRES_NEW` 持久化 `RELEASE_PENDING` 和 release Outbox；
+4. `OrderSagaEventStore` 加入订单结果消费者现有事务，持久化 `RELEASE_PENDING` 和 release Outbox，避免同一 Saga 行的嵌套新事务锁等待；
 5. 后续 release result 可推进到 `RELEASED`。
 
 `OrderInventoryResultConsumerTest` 已随 services verify 通过。尚未在本轮伪造或强行注入数据库级 confirm failure E2E；当前证据是代码路径、事务边界和针对性单元测试，不能扩大表述为生产级分布式事务。
+
+本次 PR 复审后已补充四项 P1 修复：Saga release 事务边界、remote OrderStore 数据库权威读取与条件更新、物理数据库 overlay 跨服务外键清理、RabbitMQ 存储卷与持久消息。修复后的 Microservice E2E 已重新运行并以当前修复提交生成 9/9 通过证据；上述 HPA 阻塞结论和后续故障实验范围保持不变。
 
 ## 8. Documentation
 
