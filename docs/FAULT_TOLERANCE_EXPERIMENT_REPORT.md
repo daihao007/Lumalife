@@ -39,3 +39,5 @@
 ## 4. 课程范围内的边界
 
 本实验验证的是单个 HTTP 服务故障时的隔离、明确错误和恢复，不等价于生产级熔断、限流、自动重试、跨区域容灾或全链路混沌工程。Saga 的库存确认失败补偿由 order-service 单元测试和代码路径验证，未在本次商家服务停机实验中强行制造支付数据。
+
+补充的代码级边界验证：`OrderInventoryResultConsumerTest` 覆盖 `CHECK_REQUIRED`、`RELEASE_FAILED` 和重复结果消息幂等；`MerchantInventoryInboxConsumerTest` 覆盖重复 release 投递只处理一次；`MerchantExpiredReservationProcessorTest` 覆盖过期预占的安全检查。上述测试不能替代 RabbitMQ + MySQL 远端故障 E2E，现场报告仍应将两者区分。

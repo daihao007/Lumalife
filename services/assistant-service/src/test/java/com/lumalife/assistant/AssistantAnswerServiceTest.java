@@ -16,7 +16,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "lumalife.internal.service-token=assistant-test-token")
+    properties = {
+      "lumalife.internal.service-token=assistant-test-token",
+      "agnes.api-key="
+    })
 @AutoConfigureMockMvc
 class AssistantAnswerServiceTest {
   @Autowired private TestRestTemplate http;
@@ -29,7 +32,7 @@ class AssistantAnswerServiceTest {
     var request = new AssistantAnswerService.AssistantRequest("PLATFORM", "支付怎么办", "", List.of());
     var response = http.postForEntity("/internal/v1/assistant/answer", new HttpEntity<>(request, headers), String.class);
     assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getBody()).contains("clientRequestId");
+    assertThat(response.getBody()).contains("支付接口使用 clientRequestId 保证幂等");
   }
 
   @Test

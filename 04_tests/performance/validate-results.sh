@@ -56,8 +56,29 @@ for mode in microservices monolith; do
       NR > 1 && $2 != "N/A" && $3 != "N/A" { samples++ }
       END { exit !(header && samples > 0) }' "${resources}"
 
+    if [[ "${PERF_REQUIRE_STACK_RESOURCES:-false}" == "true" ]]; then
+      stack_resources="${OUTPUT_DIR}/${stem}-stack-resources.csv"
+      stack_summary="${OUTPUT_DIR}/${stem}-stack-resource-summary.csv"
+      stack_summary_txt="${OUTPUT_DIR}/${stem}-stack-resource-summary.txt"
+      test -s "${stack_resources}"
+      test -s "${stack_summary}"
+      test -s "${stack_summary_txt}"
+      awk -F, 'NR == 1 && $0 == "timestamp,service,cpu_percent,memory_usage" { header=1; next }
+        NR > 1 && $2 != "" { rows++ }
+        END { exit !(header && rows >= 5) }' "${stack_resources}"
+      awk -F, 'NR == 1 && $0 == "timestamp,total_cpu_percent,total_memory_mib,cpu_containers,memory_containers" { header=1; next }
+        NR > 1 && $2 != "" && $3 != "" { rows++ }
+        END { exit !(header && rows > 0) }' "${stack_summary}"
+      grep -Eq '^total_cpu_avg_percent=[0-9.]+$' "${stack_summary_txt}"
+      grep -Eq '^total_memory_avg_mib=[0-9.]+$' "${stack_summary_txt}"
+    fi
+
     grep -Fq "\"${mode}\",\"${api}\"," "${SUMMARY}"
   done
 done
 
-echo "Performance result matrix is complete: 2 modes x 3 APIs x ${EXPECTED_REPEATS} repeats with CPU/memory samples."
+if [[ "${PERF_REQUIRE_STACK_RESOURCES:-false}" == "true" ]]; then
+  echo "Performance result matrix is complete: 2 modes x 3 APIs x ${EXPECTED_REPEATS} repeats with backend and stack CPU/memory samples."
+else
+  echo "Performance result matrix is complete: 2 modes x 3 APIs x ${EXPECTED_REPEATS} repeats with backend CPU/memory samples."
+fi
