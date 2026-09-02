@@ -2,7 +2,7 @@ FROM --platform=$BUILDPLATFORM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /src
 
 COPY . .
-RUN --mount=type=cache,target=/root/.m2 \
+RUN --mount=type=cache,id=lumalife-maven,sharing=locked,target=/root/.m2 \
     mvn -B -ntp -pl order-service -am -DskipTests package
 
 FROM eclipse-temurin:17-jre

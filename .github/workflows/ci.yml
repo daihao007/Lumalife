@@ -658,7 +658,9 @@ jobs:
           tags: ${{ github.event_name == 'pull_request' && format('{0}:ci-{1}', matrix.image, github.sha) || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          # Cache export is an optimization; a transient cache-service error
+          # must not block image publication or deployment.
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }},ignore-error=true
           outputs: ${{ github.event_name == 'pull_request' && format('type=docker,dest=/tmp/{0}.tar', matrix.component) || '' }}
 
       - name: Upload pull request smoke image
