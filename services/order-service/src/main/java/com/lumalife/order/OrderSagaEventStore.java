@@ -8,7 +8,6 @@ import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -27,12 +26,18 @@ public class OrderSagaEventStore {
     this.mapper = mapperProvider.getIfAvailable(ObjectMapper::new);
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional
   public void scheduleRelease(long orderId, long actorId, String clientRequestId) {
     scheduleRelease(orderId, actorId, clientRequestId, "COMPENSATION_REQUIRED", null);
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  /**
+   * Joins the inventory-result consumer transaction. The consumer already
+   * updates this Saga row before scheduling release; starting a new
+   * transaction here would wait for the outer transaction's row lock and can
+   * roll back the whole compensation path.
+   */
+  @Transactional
   public void scheduleRelease(long orderId, long actorId, String clientRequestId,
                               String failureStatus, String errorMessage) {
     if (jdbc == null) return;

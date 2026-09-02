@@ -10,8 +10,11 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 class OrderInventoryResultConsumerTest {
   @Test
@@ -41,5 +44,15 @@ class OrderInventoryResultConsumerTest {
     verify(sagaEventStore).scheduleRelease(42L, 7L, "pay-42", "CONFIRM_FAILED", "库存版本不一致");
     verify(jdbc).update(contains("UPDATE order_inbox_event SET status='PROCESSED'"),
         eq("inventory-result-42"));
+  }
+
+  @Test
+  void releaseSchedulingJoinsTheConsumerTransaction() throws Exception {
+    Transactional transaction = OrderSagaEventStore.class
+        .getMethod("scheduleRelease", long.class, long.class, String.class, String.class, String.class)
+        .getAnnotation(Transactional.class);
+
+    Assertions.assertThat(transaction).isNotNull();
+    Assertions.assertThat(transaction.propagation()).isEqualTo(Propagation.REQUIRED);
   }
 }
