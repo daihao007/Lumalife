@@ -108,7 +108,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: SERVICE_VERSION=sha-${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          # Cache export is an optimization; a transient cache-service error
+          # must not turn a valid service image build into a failed check.
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }},ignore-error=true
 
   kind-smoke:
     name: Smoke test affected services in Kind
