@@ -3,6 +3,9 @@ package com.lumalife.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -111,6 +114,25 @@ class IdentityServiceHealthTest {
   }
 
   @Test
+  void loadsLegacyNumericTokenStateAndMigratesItToTheCurrentFormat() throws Exception {
+    Path state = tempDir.resolve("legacy-identity-state.json");
+    Files.writeString(state, """
+      {
+        "users": [{"id": 1, "phone": "legacy-user", "passwordHash": "legacy-hash", "nickname": "旧用户", "avatarUrl": "", "role": "USER", "merchantId": null}],
+        "addresses": {"1": []},
+        "tokens": {"legacy-token": 1}
+      }
+      """, StandardCharsets.UTF_8);
+
+    IdentityStore restarted = new IdentityStore(new BCryptPasswordEncoder(), state);
+
+    assertThat(restarted.byToken("legacy-token").id()).isEqualTo(1L);
+    var migrated = new ObjectMapper().readTree(Files.readString(state, StandardCharsets.UTF_8));
+    assertThat(migrated.path("tokens").path("legacy-token").path("userId").asLong()).isEqualTo(1L);
+    assertThat(migrated.path("tokens").path("legacy-token").path("expiresAtEpochMillis").asLong()).isPositive();
+  }
+
+  @Test
   void ctRtId07To09MaintainsOnlyTheCurrentUsersAddresses() {
     String phone = "ct-id-" + UUID.randomUUID();
     ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
@@ -170,6 +192,141 @@ class IdentityServiceHealthTest {
     ResponseEntity<String> sixth = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
       new HttpEntity<>(Map.of("contactName", "测试用户", "phone", phone, "detail", "第六个地址"), headers), String.class);
     assertThat(sixth.getStatusCode().value()).isEqualTo(400);
+  }
+
+  @Test
+  void ctRtId02RegistersOrdinaryUserAndRejectsDuplicatePhone() {
+    String phone = "ct-id-register-" + UUID.randomUUID();
+
+    Map<String, Object> request = Map.of(
+      "phone", phone,
+      "password", "abc123456",
+      "nickname", "契约普通用户",
+      "role", "USER"
+    );
+
+    ResponseEntity<Map> first = http.postForEntity(
+      "/internal/v1/auth/register",
+      new HttpEntity<>(request, serviceHeaders()),
+      Map.class
+    );
+
+    assertThat(first.getStatusCode().value()).isEqualTo(200);
+    Map<?, ?> user = (Map<?, ?>) first.getBody().get("user");
+    assertThat(user.get("phone")).isEqualTo(phone);
+    assertThat(user.get("role")).isEqualTo("USER");
+    assertThat(user.containsKey("passwordHash")).isFalse();
+
+    ResponseEntity<String> duplicate = http.postForEntity(
+      "/internal/v1/auth/register",
+      new HttpEntity<>(request, serviceHeaders()),
+      String.class
+    );
+
+    assertThat(duplicate.getStatusCode().value()).isEqualTo(409);
+  }
+
+  @Test
+  void ctRtId03RejectsUnknownAndBlankPhoneQueries() {
+    ResponseEntity<Map> unknown = http.exchange(
+      "/internal/v1/users/by-phone?phone=19999999999",
+      HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()),
+      Map.class
+    );
+
+    assertThat(unknown.getStatusCode().value()).isEqualTo(401);
+
+    ResponseEntity<Map> blank = http.exchange(
+      "/internal/v1/users/by-phone?phone=",
+      HttpMethod.GET,
+      new HttpEntity<>(serviceHeaders()),
+      Map.class
+    );
+
+    assertThat(blank.getStatusCode().value()).isEqualTo(400);
+  }
+
+  @Test
+  void ctRtId04RejectsStaleBearerTokens(){
+    HttpHeaders headers = serviceHeaders();
+    headers.setBearerAuth("expired-token-for-contract-test");
+
+    ResponseEntity<Map> response = http.exchange(
+      "/internal/v1/users/me",
+      HttpMethod.GET,
+      new HttpEntity<>(headers),
+      Map.class
+    );
+
+    assertThat(response.getStatusCode().value()).isEqualTo(401);
+  }
+
+  @Test
+  void ctRtId05UpdatesOnlyTheCurrentUsersProfile() {
+    String phone = "ct-id-profile-" + UUID.randomUUID();
+    ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
+      new HttpEntity<>(Map.of("phone", phone, "password", "abc123456", "nickname", "资料用户", "role", "USER"), serviceHeaders()), Map.class);
+    long userId = ((Number) ((Map<?, ?>) registration.getBody().get("user")).get("id")).longValue();
+
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", Long.toString(userId));
+    ResponseEntity<Map> updated = http.exchange("/internal/v1/users/" + userId + "/profile", HttpMethod.PUT,
+      new HttpEntity<>(Map.of("nickname", "更新后的昵称", "avatarUrl", "https://example.test/avatar.png"), headers), Map.class);
+
+    assertThat(updated.getStatusCode().value()).isEqualTo(200);
+    assertThat(updated.getBody().get("nickname")).isEqualTo("更新后的昵称");
+    assertThat(updated.getBody().get("avatarUrl")).isEqualTo("https://example.test/avatar.png");
+  }
+
+  @Test
+  void ctRtId07RejectsIncompleteAddressFields() {
+    String phone = "ct-id-address-validation-" + UUID.randomUUID();
+    ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
+      new HttpEntity<>(Map.of("phone", phone, "password", "abc123456", "nickname", "地址校验用户", "role", "USER"), serviceHeaders()), Map.class);
+    long userId = ((Number) ((Map<?, ?>) registration.getBody().get("user")).get("id")).longValue();
+
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", Long.toString(userId));
+    ResponseEntity<String> invalid = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("contactName", "", "phone", phone, "detail", ""), headers), String.class);
+
+    assertThat(invalid.getStatusCode().value()).isEqualTo(400);
+  }
+
+  @Test
+  void ctRtId08RejectsUnknownDefaultAddress() {
+    String phone = "ct-id-default-" + UUID.randomUUID();
+    ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
+      new HttpEntity<>(Map.of("phone", phone, "password", "abc123456", "nickname", "默认地址用户", "role", "USER"), serviceHeaders()), Map.class);
+    long userId = ((Number) ((Map<?, ?>) registration.getBody().get("user")).get("id")).longValue();
+
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", Long.toString(userId));
+    ResponseEntity<String> response = http.exchange("/internal/v1/users/" + userId + "/addresses/999999999/default",
+      HttpMethod.POST, new HttpEntity<>(headers), String.class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
+  void ctRtId09RejectsRepeatedAddressDeletion() {
+    String phone = "ct-id-delete-" + UUID.randomUUID();
+    ResponseEntity<Map> registration = http.postForEntity("/internal/v1/auth/register",
+      new HttpEntity<>(Map.of("phone", phone, "password", "abc123456", "nickname", "删除地址用户", "role", "USER"), serviceHeaders()), Map.class);
+    long userId = ((Number) ((Map<?, ?>) registration.getBody().get("user")).get("id")).longValue();
+
+    HttpHeaders headers = serviceHeaders();
+    headers.set("X-User-Id", Long.toString(userId));
+    IdentityStore.Address address = http.exchange("/internal/v1/users/" + userId + "/addresses", HttpMethod.POST,
+      new HttpEntity<>(Map.of("contactName", "删除用户", "phone", phone, "detail", "待删除地址"), headers), IdentityStore.Address.class).getBody();
+    String path = "/internal/v1/users/" + userId + "/addresses/" + address.id();
+
+    ResponseEntity<Void> first = http.exchange(path, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+    ResponseEntity<String> repeated = http.exchange(path, HttpMethod.DELETE, new HttpEntity<>(headers), String.class);
+
+    assertThat(first.getStatusCode().value()).isEqualTo(200);
+    assertThat(repeated.getStatusCode().value()).isEqualTo(404);
   }
 
   private HttpHeaders serviceHeaders() {

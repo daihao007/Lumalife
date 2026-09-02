@@ -263,6 +263,10 @@ public class MerchantStore {
   @Transactional
   public synchronized Product saveProduct(long merchantId, ProductRequest request) {
     merchant(merchantId);
+    if (request == null || request.name() == null || request.name().isBlank()
+        || request.priceCent() <= 0 || request.stock() < 0) {
+      throw new IllegalArgumentException("商品参数不合法");
+    }
     List<Product> owned = products.computeIfAbsent(merchantId, ignored -> new ArrayList<>());
     long id = request.id() == null ? ids.incrementAndGet() : request.id();
     Product product = new Product(id, merchantId, request.name(), request.description(), request.priceCent(), request.stock(), request.listed());
@@ -520,7 +524,10 @@ public class MerchantStore {
   @Transactional
   public synchronized GroupDeal saveDeal(long merchantId, DealRequest request) {
     merchant(merchantId);
-    if (request.priceCent() <= 0 || request.stock() < 0) throw new IllegalArgumentException("套餐价格和库存必须合法");
+    if (request == null || request.title() == null || request.title().isBlank()
+        || request.priceCent() <= 0 || request.stock() < 0) {
+      throw new IllegalArgumentException("套餐参数不合法");
+    }
     long id = request.id() == null ? ids.incrementAndGet() : request.id();
     GroupDeal deal = new GroupDeal(id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());
     if (jdbc != null) jdbc.update("INSERT INTO group_deal(id,merchant_id,title,description,price_cent,stock,is_active,is_deleted) VALUES (?,?,?,?,?,?,?,0) ON DUPLICATE KEY UPDATE title=VALUES(title),description=VALUES(description),price_cent=VALUES(price_cent),stock=VALUES(stock),is_active=VALUES(is_active),is_deleted=0", id, merchantId, request.title(), request.description(), request.priceCent(), request.stock(), request.active());

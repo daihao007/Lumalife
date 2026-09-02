@@ -39,7 +39,13 @@ public class MerchantApi {
   MerchantStore.Merchant merchant(@PathVariable long id) { return readResource(() -> store.merchant(id)); }
 
   @PostMapping("/merchants/provision")
-  MerchantStore.Merchant provision(@RequestBody ProvisionRequest request) { return store.provision(request.name()); }
+  MerchantStore.Merchant provision(@RequestBody ProvisionRequest request) {
+    try {
+      return store.provision(request.name());
+    } catch (IllegalArgumentException error) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage());
+    }
+  }
 
   @GetMapping("/merchants/{id}/profile")
   java.util.Map<String, Object> profile(@PathVariable long id) { return store.profile(id); }
@@ -211,8 +217,10 @@ public class MerchantApi {
     if (id != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能维护其他商家的套餐"); store.deleteDeal(id, dealId);
   }
 
-  // Keep service-boundary failures typed so the BFF can preserve the public
-  // 403/409 contract instead of turning them into a generic 503.
+  record ProfileRequest(String name) {}
+  record ProvisionRequest(String name) {}
+  record MessageRequest(String content, String assistantAnswer) {}
+
   @ExceptionHandler(SecurityException.class)
   ResponseEntity<String> forbidden(SecurityException error) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error.getMessage());
@@ -224,13 +232,9 @@ public class MerchantApi {
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
-  ResponseEntity<String> badRequest(IllegalArgumentException error) {
-    return ResponseEntity.badRequest().body(error.getMessage());
+  ResponseEntity<String> notFound(IllegalArgumentException error) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
   }
-
-  record ProfileRequest(String name) {}
-  record ProvisionRequest(String name) {}
-  record MessageRequest(String content, String assistantAnswer) {}
 
   private <T> T readResource(java.util.function.Supplier<T> operation) {
     try {
