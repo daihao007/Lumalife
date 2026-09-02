@@ -2,3 +2,4 @@
 *.yml text eol=lf
 Dockerfile text eol=lf
 *.conf text eol=lf
+*.pdf binary

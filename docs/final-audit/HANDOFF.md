@@ -36,6 +36,7 @@
 12. 建立 `docs/06_defense/` 最终答辩交付包：生成 13 页可编辑 PPTX、当前技术总结和个人权重/全员确认待签模板。PPTX 包结构检查通过（13 slides / 13 notes / 13 `[Sources]`），13/13 页已渲染并逐页视觉检查，导出布局检查为 0 个越界元素。权重与确认仍保持 `UNVERIFIED`，没有代填或代签。
 13. 将 `docs/07_测试报告.md` 从 2026 年 6 月单体阶段记录重写为当前测试资产、52/52 API 覆盖和证据分层口径；更新导出脚本支持单文档生成，重新生成 5 页 A4 正式 PDF。PDF 文本提取 5/5 非空，Poppler 全页渲染并完成视觉 QA，未见裁切、溢出、乱码或空白页。本项遵循用户“停止测试”指示，没有运行任何测试。
 14. 将 `docs/08_部署文档.md` 从单体/Redis 历史说明重写为当前 8 服务 Compose、3 个服务数据库、27 个静态 Kubernetes 对象、不可变镜像和 CI/ECS 证据边界；重新生成 6 页 A4 正式 PDF。PDF 文本提取 6/6 非空，Poppler 全页渲染并完成视觉 QA，首轮孤页已修正，未见裁切、溢出、乱码或空白页。本项没有启动容器、集群、服务器或测试。
+15. 将 `docs/09_用户手册.md` 校准为当前角色路由、业务操作、6 个演示账号及默认 `prod,remote` 持久化口径；扩展 `scripts/export-final-docs.py` 支持用户手册、Markdown 本地图片和跨平台中文字体，重新生成 12 页 A4 正式 PDF。PDF 12/12 页文本非空、嵌入 8/8 张截图，Poppler 全页渲染并完成视觉 QA，未见裁切、重叠、越界、乱码或图注分离。本项没有启动容器、服务或测试。
 15. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
 
 ## 唯一关键数字
@@ -101,13 +102,14 @@ bash scripts/test-service-data-ownership.sh
 - 同步前本地 11 个已跟踪改动和 1 个未跟踪文件已安全保存在 `stash@{0}`，名称 `pre-final-audit-sync-2026-09-03`，未删除。
 - 服务器 `/opt/Lumalife` 为 `main@a698c8e` 且有 5 项未跟踪实验材料；本轮仅只读查看 status/branch/log，未修改服务器。
 - 本项新增 3 个 backend API 测试、52 项矩阵并更新事实/审计文档；没有修改业务代码或原始实验数据。
-- 本项校准需求、概要、详细三份核心正式 Markdown，新增可复现 PDF 导出脚本并更新三份同名正式 PDF；后续又完成测试报告与部署文档，当前剩余用户手册、软件开发计划书两份历史 PDF，`tmp/` 未提交。
+- 本项校准需求、概要、详细三份核心正式 Markdown，新增可复现 PDF 导出脚本并更新三份同名正式 PDF；后续又完成测试报告、部署文档与用户手册。当前只剩软件开发计划书为历史 PDF，`tmp/` 未提交。
 - 本项新增 `docs/05_management/` 两份管理材料，只读查询 GitHub Project/Issue；没有修改远端 Project、Issue、PR 或补造历史证据。
 - 本项新增 `docs/06_defense/` 的 13 页可编辑 PPTX、技术总结、交付说明和待签确认模板；PPTX 已完成 13/13 页视觉 QA 与 0 越界布局检查。`slides_test.py` 所调用的 Windows 渲染进程在写完全部 13 张图片后异常退出，因此未将该命令记为 PASS；改以完整渲染产物、PPTX ZIP 结构、布局 JSON 和逐页人工检查留存真实结论。
 - 本项校准 `docs/07_测试报告.md` 并重生成 `docs/07_测试报告.pdf`；正式 PDF 5 页、A4、无文本空页，已全页视觉检查。`tmp/` 仅存 QA 中间产物，未提交。
 - 本项校准 `docs/08_部署文档.md` 并重生成 `docs/08_部署文档.pdf`；正式 PDF 6 页、A4、无文本空页，已全页视觉检查。`tmp/` 仅存 QA 中间产物，未提交。
+- 本项校准 `docs/09_用户手册.md` 并重生成 `docs/09_用户手册.pdf`；正式 PDF 12 页、A4、12/12 页文本非空、8/8 张截图已嵌入并完成全页视觉检查。导出脚本已支持 macOS/Windows/Linux 中文字体。未启动容器或测试。
 - 推送前已获取并合并 `origin/main@e75b3ed`，保留远端 3 个并行提交；未使用 rebase、reset、checkout 覆盖或 force push。合并后未重新执行测试，当前 HEAD 验证状态保持 NOT-RUN/UNVERIFIED 边界。
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是校准 `docs/09_用户手册.md` 并重新生成当前用户手册 PDF；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是校准软件开发计划书的可编辑源并重新生成当前 PDF；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。

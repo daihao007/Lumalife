@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import html
 import re
+from datetime import date
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -16,6 +17,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
+    Image as RLImage,
     KeepTogether,
     PageBreak,
     Paragraph,
@@ -29,9 +31,11 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
-FONT_DIR = Path("C:/Windows/Fonts")
-REGULAR_FONT = FONT_DIR / "msyh.ttc"
-BOLD_FONT = FONT_DIR / "msyhbd.ttc"
+FONT_CANDIDATES = (
+    (Path("C:/Windows/Fonts/msyh.ttc"), Path("C:/Windows/Fonts/msyhbd.ttc")),
+    (Path("/System/Library/Fonts/STHeiti Light.ttc"), Path("/System/Library/Fonts/STHeiti Medium.ttc")),
+    (Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"), Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc")),
+)
 
 DOCUMENTS = (
     (
@@ -49,6 +53,14 @@ DOCUMENTS = (
         "部署文档",
         "Deployment Guide",
         "LUMALIFE-DEP-003",
+    ),
+    (
+        "user-manual",
+        DOCS / "09_用户手册.md",
+        DOCS / "09_用户手册.pdf",
+        "用户手册",
+        "User Manual",
+        "LUMALIFE-UM-002",
     ),
     (
         "requirements",
@@ -85,10 +97,12 @@ INK = colors.HexColor("#1F2933")
 
 
 def register_fonts() -> None:
-    if not REGULAR_FONT.exists() or not BOLD_FONT.exists():
-        raise FileNotFoundError("Microsoft YaHei fonts are required for Chinese PDF export")
-    pdfmetrics.registerFont(TTFont("LumaSans", str(REGULAR_FONT), subfontIndex=0))
-    pdfmetrics.registerFont(TTFont("LumaSansBold", str(BOLD_FONT), subfontIndex=0))
+    pair = next(((regular, bold) for regular, bold in FONT_CANDIDATES if regular.exists() and bold.exists()), None)
+    if pair is None:
+        raise FileNotFoundError("A supported Chinese font pair is required (Microsoft YaHei, STHeiti, or Noto Sans CJK)")
+    regular_font, bold_font = pair
+    pdfmetrics.registerFont(TTFont("LumaSans", str(regular_font), subfontIndex=0))
+    pdfmetrics.registerFont(TTFont("LumaSansBold", str(bold_font), subfontIndex=0))
     pdfmetrics.registerFontFamily(
         "LumaSans", normal="LumaSans", bold="LumaSansBold", italic="LumaSans", boldItalic="LumaSansBold"
     )
@@ -106,6 +120,17 @@ def make_styles():
             alignment=TA_JUSTIFY,
             spaceAfter=4.2,
             wordWrap="CJK",
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            "CaptionCN",
+            parent=styles["BodyCN"],
+            fontSize=8.2,
+            leading=12,
+            alignment=TA_CENTER,
+            textColor=MID,
+            spaceAfter=7,
         )
     )
     styles.add(
@@ -250,7 +275,7 @@ def table_from_rows(rows: list[str], styles, width: float) -> Table:
     return table
 
 
-def markdown_story(markdown: str, styles, usable_width: float):
+def markdown_story(markdown: str, styles, usable_width: float, source_dir: Path):
     lines = markdown.splitlines()
     story = []
     paragraph: list[str] = []
@@ -301,6 +326,30 @@ def markdown_story(markdown: str, styles, usable_width: float):
         if in_code:
             code_lines.append(line)
             index += 1
+            continue
+
+        image_match = re.fullmatch(r"!\[([^]]*)]\(([^)]+)\)", stripped)
+        if image_match:
+            flush_paragraph()
+            image_path = (source_dir / image_match.group(2)).resolve()
+            if not image_path.is_file():
+                raise FileNotFoundError(f"Markdown image not found: {image_path}")
+            figure = RLImage(str(image_path))
+            figure._restrictSize(usable_width, 150 * mm)
+            figure.hAlign = "CENTER"
+            figure.spaceBefore = 5
+            figure.spaceAfter = 3
+
+            caption_index = index + 1
+            while caption_index < len(lines) and not lines[caption_index].strip():
+                caption_index += 1
+            caption = lines[caption_index].strip() if caption_index < len(lines) else ""
+            if re.match(r"^图\s*\d", caption):
+                story.append(KeepTogether([figure, Paragraph(inline_markup(caption), styles["CaptionCN"])]))
+                index = caption_index + 1
+            else:
+                story.append(figure)
+                index += 1
             continue
 
         if stripped.startswith("|") and stripped.endswith("|"):
@@ -380,7 +429,7 @@ def cover_story(title: str, subtitle: str, document_id: str):
             [
                 ["文档编号", document_id],
                 ["版本", "2.0 · 当前微服务验收版"],
-                ["更新日期", "2026-09-03"],
+                ["更新日期", date.today().isoformat()],
                 ["状态", "最终答辩前验收基线"],
             ],
             colWidths=[30 * mm, 82 * mm],
@@ -417,7 +466,7 @@ def build_document(source: Path, target: Path, title: str, subtitle: str, docume
     )
     markdown = source.read_text(encoding="utf-8")
     story = cover_story(title, subtitle, document_id)
-    story.extend(markdown_story(markdown, styles, usable_width))
+    story.extend(markdown_story(markdown, styles, usable_width, source.parent))
 
     def page_frame(canvas, doc):
         canvas.saveState()
