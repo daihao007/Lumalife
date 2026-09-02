@@ -14,7 +14,7 @@
 
 | 项目 | 结果 |
 | --- | --- |
-| Compose run | `20260902T101500Z-review-fixes` |
+| Compose run | `20260902T102500Z-p1-retry` |
 | backend profile | `prod,remote` |
 | remote flags | identity、merchant、order、assistant 全部开启 |
 | compatibility store | 关闭 |
@@ -120,7 +120,7 @@ confirm failure 后：
 | 检查项 | 结果 |
 | --- | --- |
 | `mvn -B -ntp -f backend/pom.xml verify` | PASS，92/92 |
-| `mvn -B -ntp -f services/pom.xml verify` | PASS，15/15 |
+| `mvn -B -ntp -f services/pom.xml verify` | PASS，40/40 |
 | `npm --prefix e2e test` | PASS，Monolith E2E 7/7 |
 | Microservice E2E | PASS，UC01～UC09 9/9 |
 | `docker compose config` | PASS |

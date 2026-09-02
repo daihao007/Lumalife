@@ -113,8 +113,8 @@ RELEASED
 | 检查项 | 结果 |
 |---|---|
 | `mvn -B -ntp -f backend/pom.xml verify` | PASS，92/92 |
-| `mvn -B -ntp -f services/pom.xml verify` | PASS，36/36（identity 11、merchant 8、order 15、assistant 2） |
-| `mvn -B -ntp -f services/order-service/pom.xml verify` | PASS，15/15，包含 `OrderInventoryResultConsumerTest` |
+| `mvn -B -ntp -f services/pom.xml verify` | PASS，40/40（identity 11、merchant 9、order 18、assistant 2） |
+| `mvn -B -ntp -f services/order-service/pom.xml verify` | PASS，18/18，包含 Saga 与 `OrderStoreConsistencyTest` |
 | `docker compose config` | PASS |
 | `kubectl kustomize k8s` | PASS，8 个 Deployment |
 | `bash scripts/test-service-data-ownership.sh` | PASS |
