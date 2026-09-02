@@ -2,6 +2,16 @@
 
 > 更新时间：2026-09-03；接力起始基线：`main@71d74a6`。UI E2E 修复提交见当前 Git 历史；这是最终答辩审计的续做入口。
 
+## 同步与提交状态
+
+- 当前分支：`main`
+- 远端：`origin = https://github.com/daihao007/Lumalife.git`
+- 远端并行提交：`d1792e0`、`36917b2`、`e75b3ed`，内容为 CI/CD 自动交付验证、Maven cache 串行化和 GitHub cache export 容错。
+- 合并提交：`1a99a78`，使用普通 merge 合入 `origin/main`，无冲突、未覆盖远端历史。
+- 最新功能/文档交付提交：`7d17da5`（当前部署文档与 PDF）；此前依次为 `a2676d0`、`e7e8ce1`、`bbba81f`、`56b2944`、`45f7aec`、`9f0a755`。
+- 最新交接提交：本文件所在提交；推送完成后以 `git rev-list --left-right --count origin/main...HEAD` 返回 `0 0` 为同步完成标准。
+- 工作区要求：除用户原有未跟踪 `tmp/` 外，已跟踪文件应保持干净；`tmp/` 不删除、不覆盖、不提交。
+
 ## 已完成
 
 1. 完整阅读外部课程任务书：
@@ -26,6 +36,7 @@
 12. 建立 `docs/06_defense/` 最终答辩交付包：生成 13 页可编辑 PPTX、当前技术总结和个人权重/全员确认待签模板。PPTX 包结构检查通过（13 slides / 13 notes / 13 `[Sources]`），13/13 页已渲染并逐页视觉检查，导出布局检查为 0 个越界元素。权重与确认仍保持 `UNVERIFIED`，没有代填或代签。
 13. 将 `docs/07_测试报告.md` 从 2026 年 6 月单体阶段记录重写为当前测试资产、52/52 API 覆盖和证据分层口径；更新导出脚本支持单文档生成，重新生成 5 页 A4 正式 PDF。PDF 文本提取 5/5 非空，Poppler 全页渲染并完成视觉 QA，未见裁切、溢出、乱码或空白页。本项遵循用户“停止测试”指示，没有运行任何测试。
 14. 将 `docs/08_部署文档.md` 从单体/Redis 历史说明重写为当前 8 服务 Compose、3 个服务数据库、27 个静态 Kubernetes 对象、不可变镜像和 CI/ECS 证据边界；重新生成 6 页 A4 正式 PDF。PDF 文本提取 6/6 非空，Poppler 全页渲染并完成视觉 QA，首轮孤页已修正，未见裁切、溢出、乱码或空白页。本项没有启动容器、集群、服务器或测试。
+15. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
 
 ## 唯一关键数字
 
@@ -41,7 +52,7 @@
 
 ## 当前失败与未验证
 
-当前没有已执行测试失败。backend 本次工作树 96/96，UI E2E 在 `9f0a755` 3/3。Microservice E2E 因 Docker 引擎未就绪且用户要求停止，尚未启动任何容器或场景，无新 artifact；services/Vitest 仍沿用 `dc96528` 前序证据，完整 GitHub Actions 也未重跑。不得写成当前 HEAD 全部通过。
+当前没有已执行测试失败。backend 本次工作树 96/96，UI E2E 在 `9f0a755` 3/3。Microservice E2E 因 Docker 引擎未就绪且用户要求停止，尚未启动任何容器或场景，无新 artifact；services/Vitest 仍沿用 `dc96528` 前序证据。合并远端 CI 修复后的当前 HEAD 没有重跑测试或取得完整 GitHub Actions 成功证据，不得写成当前 HEAD 全部通过。
 
 ## 后续必须做（优先级顺序）
 
@@ -90,11 +101,12 @@ bash scripts/test-service-data-ownership.sh
 - 同步前本地 11 个已跟踪改动和 1 个未跟踪文件已安全保存在 `stash@{0}`，名称 `pre-final-audit-sync-2026-09-03`，未删除。
 - 服务器 `/opt/Lumalife` 为 `main@a698c8e` 且有 5 项未跟踪实验材料；本轮仅只读查看 status/branch/log，未修改服务器。
 - 本项新增 3 个 backend API 测试、52 项矩阵并更新事实/审计文档；没有修改业务代码或原始实验数据。
-- 本项校准三份核心正式 Markdown，新增可复现 PDF 导出脚本并更新三份同名正式 PDF；其余四份历史 PDF 未覆盖，`tmp/` 未提交。
+- 本项校准需求、概要、详细三份核心正式 Markdown，新增可复现 PDF 导出脚本并更新三份同名正式 PDF；后续又完成测试报告与部署文档，当前剩余用户手册、软件开发计划书两份历史 PDF，`tmp/` 未提交。
 - 本项新增 `docs/05_management/` 两份管理材料，只读查询 GitHub Project/Issue；没有修改远端 Project、Issue、PR 或补造历史证据。
 - 本项新增 `docs/06_defense/` 的 13 页可编辑 PPTX、技术总结、交付说明和待签确认模板；PPTX 已完成 13/13 页视觉 QA 与 0 越界布局检查。`slides_test.py` 所调用的 Windows 渲染进程在写完全部 13 张图片后异常退出，因此未将该命令记为 PASS；改以完整渲染产物、PPTX ZIP 结构、布局 JSON 和逐页人工检查留存真实结论。
 - 本项校准 `docs/07_测试报告.md` 并重生成 `docs/07_测试报告.pdf`；正式 PDF 5 页、A4、无文本空页，已全页视觉检查。`tmp/` 仅存 QA 中间产物，未提交。
 - 本项校准 `docs/08_部署文档.md` 并重生成 `docs/08_部署文档.pdf`；正式 PDF 6 页、A4、无文本空页，已全页视觉检查。`tmp/` 仅存 QA 中间产物，未提交。
+- 推送前已获取并合并 `origin/main@e75b3ed`，保留远端 3 个并行提交；未使用 rebase、reset、checkout 覆盖或 force push。合并后未重新执行测试，当前 HEAD 验证状态保持 NOT-RUN/UNVERIFIED 边界。
 
 ## 下一位接力者的第一步
 
