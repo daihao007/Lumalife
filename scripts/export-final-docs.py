@@ -63,6 +63,14 @@ DOCUMENTS = (
         "LUMALIFE-UM-002",
     ),
     (
+        "development-plan",
+        DOCS / "10组-软件开发计划书.md",
+        DOCS / "10组-软件开发计划书.pdf",
+        "软件开发计划书",
+        "Software Development Plan",
+        "LUMALIFE-SDP-002",
+    ),
+    (
         "requirements",
         DOCS / "12_软件需求规格说明书.md",
         DOCS / "10组-软件需求规格说明书.pdf",
