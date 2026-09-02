@@ -1,6 +1,6 @@
 # Final Audit Handoff
 
-> 更新时间：2026-09-03；接力起始基线：`main@71d74a6`。UI E2E 修复提交见当前 Git 历史；这是最终答辩审计的续做入口。
+> 更新时间：2026-09-03；本轮接力起始基线：`main@01de84a`。用户手册、开发计划和 R26 续做提交见当前 Git 历史；这是最终答辩审计的续做入口。
 
 ## 同步与提交状态
 
@@ -8,9 +8,9 @@
 - 远端：`origin = https://github.com/daihao007/Lumalife.git`
 - 远端并行提交：`d1792e0`、`36917b2`、`e75b3ed`，内容为 CI/CD 自动交付验证、Maven cache 串行化和 GitHub cache export 容错。
 - 合并提交：`1a99a78`，使用普通 merge 合入 `origin/main`，无冲突、未覆盖远端历史。
-- 最新功能/文档交付提交：`7d17da5`（当前部署文档与 PDF）；此前依次为 `a2676d0`、`e7e8ce1`、`bbba81f`、`56b2944`、`45f7aec`、`9f0a755`。
+- 最新已推送的文档交付提交：`01de84a`（当前软件开发计划与 PDF）、`2cf1f83`（当前用户手册与 PDF）。R26 提交以本文所在的当前 Git 历史为准。
 - 最新交接提交：本文件所在提交；推送完成后以 `git rev-list --left-right --count origin/main...HEAD` 返回 `0 0` 为同步完成标准。
-- 工作区要求：除用户原有未跟踪 `tmp/` 外，已跟踪文件应保持干净；`tmp/` 不删除、不覆盖、不提交。
+- 工作区要求：除现有未跟踪 `docs/defense/` 和 `tmp/` 外，已跟踪文件应保持干净；这两个目录不删除、不覆盖、不提交。
 
 ## 已完成
 
@@ -38,7 +38,8 @@
 14. 将 `docs/08_部署文档.md` 从单体/Redis 历史说明重写为当前 8 服务 Compose、3 个服务数据库、27 个静态 Kubernetes 对象、不可变镜像和 CI/ECS 证据边界；重新生成 6 页 A4 正式 PDF。PDF 文本提取 6/6 非空，Poppler 全页渲染并完成视觉 QA，首轮孤页已修正，未见裁切、溢出、乱码或空白页。本项没有启动容器、集群、服务器或测试。
 15. 将 `docs/09_用户手册.md` 校准为当前角色路由、业务操作、6 个演示账号及默认 `prod,remote` 持久化口径；扩展 `scripts/export-final-docs.py` 支持用户手册、Markdown 本地图片和跨平台中文字体，重新生成 12 页 A4 正式 PDF。PDF 12/12 页文本非空、嵌入 8/8 张截图，Poppler 全页渲染并完成视觉 QA，未见裁切、重叠、越界、乱码或图注分离。本项没有启动容器、服务或测试。
 16. 从 17 页历史 PDF 重建 `docs/10组-软件开发计划书.md`，校准为 9 用例、BFF + 4 微服务、三服务数据库、52/65 API、221 测试资产、27 个 K8s 对象和 350 计划工时口径；明确 D09/D10、管理原件、当前 CI/E2E 和签字的未验证边界。重新生成 10 页 A4 正式 PDF，10/10 页文本非空并完成 Poppler 全页视觉 QA，未见裁切、重叠、表格越界、乱码或异常孤页。
-15. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
+17. 校准 `.env.example` 为当前 MySQL 三服务库、RabbitMQ、内部 Token、微服务开关与 Agnes 变量，移除已退出当前架构的 Redis/JWT 样例；重写 AI/开源说明并新增 Secret 静态审计报告。当前受跟踪文本与 Git 文本历史高置信特征 0 命中；宽泛候选为变量名、占位符或演示/测试值。本机无专用 scanner，未做 SBOM/license 全量审计，因此 R26 保持 `⚠️ TOOL-LIMITED`。
+18. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
 
 ## 唯一关键数字
 
@@ -99,7 +100,7 @@ bash scripts/test-service-data-ownership.sh
 
 ## 当前工作树注意事项
 
-- 用户原有未跟踪目录：`tmp/`；不要删除或覆盖。
+- 现有未跟踪目录：`docs/defense/`、`tmp/`；不要删除、覆盖或提交。
 - 同步前本地 11 个已跟踪改动和 1 个未跟踪文件已安全保存在 `stash@{0}`，名称 `pre-final-audit-sync-2026-09-03`，未删除。
 - 服务器 `/opt/Lumalife` 为 `main@a698c8e` 且有 5 项未跟踪实验材料；本轮仅只读查看 status/branch/log，未修改服务器。
 - 本项新增 3 个 backend API 测试、52 项矩阵并更新事实/审计文档；没有修改业务代码或原始实验数据。
@@ -114,4 +115,4 @@ bash scripts/test-service-data-ownership.sh
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是完成 R26 的全仓 Secret/敏感信息静态扫描并校准 AI/开源说明，或继续统一 27 张历史三层图编号；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是统一 27 张历史三层图编号，或在可安装专用工具的环境补做 gitleaks 与 SBOM/license 审计；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。

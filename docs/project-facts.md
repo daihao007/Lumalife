@@ -148,6 +148,12 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 - EXISTING-EVIDENCE-VERIFIED：Microservice E2E 9/9、HPA、故障实验、性能原始数据。
 - UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、教师确认、管理原件、个人权重与全员确认。
 
+## AI, Open Source and Secret Review
+
+- 开发过程使用 Codex 辅助代码、测试、文档和审计；人工仍负责复核、验收和本人签署。该用途与 `assistant-service` 的 Agnes 运行时 AI 能力分开说明。
+- 2026-09-03 对当前受跟踪文本与 Git 文本历史进行高置信静态特征扫描，真实凭据命中为 0；宽泛候选经复核为变量名、占位符或测试/演示值。
+- 由于审计主机未安装专用 Secret scanner，且尚未生成 SBOM/逐包许可证清单，R26 保持 `⚠️ LOCAL-STATIC-VERIFIED / TOOL-LIMITED`。详见 `docs/10_AI使用说明.md` 和 `docs/security/secret-scan-2026-09-03.md`。
+
 ## Formal Documents and PDFs
 
 - `12_软件需求规格说明书.md`、`13_概要设计说明书.md`、`14_详细设计说明书.md` 已校准为当前 BFF + 4 业务微服务版本。

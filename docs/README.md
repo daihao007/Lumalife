@@ -18,6 +18,8 @@
 - [`06_defense/contribution-signoff.md`](06_defense/contribution-signoff.md)：个人权重与全员确认模板（待成员本人填写和签署）
 - [`architecture/microservices-inventory.md`](architecture/microservices-inventory.md)、[`architecture/data-ownership.md`](architecture/data-ownership.md)、[`architecture/service-communication.md`](architecture/service-communication.md)：当前架构三表
 - [`diagrams/final/current-architecture.mmd`](diagrams/final/current-architecture.mmd)：当前微服务总图
+- [`10_AI使用说明.md`](10_AI使用说明.md)：AI 辅助范围、运行时 AI、开源与敏感信息边界
+- [`security/secret-scan-2026-09-03.md`](security/secret-scan-2026-09-03.md)：当前树与 Git 历史的静态 Secret 审计结果及限制
 
 ## 历史文档的使用规则
 
