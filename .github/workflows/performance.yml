@@ -79,6 +79,7 @@ jobs:
           OUTPUT_DIR: 04_tests/performance/results/ci
           PERF_REQUESTS: ${{ inputs.requests }}
           PERF_CONCURRENCY: ${{ inputs.concurrency }}
+          PERF_REQUIRE_STACK_RESOURCES: "true"
         run: bash 04_tests/performance/validate-results.sh "${OUTPUT_DIR}" "${PERF_REQUESTS}" "${PERF_CONCURRENCY}" 3
 
       - name: Upload raw performance results

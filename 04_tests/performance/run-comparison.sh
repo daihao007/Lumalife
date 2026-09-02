@@ -15,6 +15,7 @@ readonly WARMUP_REQUESTS="${PERF_WARMUP_REQUESTS:-6}"
 readonly TIMEOUT_MS="${PERF_TIMEOUT_MS:-3000}"
 readonly COMPOSE_PROJECT="${COMPOSE_PROJECT:-lumalife-main}"
 readonly BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
+readonly RESOURCE_SERVICES=(backend identity-service merchant-service order-service assistant-service)
 readonly STACK_COMPOSE_ARGS=(-p "${COMPOSE_PROJECT}")
 readonly LOAD_TEST="04_tests/performance/load-test.mjs"
 
@@ -69,6 +70,61 @@ resource_sample() {
   printf '%s,%s,%s\n' "${timestamp}" "${cpu}" "${memory}" >> "${resource_csv}"
 }
 
+resource_sample_stack() {
+  local resource_csv="$1" timestamp service container_id stats_line cpu memory
+  timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  for service in "${RESOURCE_SERVICES[@]}"; do
+    container_id="$(docker compose "${STACK_COMPOSE_ARGS[@]}" ps -q "${service}" 2>/dev/null || true)"
+    stats_line=""
+    if [[ -n "${container_id}" ]]; then
+      stats_line="$(docker stats --no-stream --format '{{.CPUPerc}}|{{.MemUsage}}' "${container_id}" 2>/dev/null || true)"
+    fi
+    if [[ -n "${stats_line}" ]]; then
+      cpu="${stats_line%%|*}"
+      memory="${stats_line#*|}"
+    else
+      cpu="N/A"
+      memory="N/A"
+    fi
+    printf '%s,%s,%s,%s\n' "${timestamp}" "${service}" "${cpu}" "${memory}" >> "${resource_csv}"
+  done
+}
+
+summarize_stack_resources() {
+  local resource_csv="$1" summary_csv="$2" summary_txt="$3"
+  awk -F, '
+    NR > 1 {
+      ts=$1
+      cpu=$3
+      mem=$4
+      gsub(/%/, "", cpu)
+      if (cpu != "N/A" && cpu != "") { cpu_by_ts[ts] += cpu; cpu_samples[ts]++ }
+      sub(/ \/.*/, "", mem)
+      if (mem ~ /GiB/) { gsub(/GiB/, "", mem); mem *= 1024 }
+      else { gsub(/MiB/, "", mem) }
+      if (mem != "N/A" && mem != "") { mem_by_ts[ts] += mem; mem_samples[ts]++ }
+    }
+    END {
+      print "timestamp,total_cpu_percent,total_memory_mib,cpu_containers,memory_containers"
+      for (ts in cpu_by_ts) print ts "," cpu_by_ts[ts] "," mem_by_ts[ts] "," cpu_samples[ts] "," mem_samples[ts]
+    }
+  ' "${resource_csv}" > "${summary_csv}"
+
+  awk -F, '
+    NR > 1 {
+      cpu=$2; mem=$3
+      if (cpu != "") { cpu_sum += cpu; cpu_n++; if (cpu > cpu_max) cpu_max=cpu }
+      if (mem != "") { mem_sum += mem; mem_n++; if (mem > mem_max) mem_max=mem }
+    }
+    END {
+      if (cpu_n) printf "total_cpu_avg_percent=%.2f\ntotal_cpu_max_percent=%.2f\n", cpu_sum/cpu_n, cpu_max
+      else print "total_cpu_avg_percent=N/A\ntotal_cpu_max_percent=N/A"
+      if (mem_n) printf "total_memory_avg_mib=%.2f\ntotal_memory_max_mib=%.2f\n", mem_sum/mem_n, mem_max
+      else print "total_memory_avg_mib=N/A\ntotal_memory_max_mib=N/A"
+    }
+  ' "${summary_csv}" > "${summary_txt}"
+}
+
 summarize_resources() {
   local resource_csv="$1"
   local cpu_avg cpu_max memory_avg memory_max
@@ -85,10 +141,14 @@ run_api() {
   local result_json="${OUTPUT_DIR}/${stem}.json"
   local result_csv="${OUTPUT_DIR}/${stem}.csv"
   local resource_csv="${OUTPUT_DIR}/${stem}-resources.csv"
+  local stack_resource_csv="${OUTPUT_DIR}/${stem}-stack-resources.csv"
+  local stack_summary_csv="${OUTPUT_DIR}/${stem}-stack-resource-summary.csv"
+  local stack_summary_txt="${OUTPUT_DIR}/${stem}-stack-resource-summary.txt"
   local backend_id load_pid load_exit resource_summary
 
   backend_id="$(docker compose "${STACK_COMPOSE_ARGS[@]}" ps -q "${BACKEND_SERVICE}")"
   printf 'timestamp,cpu_percent,memory_usage\n' > "${resource_csv}"
+  printf 'timestamp,service,cpu_percent,memory_usage\n' > "${stack_resource_csv}"
   (
     PERF_BASE_URL="${BASE_URL}" \
       PERF_ENDPOINT="${endpoint}" \
@@ -106,6 +166,7 @@ run_api() {
   load_pid=$!
   while kill -0 "${load_pid}" >/dev/null 2>&1; do
     resource_sample "${resource_csv}" "${backend_id}"
+    resource_sample_stack "${stack_resource_csv}"
     sleep 1
   done
   if wait "${load_pid}"; then
@@ -115,6 +176,8 @@ run_api() {
     failed_runs=$((failed_runs + 1))
   fi
   resource_sample "${resource_csv}" "${backend_id}"
+  resource_sample_stack "${stack_resource_csv}"
+  summarize_stack_resources "${stack_resource_csv}" "${stack_summary_csv}" "${stack_summary_txt}"
   resource_summary="$(summarize_resources "${resource_csv}")"
 
   if [[ -f "${result_json}" ]]; then
@@ -157,7 +220,9 @@ cat > "${OUTPUT_DIR}/README.md" <<EOF
 - Modes: microservices (prod,remote) and monolith (explicit monolith compatibility profile)
 - APIs: merchant search, categories, merchant detail
 - Repeats per API/mode: ${REPEATS}; requests per repeat: ${REQUESTS}; concurrency: ${CONCURRENCY}
-- CPU/memory: backend Docker stats samples in each *-resources.csv
+- CPU/memory: backend Docker stats samples in each *-resources.csv; all application
+  containers (backend plus identity, merchant, order and assistant) are retained in
+  each *-stack-resources.csv with aggregate summaries beside them.
 - Summary: comparison-summary.csv
 - Failed load invocations: ${failed_runs}
 
