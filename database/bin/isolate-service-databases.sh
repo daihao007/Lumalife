@@ -23,6 +23,28 @@ wait_for_mysql() {
   done
 }
 
+strip_foreign_keys() {
+  # The legacy schema contains relationships owned by other services. Keep
+  # columns, indexes and local CHECK constraints, but never recreate those
+  # cross-service foreign keys in an isolated database. The pending-line
+  # handling also removes a trailing comma when the removed constraint was the
+  # final item in a CREATE TABLE statement.
+  awk '
+    function flush() {
+      if (pending != "") print pending
+    }
+    tolower($0) ~ /foreign[[:space:]]+key/ { next }
+    {
+      if ($0 ~ /^[[:space:]]*\)/ && pending ~ /,[[:space:]]*$/) {
+        sub(/,[[:space:]]*$/, "", pending)
+      }
+      flush()
+      pending=$0
+    }
+    END { flush() }
+  '
+}
+
 copy_owned_tables() {
   target_host=$1
   target_database=$2
@@ -38,16 +60,19 @@ copy_owned_tables() {
     echo "Skipping initialized service database ${target_database}."
     return
   fi
-  MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
-    --database="$target_database" --execute='SET FOREIGN_KEY_CHECKS=0'
-  MYSQL_PWD="$MYSQL_PASSWORD" mysqldump --protocol=TCP --host="$MYSQL_HOST" --user="$MYSQL_USER" \
-    --no-data --skip-add-drop-table --skip-triggers --set-gtid-purged=OFF "$MYSQL_DATABASE" "$@" \
-    | MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" --database="$target_database"
-  MYSQL_PWD="$MYSQL_PASSWORD" mysqldump --protocol=TCP --host="$MYSQL_HOST" --user="$MYSQL_USER" \
-    --no-create-info --skip-triggers --set-gtid-purged=OFF "$MYSQL_DATABASE" "$@" \
-    | MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" --database="$target_database"
-  MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
-    --database="$target_database" --execute='SET FOREIGN_KEY_CHECKS=1'
+  {
+    printf '%s\n' 'SET FOREIGN_KEY_CHECKS=0;'
+    MYSQL_PWD="$MYSQL_PASSWORD" mysqldump --protocol=TCP --host="$MYSQL_HOST" --user="$MYSQL_USER" \
+      --no-tablespaces --no-data --skip-add-drop-table --skip-triggers --set-gtid-purged=OFF "$MYSQL_DATABASE" "$@" \
+      | strip_foreign_keys
+    printf '%s\n' 'SET FOREIGN_KEY_CHECKS=1;'
+  } | MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" --database="$target_database"
+  {
+    printf '%s\n' 'SET FOREIGN_KEY_CHECKS=0;'
+    MYSQL_PWD="$MYSQL_PASSWORD" mysqldump --protocol=TCP --host="$MYSQL_HOST" --user="$MYSQL_USER" \
+      --no-tablespaces --no-create-info --skip-triggers --set-gtid-purged=OFF "$MYSQL_DATABASE" "$@"
+    printf '%s\n' 'SET FOREIGN_KEY_CHECKS=1;'
+  } | MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" --database="$target_database"
 }
 
 sync_latest_migration_marker() {
