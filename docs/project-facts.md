@@ -1,0 +1,149 @@
+# Project Facts
+
+> 最终答辩唯一事实源。审计日期：2026-09-02；代码基线：`dc96528326363344714a99632bf5dcc3e7696b37`。若本文件与带日期的阶段报告冲突，以本文件及其列出的原始证据为准。历史报告不得改写为“本次执行”。
+
+## Project Version
+
+- 当前分支：`main`
+- 当前提交：`dc96528`
+- 单体基线标签：`monolith-start`（`3eb8f44`）
+- Java 项目声明版本：17；本轮本地测试实际 JVM：21.0.7
+- 前端：React 18 / TypeScript / Vite；本轮本地 Node：24.15
+
+## Business Scenarios
+
+正式范围为 **9 个业务场景 / 9 个用例**，统一编号 `REQ01~REQ09` 与 `UC01~UC09`：
+
+1. UC01 用户注册/登录并维护资料与地址
+2. UC02 搜索、筛选、查看详情与收藏并形成购买决策
+3. UC03 跨商家购物车拆单、下单、支付或取消
+4. UC04 商家履约、用户收货并评价
+5. UC05 购买团购套餐、支付并获得券码
+6. UC06 商家核销券码并处理无效、重复和越权
+7. UC07 商家维护商品/团购并发布到用户端
+8. UC08 用户、商家与 AI 客服沟通闭环
+9. UC09 管理员查看运营指标与系统状态
+
+完整用例字段见 [`16_业务场景用例清单.md`](16_业务场景用例清单.md)。仓库中未找到教师/助教对最终清单的确认原件，因此“清单已确认”仍为 `UNVERIFIED`。
+
+## Architecture
+
+当前默认运行模式是：
+
+```text
+frontend -> backend BFF/API facade -> identity / merchant / order / assistant
+                                      order <-> merchant via RabbitMQ Saga
+```
+
+- 架构类型：微服务运行模式，同时保留 `monolith` profile 作为基线、回滚和性能对照。
+- `backend` 是 BFF/API facade，不计入业务微服务。
+- 不存在独立 API Gateway、注册中心或配置中心。
+- 默认 Compose 使用一个 MySQL 实例中的三个服务数据库；Kubernetes 清单同时部署 legacy MySQL 与三个服务数据库实例。
+
+## Business Microservices
+
+业务微服务共 **4 个**：`identity-service`、`merchant-service`、`order-service`、`assistant-service`。
+
+## Services
+
+- 后端应用服务：5（backend BFF + 4 个业务微服务）
+- 应用部署单元：6（上述 5 个 + frontend）
+- Compose 默认运行服务：8（6 个应用 + MySQL + RabbitMQ）
+- Kubernetes 工作负载控制器：11（7 Deployment + 4 StatefulSet）
+
+## Ports
+
+| 组件 | 端口 | 说明 |
+| --- | ---: | --- |
+| frontend | 5173（Compose host）/ 80（K8s Service） | 用户界面 |
+| backend | 8080 | 52 个公共业务 API 的统一入口 |
+| identity-service | 8081 | 内部身份/资料 API |
+| merchant-service | 8082 | 内部商家/目录/库存/会话 API |
+| order-service | 8083 | 内部购物车/订单/支付/评价 API |
+| assistant-service | 8084 | 内部 AI 答复 API |
+| MySQL | 3306 | 数据存储 |
+| RabbitMQ | 5672 / 15672 | AMQP / 管理端口 |
+
+## Databases
+
+- 服务业务数据库：3 个：`life_assistant_identity`、`life_assistant_merchant`、`life_assistant_order`
+- `assistant-service` 无业务数据库。
+- `life_assistant` 是 legacy/迁移/回滚源，不是 `prod,remote` 的业务事实源。
+
+## Data Ownership
+
+| 服务 | 表数 | 主要表 |
+| --- | ---: | --- |
+| identity-service | 3 | `user_account`、`user_address`、`auth_session` |
+| merchant-service | 10 | `category`、`merchant`、`merchant_catalog`、`group_deal`、`merchant_favorite`、`chat_message`、库存与 inbox/outbox 表 |
+| order-service | 10 | `order_record`、订单行/事件、购物车、支付、券码、评价、inbox/outbox、Saga 表 |
+| assistant-service | 0 | 无 |
+
+静态边界脚本未发现三个有状态服务跨服务直接 SQL 访问；详细清单见 [`architecture/data-ownership.md`](architecture/data-ownership.md)。
+
+## APIs
+
+- 公共业务 API：**52**（仅 backend `/api/v1` 显式 method mappings；不计 Actuator/Swagger/internal）
+- 内部业务 API：**65**（identity 13、merchant 30、order 21、assistant 1）
+- API 覆盖尚无 52 项公共接口逐项、逐异常路径的一对一可执行清单，因此课程“所有公开接口均有 API 测试”状态为 `⚠️`。
+
+## Tests
+
+分类规则：非 `@SpringBootTest` Java + 全部 Vitest 计 Unit/Component；`@SpringBootTest` Java 计 Integration/API；三个 E2E runner 的场景计 E2E。
+
+| 类型 | 源码 Case | 本轮/证据 Passed | Failed | Skipped | NOT-RUN |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Unit/Component | 108 | 108 | 0 | 0 | 0 |
+| Integration/API | 91 | 91 | 0 | 0 | 0 |
+| E2E | 19 | 11 | 1 | 0 | 7 |
+| Total | **218** | **210** | **1** | **0** | **7** |
+
+证据分层：本轮 `LOCAL-VERIFIED` 为 202 次执行（201 pass / 1 fail）；旧提交 `8c335eb` 的 Microservice E2E 9/9 为 `EXISTING-EVIDENCE-VERIFIED`；legacy API E2E 7 项本轮因有状态写入未重跑，记 `NOT-RUN`。6 个 Shell 验证套件另列，不并入 218：本轮安全执行 5 个均通过，MySQL contract 因会写业务数据而未执行。
+
+当前唯一失败：`ui-e2e/tests/core-flows.spec.ts` 客服往返场景在第 71 行无法找到名称匹配 `/林夏/` 的会话按钮。
+
+## Kubernetes
+
+`kubectl kustomize k8s` 本轮渲染通过，静态清单共 27 个对象：
+
+| 资源 | 数量 |
+| --- | ---: |
+| Namespace | 1 |
+| Deployment | 7 |
+| StatefulSet | 4 |
+| Service | 11 |
+| HPA | 2 |
+| PVC | 2 |
+| Ingress | 0 |
+| 静态 ConfigMap / Secret | 0 / 0 |
+
+部署脚本运行时另创建 2 Secret 和 2 ConfigMap；它们不计入静态 27。声明式最低 Pod 基线为 **12**（frontend 2，其余 Deployment/StatefulSet 各 1）。HPA 仅覆盖 backend 和 merchant-service，均为 min 1 / max 3 / CPU 60%。
+
+## HPA Experiment
+
+状态：`EXISTING-EVIDENCE-VERIFIED`。提交 `8c335eb`、镜像 `sha-8c335eb` 的远端 K3s 原始 CSV 证明 merchant-service `1 -> 2 -> 3 -> 1`；20 workers、120 秒负载、14,467 请求、0 错误。该实验不是当前 `dc96528` 的本轮重跑。
+
+## Fault Handling
+
+- 同步 HTTP：显式 connect/read timeout；核心服务不可用映射为明确 503，不存在通用 retry/circuit breaker/rate limit/bulkhead。
+- AI provider：确定性 fallback。
+- 库存链路：RabbitMQ Outbox/Inbox、幂等消费、Saga 状态与补偿/人工核验。
+- 已有故障证据：merchant-service `1 -> 0 -> 1`，商家请求 `200 -> 503 -> 200`，backend readiness 全程 200。
+
+不得把 timeout 或 503 映射写成 circuit breaker；不得把配置切回 monolith 写成自动 fallback。
+
+## Performance Benchmark
+
+- 接口：3（merchant search、categories、merchant detail）
+- 模式：2（monolith、microservices）
+- 重复：每个模式/接口 3 次
+- Performance Runs：**18**；每次 10 请求，并发 4；总请求 180，失败 0
+- 本批小样本中单体三个接口均更快；不得表述为“微服务性能提升”。
+- 状态：`⚠️ EXISTING-EVIDENCE-VERIFIED`。原始 commit 未记录、没有当前成功远端 workflow artifact，且资源 CSV 只覆盖 backend，不是微服务全栈 CPU/内存公平口径。
+
+## Evidence Status
+
+- LOCAL-VERIFIED：Java 164/164、Vitest 35/35、UI E2E 2/3、frontend build、Compose config、Kustomize render、性能矩阵只读校验、5 个静态 Shell 套件。
+- SERVER-VERIFIED：0（本轮未连接服务器）。
+- EXISTING-EVIDENCE-VERIFIED：Microservice E2E 9/9、HPA、故障实验、性能原始数据。
+- UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、完整公开 API 一对一覆盖、教师确认、管理/答辩材料。

@@ -1,0 +1,27 @@
+flowchart LR
+    UI[frontend / React]
+    BFF[backend / BFF / 52 public APIs]
+    ID[identity-service / 8081]
+    MER[merchant-service / 8082]
+    ORD[order-service / 8083]
+    AI[assistant-service / 8084]
+    IDDB[(life_assistant_identity)]
+    MERDB[(life_assistant_merchant)]
+    ORDDB[(life_assistant_order)]
+    MQ[(RabbitMQ)]
+    AGNES[Agnes provider]
+
+    UI -->|HTTP /api/v1| BFF
+    BFF -->|internal HTTP + token| ID
+    BFF -->|internal HTTP + token| MER
+    BFF -->|internal HTTP + token| ORD
+    BFF -->|internal HTTP + token| AI
+    ID --> IDDB
+    MER --> MERDB
+    ORD --> ORDDB
+    ORD -->|inventory commands| MQ
+    MQ --> MER
+    MER -->|inventory results| MQ
+    MQ --> ORD
+    MER -->|payment-state HTTP| ORD
+    AI -->|timeout + fallback| AGNES

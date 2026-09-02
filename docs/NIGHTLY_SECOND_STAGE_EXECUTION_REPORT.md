@@ -1,5 +1,7 @@
 # LumaLife 第二阶段夜间自主执行报告
 
+> 历史执行记录。测试表中的 92/40 是当次 nightly 数字；当前 `main@dc96528` 为 backend 93、services 71，唯一口径见 [`testing/test-inventory.md`](testing/test-inventory.md)。HPA 最终验收批次的负载为 120 秒、冷却 180 秒。
+
 执行日期：2026-09-02（Asia/Shanghai）  
 仓库：`D:\Projects\26summer\Lumalife`
 执行范围：Microservice E2E、故障处理、HPA 最终验收、性能对比、文档同步和最终回归。
@@ -60,7 +62,7 @@ UC03 实测库存 Saga 为 `CONFIRMED`、payment 为 `SUCCESS`；UC08 实测 sen
 | Context/API server | PASS；远端 K3s context `default`，Kubernetes v1.36.3+k3s1 |
 | `metrics.k8s.io` | PASS；APIService `Available=True`，raw API 与 `kubectl top` 均成功 |
 | metrics-server | PASS；集群已有 `kube-system/metrics-server`，本次无需安装替换 |
-| Load | PASS；20 workers、180 秒负载，10 秒采样 |
+| Load | PASS；20 workers、120 秒负载，10 秒采样 |
 | Scale Up | PASS；merchant-service Ready `1 → 2 → 3`，HPA current/desired 同步达到 `2/2`、`3/3` |
 | Scale Down | PASS；180 秒冷却后 Ready 与 HPA current/desired 均回到 `1/1` |
 | CPU / memory | PASS；每轮有 `kubectl top` CPU/Memory 原始采样 |
@@ -129,8 +131,9 @@ BLOCKED 文件仍保留为历史失败，不与本次远端成功混用。
 
 | 检查项 | 结果 |
 | --- | --- |
-| `mvn -B -ntp -f backend/pom.xml verify` | PASS，92/92 |
-| `mvn -B -ntp -f services/pom.xml verify` | PASS，40/40 |
+| 当次 `mvn -B -ntp -f backend/pom.xml verify` | 历史 PASS，92/92；非当前测试数量 |
+| 当次 `mvn -B -ntp -f services/pom.xml verify` | 历史 PASS，40/40；非当前测试数量 |
+| 2026-09-02 最终审计本地复验 | backend 93/93；services 71/71；见 Test Inventory |
 | `npm --prefix e2e test` | PASS，Monolith E2E 7/7 |
 | Microservice E2E | PASS，UC01～UC09 9/9 |
 | `docker compose config` | PASS |
@@ -213,8 +216,8 @@ Monolith Runs: 3 API groups, 0 errors
 Microservice Runs: 3 API groups, 0 errors
 CPU/Memory: PASS - Docker stats raw samples saved
 Documentation: PASS
-Backend Tests: PASS 92/92
-Services Tests: PASS 40/40
+Backend Tests (historical nightly): PASS 92/92; current audit: 93/93
+Services Tests (historical nightly): PASS 40/40; current audit: 71/71
 Ownership: PASS
 Kustomize: PASS
 Overall status: PARTIAL - remaining workflow/fault-depth evidence

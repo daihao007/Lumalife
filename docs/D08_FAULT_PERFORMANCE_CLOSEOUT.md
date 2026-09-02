@@ -1,5 +1,7 @@
 # D08 故障处理与性能对比收口记录
 
+> 历史分支收口记录（`a698c8e`），不是当前 `main@dc96528` 事实源。当前性能状态和缺口以 [`project-facts.md`](project-facts.md) 与 [`final-audit/final-project-audit.md`](final-audit/final-project-audit.md) 为准。
+
 ## 当前执行基线
 
 - 工作分支：`codex/d08-fault-performance-closeout`

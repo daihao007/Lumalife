@@ -2,6 +2,8 @@
 
 LumaLife 是一个面向课程验收场景的本地生活服务平台演示项目，覆盖用户消费闭环、商家履约闭环和平台观测闭环。
 
+> 最终答辩事实口径（2026-09-02，`main@dc96528`）：关键数字、验证来源与未完成项统一见 [`docs/project-facts.md`](docs/project-facts.md) 和 [`docs/final-audit/final-project-audit.md`](docs/final-audit/final-project-audit.md)。带日期的阶段报告与旧 PDF 是历史证据，不代表当前 HEAD。
+
 ## 技术栈
 
 - 后端：Java 17+、Spring Boot 3、Spring Security、Maven、JUnit 5
@@ -33,7 +35,7 @@ docker compose up --detach --build --wait
 docker compose ps
 ```
 
-`docker compose ps` 应显示且只显示 `mysql`、`backend`、`frontend`、`identity-service`、`merchant-service`、`order-service` 六个运行中且健康的服务。
+`docker compose ps` 应显示 8 个默认服务：`mysql`、`rabbitmq`、`backend`、`frontend`、`identity-service`、`merchant-service`、`order-service`、`assistant-service`。
 
 - 前端：http://localhost:5173
 - 后端：http://localhost:8080
@@ -86,7 +88,7 @@ npm run dev
 
 ### 数据库生命周期工具
 
-本地直接运行后端时默认使用文件状态；Compose 和 Kubernetes 会设置 `LUMALIFE_PERSISTENCE=mysql`，由 `JdbcBusinessStateRepository` 将全部可变业务状态事务性写入 V001 的关系表。后端或容器重启后会从 `user_account`、`product`、`cart_item`、`order_main` 等表恢复账号、地址、商品、团购、购物车、订单、支付、券码、评价、会话、收藏和操作日志。V003 的 `business_state` 仅用于兼容旧部署：发现旧快照时会一次性导入关系表并删除活动快照。手工迁移、seed、校验工具仍可独立执行：
+默认容器运行模式为 `prod,remote`：identity、merchant、order 分别写入 `life_assistant_identity`、`life_assistant_merchant`、`life_assistant_order`，assistant 无业务数据库；库存操作通过 RabbitMQ Outbox/Inbox/Saga 协作。`JdbcBusinessStateRepository`、`DemoStore` 与 legacy `life_assistant` 仅用于 `monolith` 基线、迁移和回滚，不是默认生产事实源。手工迁移、seed、校验工具仍可独立执行：
 
 ```bash
 docker compose --profile db-tools run --rm db-migrate
@@ -147,8 +149,8 @@ LumaLife/
 ## 当前工程状态
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
-- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面；领域门面通过 `IdentityServicePort`、`MerchantServicePort`、`OrderServicePort` 和 `MetricsServicePort` 隔离。当前四个独立服务的业务 mapping 为 identity 13、merchant 30、order 19 加 1 个评价投影、assistant 1；服务库按 identity/merchant/order 逻辑归属隔离；backend 仍是稳定的 BFF 入口，未纳入远程事实源的兼容能力保留在 `DemoStore`。当前边界和追溯见 [D07 服务接口、数据归属与需求追溯](docs/28_D07服务接口数据归属与需求追溯.md) 和 [D08 云原生实验与性能对比计划](docs/29_D08云原生实验与性能对比计划.md)。
-- 自动化测试包含后端业务规则、Web 层权限集成、服务边界契约、数据库资产测试和独立真实 HTTP 黑盒 E2E；当前 main 的 [Monolith CI 33584079761](https://github.com/daihao007/Lumalife/actions/runs/33584079761) 已成功，并提供 Backend、Microservice E2E UC01～UC09、API/UI E2E、Kubernetes smoke 和 quality gate 作业/Artifact。历史测试数量与范围仍见 [测试报告](docs/07_测试报告.md)、[D05 中期检查与缺口闭环](docs/20_D05中期检查与前五天缺口闭环.md)、[测试基线与缺口矩阵](docs/15_测试基线与缺口矩阵_2026-08-25.md)、[Issue #29 E2E执行记录](docs/17_ISSUE-29_E2E执行记录_2026-08-26.md)、[Issue #34 E2E执行记录](docs/18_ISSUE-34_E2E执行记录_2026-08-27.md)、[服务边界落地记录](docs/17_D03服务边界落地记录.md) 与 [单体基线与范围冻结记录](docs/12_单体基线与范围冻结记录.md)；本机 Java 24 失败不作为 Java 17 业务结论。
+- 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面。当前公共业务 API 为 52；内部业务 API 为 identity 13、merchant 30、order 21（含评价投影）、assistant 1，共 65。服务库按 identity/merchant/order 归属隔离；backend 是 BFF 入口，兼容能力保留在 `DemoStore`。当前边界见 [`docs/architecture/`](docs/architecture/) 三表。
+- 本轮形式化源码测试共 218：Unit/Component 108、Integration/API 91、E2E 19。本地实际执行 202 项，201 通过、1 个 UI E2E 失败；旧提交另有 Microservice E2E 9/9 既有证据，legacy E2E 7 项本轮未运行。唯一口径见 [`docs/testing/test-inventory.md`](docs/testing/test-inventory.md)，不得沿用历史 40/59/78/92 等数字或写成“全部通过”。
 - MySQL Schema、V001～V019 版本迁移、演示 seed、清理机制和关系表业务读写已落地，见 `docs/06_数据库设计.md`；V001～V018 为已存在的基线/渐进迁移，V019 补充库存释放结果去重、过期预占重试字段和 `CHECK_REQUIRED`/`RELEASE_FAILED` 状态约束。CI 会直接检查购物车关系行，并在重启后端后通过 API 验证恢复结果。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案是历史设计快照，明确排除骑手领域，当前四服务事实以 D07/架构矩阵为准。
 - 四服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。库存预占/确认/释放已由 merchant-service 通过 RabbitMQ transactional Outbox/Inbox 实现至少一次投递和幂等消费，释放结果明确区分 `RELEASED`、`CHECK_REQUIRED`、`RELEASE_FAILED`，order Saga 不会把人工核对写成 `RELEASED`。

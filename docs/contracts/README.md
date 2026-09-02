@@ -12,7 +12,7 @@
 | （尚无独立文件） | assistant-service | 当前源码 1 个 `/internal/v1/assistant/answer` mapping；机器可读 assistant OpenAPI 仍是文档缺口，不把缺失文件写成已交付 |
 | `domain-events.asyncapi.yaml` | order-service ↔ merchant-service | 11 个版本化领域事件，以及库存预占/确认/释放命令和显式结果事件（含 `CHECK_REQUIRED` / `RELEASE_FAILED`） |
 
-规范文件仍包含迁移目标，尤其是 JWT、独立数据库 Schema、库存预占、Outbox/Inbox 和事件总线；当前四个服务实际实现 64 个 `/internal/v1/**` 业务 mapping，assistant 的 1 个入口也纳入当前运行边界。未列入服务源码/测试的目标接口不能视为已部署能力；当前实际路由、数据表和差异记录在 [`../28_D07服务接口数据归属与需求追溯.md`](../28_D07服务接口数据归属与需求追溯.md)，目标模型仍见 [`../16_三服务接口数据归属与契约草案.md`](../16_三服务接口数据归属与契约草案.md)。
+规范文件仍包含迁移目标，尤其是 JWT、独立数据库 Schema、库存预占、Outbox/Inbox 和事件总线；当前四个服务实际实现 65 个 `/internal/v1/**` 业务 mapping（identity 13、merchant 30、order 20、评价投影 1、assistant 1）。未列入服务源码/测试的目标接口不能视为已部署能力；当前实际路由、数据表和差异记录在 [`../project-facts.md`](../project-facts.md) 与 [`../28_D07服务接口数据归属与需求追溯.md`](../28_D07服务接口数据归属与需求追溯.md)。
 
 ## 校验
 

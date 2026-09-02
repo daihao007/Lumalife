@@ -1,5 +1,7 @@
 # LumaLife Microservice E2E Report
 
+> `EXISTING-EVIDENCE-VERIFIED`：本报告绑定提交 `8c335eb`，不是当前 `main@dc96528` 的本轮执行。文中的 92/15 等测试数字是该次历史记录；当前测试唯一口径见 [`testing/test-inventory.md`](testing/test-inventory.md)。
+
 ## 结论
 
 **READY FOR CLOUD-NATIVE EXPERIMENTS**

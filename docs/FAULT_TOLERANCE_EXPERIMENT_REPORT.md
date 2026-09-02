@@ -1,5 +1,7 @@
 # LumaLife 故障处理实验报告
 
+> `EXISTING-EVIDENCE-VERIFIED`：原始 before/during/after 文件支持下述结论。本轮未重新改变服务器或集群状态。实验脚本的 PASS gate 只强制 during 非 200，未强制 503/业务码/恢复成功，因此最终结论依赖原始状态码与响应体的人工复核，不能只凭脚本退出文本。
+
 ## 1. 实验结论
 
 本轮在 Docker Desktop Kubernetes（namespace `lumalife`）完成 merchant-service 故障注入，结果为 PASS。

@@ -1,6 +1,6 @@
 # LumaLife 微服务最终架构口径矩阵
 
-> 更新日期：2026-09-02。本文以当前代码、`services/data-ownership.yml`、Microservice E2E 实测和 Kubernetes 清单为准；`DemoStore`、`monolith` profile 与 legacy `life_assistant` 仍保留为兼容、迁移和回滚能力，不是 `prod,remote` 运行时的业务事实源。
+> 更新日期：2026-09-02；当前代码 `main@dc96528`。关键数字以 [`project-facts.md`](project-facts.md) 为准；Microservice E2E 9/9 是旧提交既有证据，不冒充当前 HEAD 重跑。`DemoStore`、`monolith` profile 与 legacy `life_assistant` 仍保留为兼容、迁移和回滚能力，不是 `prod,remote` 运行时的业务事实源。
 
 ## 1. 运行模式
 
@@ -19,7 +19,7 @@
 | --- | --- | --- | ---: | --- |
 | identity-service | `IdentityApi` | `/internal/v1` | 13 | 登录、注册、Token、账号、资料、地址 |
 | merchant-service | `MerchantApi` | `/internal/v1` | 30 | 分类、商家、商品、团购、收藏、会话、库存 |
-| order-service | `OrderApi` | `/internal/v1/orders` | 19 | 购物车、订单、支付、履约、券码、评价 |
+| order-service | `OrderApi` | `/internal/v1/orders` | 20 | 购物车、订单、支付、履约、券码、评价 |
 | order-service | `MerchantReviewProjectionApi` | `/internal/v1/merchants` | 1 | 给 merchant-service 的评价只读投影 |
 | assistant-service | `AssistantApi` | `/internal/v1/assistant` | 1 | AI 答复和确定性降级 |
 | 每个业务服务 | `ProbeController` | `/actuator/health*` | 3 | health、liveness、readiness |
@@ -52,7 +52,7 @@
 
 ## 5. UC01～UC09 微服务 E2E 追溯
 
-Microservice E2E 使用真实 HTTP 黑盒 runner，在 `prod,remote`、独立 Compose 项目、三项 service-owned DB、RabbitMQ 环境执行；当前 run 为 9/9 PASS。
+Microservice E2E 使用真实 HTTP 黑盒 runner，在 `prod,remote`、三项 service-owned DB、RabbitMQ 环境执行；提交 `8c335eb` 的既有 run 为 9/9 PASS。当前 `dc96528` 未在本轮重跑该有状态套件。
 
 | 用例 | 远程业务证据 | 结果 | 原始证据 |
 | --- | --- | --- | --- |

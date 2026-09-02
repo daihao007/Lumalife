@@ -44,14 +44,14 @@
 
 ## 5. 原始证据
 
-统一证据目录：[`04_tests/evidence/second-stage-20260902/hpa/`](../04_tests/evidence/second-stage-20260902/hpa/)。同一批文件也保存在 `04_tests/cloud-native/`，便于按脚本入口复现：
+`8c335eb` 最终验收批次的权威证据目录为 [`04_tests/cloud-native/`](../04_tests/cloud-native/)；`04_tests/evidence/second-stage-20260902/hpa/` 只保存未带 commit hash 的另一批镜像，不包含下列 `-8c335eb` 文件，不能作为这些文件的链接目标：
 
 - `hpa-observation-20260902-8c335eb.csv`、`hpa-observation-20260902-8c335eb-summary.md`；
 - `hpa-observation-20260902-8c335eb-load.log`、`hpa-observation-20260902-8c335eb-load-create.log`；
 - `hpa-observation-20260902-8c335eb-kubectl.log`、`hpa-observation-20260902-8c335eb-top.log`；
 - `hpa-observation-20260902-8c335eb-events.log`、`hpa-observation-20260902-8c335eb-service.log`；
-- `hpa-observation-20260902-metrics-server.yaml`、`metrics-server-pods.txt`、`metrics-api.json`、`nodes.txt`；
-- `hpa-observation-20260902-hpa.yaml`、`deployment.yaml` 以及实验结束后的 `final-*` 快照。
+- `hpa-observation-20260902-8c335eb-metrics-server.yaml`、`-metrics-server-pods.txt`、`-metrics-api.yaml`；
+- `hpa-observation-20260902-8c335eb-hpa.yaml`、`-deployment.yaml` 以及实验结束后的 `-final-*` 快照。
 
 此前本地无 context 的 `hpa-observation-20260902-blocked*` 文件继续保留为真实 BLOCKED preflight 历史，不覆盖本次远端 PASS，也不作为扩缩容数据。
 
