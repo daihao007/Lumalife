@@ -33,6 +33,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
   backend:
     build: ./backend
     restart: unless-stopped
@@ -257,3 +259,4 @@ services:
 
 volumes:
   mysql_data:
+  rabbitmq_data:

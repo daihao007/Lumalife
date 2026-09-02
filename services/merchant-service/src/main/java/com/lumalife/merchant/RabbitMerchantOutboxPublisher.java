@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.util.List;
+import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,7 +49,10 @@ public class RabbitMerchantOutboxPublisher {
       String message = mapper.writeValueAsString(new EventEnvelope("merchant-outbox-" + event.id(),
           event.aggregateType(), event.aggregateId(), event.eventType(), payload,
           event.occurredAt().toInstant().toString()));
-      rabbit.convertAndSend(exchange, event.eventType(), message);
+      rabbit.convertAndSend(exchange, event.eventType(), message, outgoing -> {
+        outgoing.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+        return outgoing;
+      });
       jdbc.update("UPDATE merchant_outbox_event SET status='PUBLISHED',published_at=CURRENT_TIMESTAMP "
           + "WHERE id=? AND status IN ('PENDING','FAILED')", event.id());
     } catch (Exception error) {
