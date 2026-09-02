@@ -614,16 +614,18 @@ public class OrderStore {
   }
 
   private Optional<Order> findOrder(long id) {
-    Order cached = orders.get(id);
-    if (cached != null || jdbc == null) return Optional.ofNullable(cached);
+    if (jdbc == null) return Optional.ofNullable(orders.get(id));
     var rows = jdbc.query("SELECT id,user_id,merchant_id,merchant_name_snapshot,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_snapshot FROM order_record WHERE id=?", this::map, id);
     return rows.stream().findFirst();
   }
 
   private Order setStatus(Order order, long actor, String status) {
     Order updated = withStatus(order, status);
+    if (jdbc != null) {
+      int changed = jdbc.update("UPDATE order_record SET status=?, version=version+1 WHERE id=? AND status=?", status, order.id(), order.status());
+      if (changed != 1) throw new IllegalStateException("订单状态已变化，状态流转未完成");
+    }
     orders.put(order.id(), updated);
-    if (jdbc != null) jdbc.update("UPDATE order_record SET status=?, version=version+1 WHERE id=? AND status=?", status, order.id(), order.status());
     appendEvent(order.id(), actor, status);
     return updated;
   }
