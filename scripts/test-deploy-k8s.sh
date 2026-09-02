@@ -34,7 +34,11 @@ grep -q -- '--from-file=V013__order_merchant_name_snapshot.sql=database/migratio
 grep -q -- '--from-file=V014__event_bus_inbox.sql=database/migrations/V014__event_bus_inbox.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V015__inventory_saga_result_delivery.sql=database/migrations/V015__inventory_saga_result_delivery.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=V016__async_inventory_reservation_saga.sql=database/migrations/V016__async_inventory_reservation_saga.sql' "${SCRIPT_PATH}"
+grep -q -- '--from-file=V017__inventory_saga_failure_compensation.sql=database/migrations/V017__inventory_saga_failure_compensation.sql' "${SCRIPT_PATH}"
+grep -q -- '--from-file=V018__chat_sender_role_contract.sql=database/migrations/V018__chat_sender_role_contract.sql' "${SCRIPT_PATH}"
 grep -q -- '--from-file=provision-service-databases.sh=database/bin/provision-service-databases.sh' "${SCRIPT_PATH}"
+grep -q 'order_saga_status_constraint_count' database/bin/provision-service-databases.sh
+grep -q 'V018__chat_sender_role_contract.sql' database/bin/isolate-service-databases.sh
 grep -q -- '--from-file=backfill-service-databases.sh=database/bin/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q 'MYSQL_HOST=127.0.0.1 sh /database/migrations/backfill-service-databases.sh' "${SCRIPT_PATH}"
 grep -q -- '--from-literal=identity-database="${MYSQL_IDENTITY_DATABASE}"' "${SCRIPT_PATH}"
@@ -47,6 +51,8 @@ grep -q 'version IN (.*V013' .github/workflows/ci.yml
 grep -q 'version IN (.*V014' .github/workflows/ci.yml
 grep -q 'version IN (.*V015' .github/workflows/ci.yml
 grep -q 'version IN (.*V016' .github/workflows/ci.yml
+grep -q 'version IN (.*V017' .github/workflows/ci.yml
+grep -q 'version IN (.*V018' .github/workflows/ci.yml
 grep -q '^            database/init$' .github/workflows/ci.yml
 grep -q '^            scripts/lib/legacy-migrations.sh$' .github/workflows/ci.yml
 grep -q '^            database/backfill-services.sql$' .github/workflows/ci.yml

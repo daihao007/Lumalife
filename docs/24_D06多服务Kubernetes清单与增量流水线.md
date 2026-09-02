@@ -30,9 +30,9 @@
 
 | 变化路径 | 受影响服务 |
 |---|---|
-| `services/identity-service/**`、`k8s/services/identity-service.yaml` | identity-service |
-| `services/merchant-service/**`、`k8s/services/merchant-service.yaml` | merchant-service |
-| `services/order-service/**`、`k8s/services/order-service.yaml` | order-service |
+| `services/identity-service/**`、`k8s/services.yaml` | identity-service |
+| `services/merchant-service/**`、`k8s/services.yaml` | merchant-service |
+| `services/order-service/**`、`k8s/services.yaml` | order-service |
 | `services/pom.xml`、`k8s/healthcheck/**`、增量流水线或其检测/冒烟脚本 | 全部三个服务 |
 | 前端、正式生产清单 `k8s/services.yaml` 或普通文档等无关路径 | 无，不运行微服务增量作业 |
 
@@ -41,10 +41,11 @@ Pull Request 只构建受影响镜像而不推送，并在一次性 Kind 集群�
 side-load 到 containerd 时出现缺失 digest。合入 `main` 后，受影响镜像以不可变的 `sha-<7位提交号>`
 标签推送到 GHCR；该工作流不连接或修改生产集群。
 
-冒烟脚本不会先应用 `0.1.0` 再执行 `kubectl set image`。它为每个服务创建临时 Kustomize overlay，提前写入
+冒烟脚本不会先应用 `0.1.0` 再执行 `kubectl set image`。它以正式的 `k8s/services.yaml` 为唯一 Deployment
+来源，再为每个服务创建临时 Kustomize overlay，提前写入
 目标镜像、`SERVICE_VERSION` 和 Service/Deployment/Pod 版本标签，核对渲染镜像后一次性 `kubectl apply -k`。
-因此首次创建和后续升级都只产生目标版本的 ReplicaSet。`k8s/services/*.yaml` 使用临时存储和测试配置，
-只供 Kind 冒烟测试使用；脚本会拒绝任何非 `kind-*` 的 kubectl context。
+因此首次创建和后续升级都只产生目标版本的 ReplicaSet。仓库不再维护 `k8s/services/*.yaml` 第二套
+业务 Deployment；脚本会拒绝任何非 `kind-*` 的 kubectl context。
 
 生产部署仍由主流水线统一负责：`Monolith CI` 生成并上传部署包，随后 `Deploy ECS K3s` 在 ECS 自托管
 Runner 上调用 `scripts/deploy-k8s.sh`，应用正式的 `k8s/services.yaml`。增量验证工作流不再维护第二套

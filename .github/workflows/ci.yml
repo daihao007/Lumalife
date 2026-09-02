@@ -228,7 +228,7 @@ jobs:
           curl --fail --silent --show-error http://localhost:8080/actuator/health | grep -q '"status":"UP"'
           curl --fail --silent --show-error http://localhost:5173/healthz | grep -q '^ok$'
           curl --fail --silent --show-error http://localhost:5173/actuator/health | grep -q '"status":"UP"'
-          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\",\"V015\",\"V016\")"' | grep -qx 16
+          docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$MYSQL_DATABASE" --batch --skip-column-names --execute="SELECT COUNT(*) FROM schema_migration WHERE version IN (\"V001\",\"V002\",\"V003\",\"V004\",\"V005\",\"V006\",\"V007\",\"V008\",\"V009\",\"V010\",\"V011\",\"V012\",\"V013\",\"V014\",\"V015\",\"V016\",\"V017\",\"V018\")"' | grep -qx 18
           MYSQL_IDENTITY_DATABASE="${MYSQL_IDENTITY_DATABASE:-${MYSQL_DATABASE}_identity}"
           MYSQL_MERCHANT_DATABASE="${MYSQL_MERCHANT_DATABASE:-${MYSQL_DATABASE}_merchant}"
           MYSQL_ORDER_DATABASE="${MYSQL_ORDER_DATABASE:-${MYSQL_DATABASE}_order}"
@@ -237,9 +237,9 @@ jobs:
             local query="$2"
             docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --execute="$2"' sh "$database" "$query" | tr -d '\r'
           }
-          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 16
-          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 16
-          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 16
+          test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 18
+          test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 18
+          test "$(mysql_count "$MYSQL_ORDER_DATABASE" "SELECT COUNT(*) FROM schema_migration")" -eq 18
           test "$(mysql_count "$MYSQL_IDENTITY_DATABASE" "SELECT COUNT(*) FROM user_account")" -eq 6
           test "$(mysql_count "$MYSQL_MERCHANT_DATABASE" "SELECT COUNT(*) FROM merchant_catalog")" -eq 7
 
@@ -348,6 +348,38 @@ jobs:
           path: |
             e2e/reports
             e2e/ci-e2e-command.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  microservice-e2e-test:
+    name: Microservice E2E UC01-UC09
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run isolated prod remote microservice E2E
+        shell: bash
+        run: |
+          set +e
+          bash scripts/run-microservice-e2e.sh 2>&1 | tee microservice-e2e-ci.log
+          rc=${PIPESTATUS[0]}
+          echo "exit_code=$rc" | tee -a microservice-e2e-ci.log
+          exit "$rc"
+
+      - name: Upload Microservice E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservice-e2e-reports
+          path: |
+            04_tests/e2e/microservices
+            microservice-e2e-ci.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -519,6 +551,7 @@ jobs:
       - database-schema
       - compose-stack
       - e2e-test
+      - microservice-e2e-test
       - failure-injection
       - ui-e2e-test
       - kubernetes-manifests

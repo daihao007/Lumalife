@@ -33,3 +33,13 @@ npm test
 ## UC08 跨角色客服闭环
 
 `runner.mjs` also executes a dedicated UC08 scenario after CR-01~CR-06. It records the user-send, merchant-read, merchant-human-reply and user-re-read steps, including actor IDs, merchant ID, message IDs, sender roles, timestamps, HTTP statuses and the user-to-merchant authorization boundary. The generated `e2e-report.json` and `e2e-raw.log` are uploaded by CI with the API E2E artifact.
+
+## Microservice E2E
+
+`npm test` 保持原有 Monolith E2E。完整微服务黑盒验收使用仓库根目录的：
+
+```bash
+bash scripts/run-microservice-e2e.sh
+```
+
+该命令使用独立 Compose project、端口和卷，显式以 `prod,remote` 启动 backend，依次执行迁移、种子和服务库回填，再运行 UC01–UC09。运行证据输出到 `04_tests/e2e/microservices/latest`；开发环境中的其他 Compose project 不会被清理。设置 `MS_E2E_KEEP_ENV=1` 可在失败后保留隔离环境便于排查。

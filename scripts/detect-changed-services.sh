@@ -18,43 +18,66 @@ changed_paths() {
   fi
 }
 
-declare -A selected=()
 select_all=false
+identity_selected=false
+merchant_selected=false
+order_selected=false
+assistant_selected=false
+
+select_service() {
+  case "$1" in
+    identity-service) identity_selected=true ;;
+    merchant-service) merchant_selected=true ;;
+    order-service) order_selected=true ;;
+    assistant-service) assistant_selected=true ;;
+    *) echo "Unknown service: $1" >&2; return 2 ;;
+  esac
+}
 
 while IFS= read -r path; do
   case "${path}" in
-    services/pom.xml|k8s/services/kustomization.yaml|k8s/healthcheck/*|.github/workflows/services-cd.yml|scripts/detect-changed-services.sh|scripts/smoke-services-k8s.sh)
+    services/pom.xml|k8s/services.yaml|k8s/kustomization.yaml|k8s/healthcheck/*|.github/workflows/services-cd.yml|scripts/detect-changed-services.sh|scripts/smoke-services-k8s.sh)
       select_all=true
       ;;
-    services/identity-service/*|k8s/services/identity-service.yaml)
-      selected[identity-service]=1
+    services/identity-service/*)
+      select_service identity-service
       ;;
-    services/merchant-service/*|k8s/services/merchant-service.yaml)
-      selected[merchant-service]=1
+    services/merchant-service/*)
+      select_service merchant-service
       ;;
-    services/order-service/*|k8s/services/order-service.yaml)
-      selected[order-service]=1
+    services/order-service/*)
+      select_service order-service
       ;;
-    services/assistant-service/*|k8s/services/assistant-service.yaml)
-      selected[assistant-service]=1
+    services/assistant-service/*)
+      select_service assistant-service
       ;;
   esac
 done < <(changed_paths "$@")
 
 if [[ "${select_all}" == "true" ]]; then
-  for service in "${ALL_SERVICES[@]}"; do
-    selected["${service}"]=1
-  done
+  identity_selected=true
+  merchant_selected=true
+  order_selected=true
+  assistant_selected=true
 fi
 
 json="["
 separator=""
-for service in "${ALL_SERVICES[@]}"; do
-  if [[ -n "${selected[${service}]:-}" ]]; then
-    json+="${separator}\"${service}\""
-    separator=","
-  fi
-done
+if [[ "${identity_selected}" == "true" ]]; then
+  json+="${separator}\"identity-service\""
+  separator=","
+fi
+if [[ "${merchant_selected}" == "true" ]]; then
+  json+="${separator}\"merchant-service\""
+  separator=","
+fi
+if [[ "${order_selected}" == "true" ]]; then
+  json+="${separator}\"order-service\""
+  separator=","
+fi
+if [[ "${assistant_selected}" == "true" ]]; then
+  json+="${separator}\"assistant-service\""
+fi
 json+="]"
 
 printf '%s\n' "${json}"

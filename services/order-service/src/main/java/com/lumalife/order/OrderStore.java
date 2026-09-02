@@ -367,7 +367,10 @@ public class OrderStore {
       : lockedOrder(orderId);
     if (current.userId() != userId) throw new IllegalArgumentException("订单不存在");
     String paymentKey = userId + ":" + requestId;
-    Payment cachedPayment = payments.get(paymentKey);
+    // In the remote service the database is authoritative. An asynchronous
+    // inventory failure can change SUCCESS to FAILED after this JVM cached the
+    // payment, so never replay a stale in-memory value in JDBC mode.
+    Payment cachedPayment = jdbc == null ? payments.get(paymentKey) : null;
     if (cachedPayment != null) return replayPayment(current, orderId, amount, cachedPayment);
 
     long chargedAmount = current.totalCent();
@@ -433,6 +436,10 @@ public class OrderStore {
   private Payment replayPayment(Order current, long requestedOrderId, long amount, Payment existing) {
     if (existing.orderId() != requestedOrderId) throw new IllegalStateException("clientRequestId 已用于其他订单");
     if (existing.amountCent() != amount) throw new IllegalStateException("clientRequestId 请求金额不一致");
+    if ("FAILED".equals(existing.status())) {
+      if (!"CANCELLED".equals(current.status())) throw new IllegalStateException("支付失败但订单状态未完成补偿");
+      return existing;
+    }
     if (!"SUCCESS".equals(existing.status())) throw new IllegalStateException("支付记录状态异常");
     if (!"PAID".equals(current.status())) throw new IllegalStateException("支付记录与订单状态不一致");
     return existing;
@@ -607,16 +614,18 @@ public class OrderStore {
   }
 
   private Optional<Order> findOrder(long id) {
-    Order cached = orders.get(id);
-    if (cached != null || jdbc == null) return Optional.ofNullable(cached);
+    if (jdbc == null) return Optional.ofNullable(orders.get(id));
     var rows = jdbc.query("SELECT id,user_id,merchant_id,merchant_name_snapshot,product_id,quantity,total_cent,status,created_at,order_type,coupon_code,reviewed,address_snapshot FROM order_record WHERE id=?", this::map, id);
     return rows.stream().findFirst();
   }
 
   private Order setStatus(Order order, long actor, String status) {
     Order updated = withStatus(order, status);
+    if (jdbc != null) {
+      int changed = jdbc.update("UPDATE order_record SET status=?, version=version+1 WHERE id=? AND status=?", status, order.id(), order.status());
+      if (changed != 1) throw new IllegalStateException("订单状态已变化，状态流转未完成");
+    }
     orders.put(order.id(), updated);
-    if (jdbc != null) jdbc.update("UPDATE order_record SET status=?, version=version+1 WHERE id=? AND status=?", status, order.id(), order.status());
     appendEvent(order.id(), actor, status);
     return updated;
   }

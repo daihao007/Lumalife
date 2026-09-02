@@ -1,0 +1,34 @@
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP"}
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP","groups":["liveness","readiness"]}
+curl: (7) Failed to connect to 127.0.0.1 port 18080 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18080 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18081 after 0 ms: Couldn't connect to server
+
+{"status":"OUT_OF_SERVICE","groups":["liveness","readiness"]}
+{"status":"OUT_OF_SERVICE","groups":["liveness","readiness"]}
+curl: (56) Recv failure: Connection reset by peer
+
+curl: (7) Failed to connect to 127.0.0.1 port 18080 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18080 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18081 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18082 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18083 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to 127.0.0.1 port 18084 after 0 ms: Couldn't connect to server
+
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP"}
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP","groups":["liveness","readiness"]}
+{"status":"UP","groups":["liveness","readiness"]}

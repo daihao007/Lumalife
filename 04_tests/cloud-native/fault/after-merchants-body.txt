@@ -1,0 +1,1 @@
+{"code":200,"message":"success","data":{"records":[{"id":2,"name":"晨雾咖啡局","categoryId":2,"categoryName":"咖啡茶饮","cover":null,"avgScore":0.0,"avgPrice":0,"monthlySales":0,"distanceKm":0.0,"status":"OPEN","address":null,"reason":null}],"page":1,"size":20,"total":1,"pages":1}}

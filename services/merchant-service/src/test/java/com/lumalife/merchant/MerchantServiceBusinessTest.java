@@ -116,6 +116,20 @@ class MerchantServiceBusinessTest {
   }
 
   @Test
+  void doesNotExposeAnEmptyConversationAsAnotherMerchantConversation() {
+    HttpHeaders userHeaders = serviceHeaders();
+    userHeaders.set("X-User-Id", "9001");
+    http.exchange("/internal/v1/users/9001/conversations/1/messages", HttpMethod.POST,
+      new HttpEntity<>(java.util.Map.of("content", "仅属于商家一的会话", "assistantAnswer", "收到"), userHeaders), MerchantStore.ChatMessage[].class);
+
+    HttpHeaders otherMerchantHeaders = serviceHeaders();
+    otherMerchantHeaders.set("X-Merchant-Id", "2");
+    ResponseEntity<String> response = http.exchange("/internal/v1/merchants/2/conversations/9001",
+      HttpMethod.GET, new HttpEntity<>(otherMerchantHeaders), String.class);
+    assertThat(response.getStatusCode().value()).isEqualTo(404);
+  }
+
+  @Test
   void reservesConfirmsAndReleasesMerchantOwnedInventoryIdempotently() {
     long orderId = Math.abs(System.nanoTime());
     String reserveKey = "inventory-" + UUID.randomUUID();

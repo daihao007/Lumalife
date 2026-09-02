@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# These manifests deliberately use ephemeral storage and smoke-test settings.
-# Refuse non-Kind contexts so they cannot overwrite the production deployments
-# managed by scripts/deploy-k8s.sh and k8s/services.yaml.
+# Smoke tests render the same canonical service Deployments used by the
+# production-like deployment. The temporary Kustomize overlay only disables
+# external dependencies and scales unselected services to zero.
+# Refuse non-Kind contexts so smoke tests cannot touch a non-disposable cluster.
 readonly CURRENT_CONTEXT="$(kubectl config current-context)"
 if [[ ! "${CURRENT_CONTEXT}" =~ ^kind- ]]; then
   echo "Refusing to apply smoke manifests to non-Kind context: ${CURRENT_CONTEXT}" >&2
@@ -23,6 +24,7 @@ readonly IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/daihao007}"
 readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
 readonly HEALTHCHECK_IMAGE="${HEALTHCHECK_IMAGE:-curlimages/curl:8.12.1}"
 readonly SERVICES=("$@")
+readonly ALL_SERVICES=(identity-service merchant-service order-service assistant-service)
 
 if [[ ! "${IMAGE_TAG}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$ ]]; then
   echo "Invalid image tag: ${IMAGE_TAG}" >&2
@@ -64,49 +66,74 @@ diagnostics() {
 trap diagnostics ERR
 
 kubectl apply -f k8s/namespace.yaml
+kubectl -n "${NAMESPACE}" create secret generic lumalife-mysql \
+  --from-literal=identity-database=life_assistant_identity \
+  --from-literal=merchant-database=life_assistant_merchant \
+  --from-literal=order-database=life_assistant_order \
+  --from-literal=username=smoke \
+  --from-literal=password=smoke \
+  --dry-run=client -o yaml | kubectl apply -f -
 
 for service in "${SERVICES[@]}"; do
   port="$(service_port "${service}")"
-  manifest="k8s/services/${service}.yaml"
   image="${IMAGE_REGISTRY}/lumalife-${service}:${IMAGE_TAG}"
   render_dir="${render_root}/${service}"
   mkdir -p "${render_dir}"
-  cp "${manifest}" "${render_dir}/resources.yaml"
+  cp k8s/services.yaml "${render_dir}/services.yaml"
   cat > "${render_dir}/kustomization.yaml" <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - resources.yaml
+  - services.yaml
 images:
   - name: ghcr.io/daihao007/lumalife-${service}
     newName: ${IMAGE_REGISTRY}/lumalife-${service}
     newTag: ${IMAGE_TAG}
 patches:
+EOF
+  for candidate in "${ALL_SERVICES[@]}"; do
+    replica=0
+    if [[ "${candidate}" == "${service}" ]]; then
+      replica=1
+    fi
+    cat >> "${render_dir}/kustomization.yaml" <<EOF
   - target:
-      kind: Service
-      name: ${service}
+      group: apps
+      version: v1
+      kind: Deployment
+      name: ${candidate}
     patch: |-
       - op: replace
-        path: /metadata/labels/app.kubernetes.io~1version
-        value: ${IMAGE_TAG}
+        path: /spec/replicas
+        value: ${replica}
+EOF
+  done
+  cat >> "${render_dir}/kustomization.yaml" <<EOF
   - target:
+      group: apps
+      version: v1
       kind: Deployment
       name: ${service}
     patch: |-
-      - op: replace
-        path: /metadata/labels/app.kubernetes.io~1version
-        value: ${IMAGE_TAG}
-      - op: replace
-        path: /spec/template/metadata/labels/app.kubernetes.io~1version
-        value: ${IMAGE_TAG}
-      - op: replace
-        path: /spec/template/spec/containers/0/env/0/value
-        value: ${IMAGE_TAG}
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ${service}
+      spec:
+        template:
+          spec:
+            containers:
+              - name: ${service}
+                env:
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: default
+                  - name: LUMALIFE_EVENTS_BROKER_ENABLED
+                    value: "false"
 EOF
 
-  rendered_image="$(kubectl kustomize "${render_dir}" | awk '/image:/{print $2; exit}')"
-  if [[ "${rendered_image}" != "${image}" ]]; then
-    echo "Rendered image mismatch for ${service}: ${rendered_image}" >&2
+  rendered_manifest="$(kubectl kustomize "${render_dir}")"
+  if ! grep -Fq "image: ${image}" <<<"${rendered_manifest}"; then
+    echo "Rendered image mismatch for ${service}; expected ${image}." >&2
     exit 1
   fi
 

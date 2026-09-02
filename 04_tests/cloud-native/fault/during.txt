@@ -1,0 +1,34 @@
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS          IMAGES                                              SELECTOR
+deployment.apps/assistant-service   1/1     1            1           15m    assistant-service   ghcr.io/daihao007/lumalife-assistant-service:main   app=assistant-service
+deployment.apps/backend             1/1     1            1           3d9h   backend             ghcr.io/daihao007/lumalife-backend:main             app.kubernetes.io/name=lumalife-backend
+deployment.apps/frontend            2/2     2            2           3d9h   frontend            ghcr.io/daihao007/lumalife-frontend:main            app.kubernetes.io/name=lumalife-frontend
+deployment.apps/identity-service    1/1     1            1           3d9h   identity-service    ghcr.io/daihao007/lumalife-identity-service:main    app=identity-service
+deployment.apps/merchant-service    0/0     0            0           3d9h   merchant-service    ghcr.io/daihao007/lumalife-merchant-service:main    app=merchant-service
+deployment.apps/order-service       1/1     1            1           3d9h   order-service       ghcr.io/daihao007/lumalife-order-service:main       app=order-service
+deployment.apps/rabbitmq            1/1     1            1           15m    rabbitmq            rabbitmq:3.13-management                            app.kubernetes.io/name=rabbitmq
+
+NAME                                     READY   STATUS    RESTARTS   AGE    IP            NODE                    NOMINATED NODE   READINESS GATES
+pod/assistant-service-687595d9b5-lhjpr   1/1     Running   0          15m    10.244.0.12   desktop-control-plane   <none>           <none>
+pod/backend-79b5449999-gsmgc             1/1     Running   0          15m    10.244.0.20   desktop-control-plane   <none>           <none>
+pod/frontend-7f7758f7b8-bwzms            1/1     Running   0          15m    10.244.0.22   desktop-control-plane   <none>           <none>
+pod/frontend-7f7758f7b8-gcctl            1/1     Running   0          15m    10.244.0.13   desktop-control-plane   <none>           <none>
+pod/identity-service-866bddf9b9-prkbd    1/1     Running   0          10m    10.244.0.27   desktop-control-plane   <none>           <none>
+pod/mysql-0                              1/1     Running   0          9m7s   10.244.0.29   desktop-control-plane   <none>           <none>
+pod/mysql-identity-0                     1/1     Running   0          15m    10.244.0.23   desktop-control-plane   <none>           <none>
+pod/mysql-merchant-0                     1/1     Running   0          15m    10.244.0.24   desktop-control-plane   <none>           <none>
+pod/mysql-order-0                        1/1     Running   0          15m    10.244.0.26   desktop-control-plane   <none>           <none>
+pod/order-service-76556bf6d9-wxjm2       1/1     Running   0          15m    10.244.0.16   desktop-control-plane   <none>           <none>
+pod/rabbitmq-58c9c4667c-dr5s8            1/1     Running   0          15m    10.244.0.19   desktop-control-plane   <none>           <none>
+
+NAME                          ENDPOINTS                            AGE
+endpoints/assistant-service   10.244.0.12:8084                     15m
+endpoints/backend             10.244.0.20:8080                     3d9h
+endpoints/frontend            10.244.0.13:8080,10.244.0.22:8080    3d9h
+endpoints/identity-service    10.244.0.27:8081                     3d9h
+endpoints/merchant-service    <none>                               3d9h
+endpoints/mysql               10.244.0.29:3306                     3d9h
+endpoints/mysql-identity      10.244.0.23:3306                     15m
+endpoints/mysql-merchant      10.244.0.24:3306                     15m
+endpoints/mysql-order         10.244.0.26:3306                     15m
+endpoints/order-service       10.244.0.16:8083                     3d9h
+endpoints/rabbitmq            10.244.0.19:5672,10.244.0.19:15672   15m

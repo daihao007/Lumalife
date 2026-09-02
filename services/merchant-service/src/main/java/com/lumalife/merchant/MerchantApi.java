@@ -108,7 +108,7 @@ public class MerchantApi {
   @GetMapping("/merchants/{merchantId}/conversations/{userId}")
   List<MerchantStore.ChatMessage> merchantConversation(@PathVariable long merchantId, @PathVariable long userId, @RequestHeader("X-Merchant-Id") long actor) {
     if (merchantId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他商家的会话");
-    return store.conversation(userId, merchantId);
+    return readResource(() -> store.merchantConversation(merchantId, userId));
   }
 
   @PostMapping("/merchants/{merchantId}/conversations/{userId}/messages")
