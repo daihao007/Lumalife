@@ -152,6 +152,7 @@ capture_kubectl "metrics API" --request-timeout=10s get --raw /apis/metrics.k8s.
 capture_kubectl "node metrics" --request-timeout=10s top nodes || preflight_failures=$((preflight_failures + 1))
 capture_kubectl "target deployment preflight" --request-timeout=10s -n "${NAMESPACE}" get deployment "${TARGET_DEPLOYMENT}" || preflight_failures=$((preflight_failures + 1))
 capture_kubectl "target hpa preflight" --request-timeout=10s -n "${NAMESPACE}" get hpa "${HPA_NAME}" || preflight_failures=$((preflight_failures + 1))
+capture_kubectl "runtime secret preflight" --request-timeout=10s -n "${NAMESPACE}" get secret lumalife-runtime || preflight_failures=$((preflight_failures + 1))
 capture_events "preflight events" --request-timeout=10s -n "${NAMESPACE}" get events --sort-by=.lastTimestamp || true
 capture_service_logs "preflight merchant-service logs" --request-timeout=10s -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app=${TARGET_DEPLOYMENT}" || true
 
@@ -167,13 +168,15 @@ record baseline
 load_command="
   end=\$((\$(date +%s) + ${LOAD_SECONDS}));
   while [ \$(date +%s) -lt \$end ]; do
-    result=\$(curl --silent --show-error --max-time 5 -H 'X-Internal-Service-Token: compose-internal-token' -o /dev/null -w '%{http_code} %{time_total}' 'http://${TARGET_DEPLOYMENT}:8082/internal/v1/merchants?keyword=%E5%92%96%E5%95%A1' 2>/dev/null || printf '000 5');
+    result=\$(curl --silent --show-error --max-time 5 -H \"X-Internal-Service-Token: \${LUMALIFE_INTERNAL_SERVICE_TOKEN}\" -o /dev/null -w '%{http_code} %{time_total}' 'http://${TARGET_DEPLOYMENT}:8082/internal/v1/merchants?keyword=%E5%92%96%E5%95%A1' 2>/dev/null || printf '000 5');
     code=\${result%% *}; seconds=\${result##* }; millis=\$(awk -v value=\"\${seconds}\" 'BEGIN {printf \"%.0f\", value*1000}');
     printf '%s %s %s\\n' \$(date +%s%3N) \${code} \${millis};
   done
 "
+load_overrides='{"apiVersion":"v1","spec":{"containers":[{"name":"'"${LOAD_NAME}"'","env":[{"name":"LUMALIFE_INTERNAL_SERVICE_TOKEN","valueFrom":{"secretKeyRef":{"name":"lumalife-runtime","key":"internal-service-token","optional":false}}}]}]}}'
 kubectl -n "${NAMESPACE}" run "${LOAD_NAME}" \
   --image="${LOAD_IMAGE}" \
+  --overrides="${load_overrides}" \
   --restart=Never \
   --command -- sh -ec "for worker in \$(seq 1 ${LOAD_CONCURRENCY}); do ( ${load_command} ) & done; wait" \
   > "${OUTPUT%.csv}-load-create.log" 2>&1 &
@@ -207,10 +210,13 @@ done
 metrics_condition="$(kubectl -n "${NAMESPACE}" get hpa "${HPA_NAME}" -o jsonpath='{.status.conditions[?(@.type=="ScalingActive")].status}' 2>/dev/null || true)"
 able_to_scale="$(kubectl -n "${NAMESPACE}" get hpa "${HPA_NAME}" -o jsonpath='{.status.conditions[?(@.type=="AbleToScale")].status}' 2>/dev/null || true)"
 metrics_message="$(kubectl -n "${NAMESPACE}" get hpa "${HPA_NAME}" -o jsonpath='{.status.conditions[?(@.type=="ScalingActive")].message}' 2>/dev/null || true)"
+final_requests="$(awk 'NF >= 3 {n++} END {print n + 0}' "${LOAD_LOG}")"
+final_errors="$(awk 'NF >= 3 && $2 != 200 {n++} END {print n + 0}' "${LOAD_LOG}")"
+final_error_rate="$(awk -v errors="${final_errors}" -v requests="${final_requests}" 'BEGIN {if (requests == 0) print "N/A"; else printf "%.2f", (errors * 100) / requests}')"
 scale_up_observed="$(awk -F, 'NR > 1 && ($1 == "load" || $1 == "load-complete") && $3 ~ /^[0-9]+$/ && $3 >= 2 && $4 ~ /^[0-9]+$/ && $4 >= 2 && $5 ~ /^[0-9]+$/ && $5 >= 2 && $6 ~ /^[0-9]+$/ && $6 >= 2 {found=1} END {print found ? "true" : "false"}' "${OUTPUT}")"
 scale_down_observed="$(awk -F, 'NR > 1 && $1 == "cooldown" && $3 == 1 && $4 == 1 && $5 == 1 && $6 == 1 {found=1} END {print found ? "true" : "false"}' "${OUTPUT}")"
 experiment_status="BLOCKED"
-if [[ "${metrics_condition}" == "True" && "${scale_up_observed}" == "true" && "${scale_down_observed}" == "true" ]]; then
+if [[ "${metrics_condition}" == "True" && "${scale_up_observed}" == "true" && "${scale_down_observed}" == "true" && "${final_requests}" -gt 0 && "${final_errors}" -eq 0 && "${final_error_rate}" == "0.00" ]]; then
   experiment_status="PASS"
 fi
 cat > "${SUMMARY}" <<EOF
@@ -223,6 +229,9 @@ cat > "${SUMMARY}" <<EOF
 - HPA scaling active condition: ${metrics_condition:-N/A}
 - HPA able-to-scale condition: ${able_to_scale:-N/A}
 - Scaling message: ${metrics_message:-N/A}
+- Requests: ${final_requests}
+- Errors: ${final_errors}
+- Error rate: ${final_error_rate}%
 - Scale-up observed in raw CSV: ${scale_up_observed}
 - Scale-down observed in raw CSV: ${scale_down_observed}
 - Raw observations: ${OUTPUT}
@@ -233,10 +242,11 @@ cat > "${SUMMARY}" <<EOF
 - Raw merchant-service log transcript: ${SERVICE_LOG}
 
 The experiment is considered complete only when Kubernetes resource metrics are
-available and the observed replica transition is supported by the raw CSV.
-The script emits PASS only when metrics.k8s.io is active and both HPA and ready
-replica scale-up and scale-down transitions are observed; otherwise it emits
-BLOCKED.
+available, the observed replica transition is supported by the raw CSV, and the
+load generated at least one successful HTTP response. The script emits PASS
+only when metrics.k8s.io is active, both HPA and ready replica scale-up and
+scale-down transitions are observed, and every recorded request returned HTTP
+200; otherwise it emits BLOCKED.
 EOF
 
 echo "HPA experiment observations written to ${OUTPUT}"

@@ -85,6 +85,21 @@ grep -q 'key: internal-service-token' k8s/backend.yaml
 grep -q 'key: internal-service-token' k8s/services.yaml
 grep -q 'key: rabbitmq-password' k8s/rabbitmq.yaml
 
+readonly SMOKE_SCRIPT="scripts/smoke-services-k8s.sh"
+readonly HPA_SCRIPT="04_tests/cloud-native/run-hpa-experiment.sh"
+bash -n "${SMOKE_SCRIPT}"
+bash -n "${HPA_SCRIPT}"
+grep -q 'create secret generic lumalife-runtime' "${SMOKE_SCRIPT}"
+grep -q -- '--from-literal=internal-service-token=' "${SMOKE_SCRIPT}"
+grep -q 'secretKeyRef' "${HPA_SCRIPT}"
+grep -q 'name":"lumalife-runtime' "${HPA_SCRIPT}"
+grep -q 'final_errors' "${HPA_SCRIPT}"
+grep -q 'final_error_rate.*0.00' "${HPA_SCRIPT}"
+if grep -q 'compose-internal-token' "${HPA_SCRIPT}"; then
+  echo "HPA experiment must obtain its token from lumalife-runtime." >&2
+  exit 1
+fi
+
 if grep -Eq '^[[:space:]]+value: (compose-internal-token|lumalife-ci-password|lumalife)$' k8s/backend.yaml k8s/services.yaml k8s/rabbitmq.yaml; then
   echo "Kubernetes manifests must reference runtime credentials through Secret." >&2
   exit 1

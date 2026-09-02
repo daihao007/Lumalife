@@ -25,6 +25,9 @@ readonly ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
 readonly HEALTHCHECK_IMAGE="${HEALTHCHECK_IMAGE:-curlimages/curl:8.12.1}"
 readonly SERVICES=("$@")
 readonly ALL_SERVICES=(identity-service merchant-service order-service assistant-service)
+readonly SMOKE_INTERNAL_SERVICE_TOKEN="${LUMALIFE_INTERNAL_SERVICE_TOKEN:-$(openssl rand -hex 24)}"
+readonly SMOKE_RABBITMQ_USER="${RABBITMQ_USER:-lumalife-smoke}"
+readonly SMOKE_RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-$(openssl rand -hex 24)}"
 
 if [[ ! "${IMAGE_TAG}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$ ]]; then
   echo "Invalid image tag: ${IMAGE_TAG}" >&2
@@ -72,6 +75,11 @@ kubectl -n "${NAMESPACE}" create secret generic lumalife-mysql \
   --from-literal=order-database=life_assistant_order \
   --from-literal=username=smoke \
   --from-literal=password=smoke \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n "${NAMESPACE}" create secret generic lumalife-runtime \
+  --from-literal=internal-service-token="${SMOKE_INTERNAL_SERVICE_TOKEN}" \
+  --from-literal=rabbitmq-user="${SMOKE_RABBITMQ_USER}" \
+  --from-literal=rabbitmq-password="${SMOKE_RABBITMQ_PASSWORD}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 for service in "${SERVICES[@]}"; do
