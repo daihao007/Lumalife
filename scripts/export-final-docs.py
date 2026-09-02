@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Export the three current formal Markdown documents as verified A4 PDFs."""
+"""Export current formal Markdown documents as verified A4 PDFs."""
 
 from __future__ import annotations
 
+import argparse
 import html
 import re
 from pathlib import Path
@@ -34,6 +35,15 @@ BOLD_FONT = FONT_DIR / "msyhbd.ttc"
 
 DOCUMENTS = (
     (
+        "test-report",
+        DOCS / "07_测试报告.md",
+        DOCS / "07_测试报告.pdf",
+        "测试报告",
+        "Software Test Report",
+        "LUMALIFE-TR-003",
+    ),
+    (
+        "requirements",
         DOCS / "12_软件需求规格说明书.md",
         DOCS / "10组-软件需求规格说明书.pdf",
         "软件需求规格说明书",
@@ -41,6 +51,7 @@ DOCUMENTS = (
         "LUMALIFE-SRS-002",
     ),
     (
+        "high-level-design",
         DOCS / "13_概要设计说明书.md",
         DOCS / "10组-软件概要设计说明书.pdf",
         "软件概要设计说明书",
@@ -48,6 +59,7 @@ DOCUMENTS = (
         "LUMALIFE-HLD-002",
     ),
     (
+        "detailed-design",
         DOCS / "14_详细设计说明书.md",
         DOCS / "10组-软件详细设计说明书.pdf",
         "软件详细设计说明书",
@@ -415,8 +427,12 @@ def build_document(source: Path, target: Path, title: str, subtitle: str, docume
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only", choices=[item[0] for item in DOCUMENTS])
+    args = parser.parse_args()
     register_fonts()
-    for source, target, title, subtitle, document_id in DOCUMENTS:
+    selected = [item for item in DOCUMENTS if args.only is None or item[0] == args.only]
+    for _, source, target, title, subtitle, document_id in selected:
         build_document(source, target, title, subtitle, document_id)
         print(f"generated: {target.relative_to(ROOT)}")
 

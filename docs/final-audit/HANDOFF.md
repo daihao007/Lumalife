@@ -24,6 +24,7 @@
 10. 将 `docs/12_软件需求规格说明书.md`、`13_概要设计说明书.md`、`14_详细设计说明书.md` 重写为当前 BFF + 4 业务微服务版本；新增 `scripts/export-final-docs.py`，重新生成三份正式 PDF。PDF 分别为 8/7/8 页，A4、无文本空页，已使用 Poppler 渲染全部 23 页并完成视觉 QA，未见裁切、越界或乱码。
 11. 只读核验公开 GitHub Project #2 和 Issue #16～#65，建立 `docs/05_management/`：确认 50 个十日任务、五人各 10 项/70 计划工时、D01～D08 40 项 Done；同时明确站会勾选仅 9/50、只覆盖 4 个实践日，仓库每日截图仅 D01/D02 共 4 张。没有倒填站会、实际工时或历史截图。
 12. 建立 `docs/06_defense/` 最终答辩交付包：生成 13 页可编辑 PPTX、当前技术总结和个人权重/全员确认待签模板。PPTX 包结构检查通过（13 slides / 13 notes / 13 `[Sources]`），13/13 页已渲染并逐页视觉检查，导出布局检查为 0 个越界元素。权重与确认仍保持 `UNVERIFIED`，没有代填或代签。
+13. 将 `docs/07_测试报告.md` 从 2026 年 6 月单体阶段记录重写为当前测试资产、52/52 API 覆盖和证据分层口径；更新导出脚本支持单文档生成，重新生成 5 页 A4 正式 PDF。PDF 文本提取 5/5 非空，Poppler 全页渲染并完成视觉 QA，未见裁切、溢出、乱码或空白页。本项遵循用户“停止测试”指示，没有运行任何测试。
 
 ## 唯一关键数字
 
@@ -91,7 +92,8 @@ bash scripts/test-service-data-ownership.sh
 - 本项校准三份核心正式 Markdown，新增可复现 PDF 导出脚本并更新三份同名正式 PDF；其余四份历史 PDF 未覆盖，`tmp/` 未提交。
 - 本项新增 `docs/05_management/` 两份管理材料，只读查询 GitHub Project/Issue；没有修改远端 Project、Issue、PR 或补造历史证据。
 - 本项新增 `docs/06_defense/` 的 13 页可编辑 PPTX、技术总结、交付说明和待签确认模板；PPTX 已完成 13/13 页视觉 QA 与 0 越界布局检查。`slides_test.py` 所调用的 Windows 渲染进程在写完全部 13 张图片后异常退出，因此未将该命令记为 PASS；改以完整渲染产物、PPTX ZIP 结构、布局 JSON 和逐页人工检查留存真实结论。
+- 本项校准 `docs/07_测试报告.md` 并重生成 `docs/07_测试报告.pdf`；正式 PDF 5 页、A4、无文本空页，已全页视觉检查。`tmp/` 仅存 QA 中间产物，未提交。
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E；下一步请五名成员本人填写 `docs/06_defense/contribution-signoff.md` 的贡献权重并签署确认，同时提供 D03～D10 站会/截图原件并真实完成 D09/D10。材料齐全后再将 R23/R25 从 `PARTIAL/UNVERIFIED` 闭环。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是校准 `docs/08_部署文档.md` 并重新生成当前部署 PDF；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
