@@ -147,3 +147,9 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 - SERVER-VERIFIED：0（本轮未连接服务器）。
 - EXISTING-EVIDENCE-VERIFIED：Microservice E2E 9/9、HPA、故障实验、性能原始数据。
 - UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、教师确认、管理/答辩材料。
+
+## Formal Documents and PDFs
+
+- `12_软件需求规格说明书.md`、`13_概要设计说明书.md`、`14_详细设计说明书.md` 已校准为当前 BFF + 4 业务微服务版本。
+- 三份对应正式 PDF 已于 2026-09-03 重新生成，页数分别为 8、7、8；文本提取无空页，Poppler 全页渲染后完成视觉检查。
+- 其余四份仓库 PDF 仍为历史导出，不能作为当前验收版本；整体 PDF 交付状态为 `⚠️ PARTIAL`。

@@ -21,6 +21,7 @@
 7. 给正式测试/部署/需求/概要/详细/追溯文档加了权威性和历史范围提示；修正架构矩阵 order API 为 20 + 评价投影 1。
 8. 修复 UI 客服 E2E：注册辅助函数改为等待确定的 `#/profile` 路由，客服场景注册唯一用户并按唯一昵称定位会话，避免固定种子用户状态污染与注册/路由竞态；连续两次完整 Playwright 均 3/3 通过（12.4s、11.1s）。
 9. 建立 `docs/testing/public-api-coverage-matrix.md`：52/52 公开业务映射均关联直接 MockMvc API 测试；新增 3 个 Spring API case 补齐地址/收藏/购物车清理、商家目录删除、客服往返和公共助手缺口。`ApiSecurityIntegrationTest` 28/28、backend 全量 96/96 通过。
+10. 将 `docs/12_软件需求规格说明书.md`、`13_概要设计说明书.md`、`14_详细设计说明书.md` 重写为当前 BFF + 4 业务微服务版本；新增 `scripts/export-final-docs.py`，重新生成三份正式 PDF。PDF 分别为 8/7/8 页，A4、无文本空页，已使用 Poppler 渲染全部 23 页并完成视觉 QA，未见裁切、越界或乱码。
 
 ## 唯一关键数字
 
@@ -43,8 +44,7 @@
 ### P0
 
 1. 当前提交必要测试仍未同批完成；Microservice E2E 已按用户要求停止，恢复前必须重新确认本地 Docker 隔离环境并保存 commit-bound artifact。
-2. 重写 `docs/12_软件需求规格说明书.md`、`13_概要设计说明书.md`、`14_详细设计说明书.md` 为当前微服务版本；重新导出 PDF 并视觉 QA。
-3. 补 `05_management`：10 天站会、看板、任务证据；补 `06_defense`：PPT、技术总结、权重、全员确认。
+2. 补 `05_management`：10 天站会、看板、任务证据；补 `06_defense`：PPT、技术总结、权重、全员确认。
 
 ### P1
 
@@ -86,7 +86,8 @@ bash scripts/test-service-data-ownership.sh
 - 同步前本地 11 个已跟踪改动和 1 个未跟踪文件已安全保存在 `stash@{0}`，名称 `pre-final-audit-sync-2026-09-03`，未删除。
 - 服务器 `/opt/Lumalife` 为 `main@a698c8e` 且有 5 项未跟踪实验材料；本轮仅只读查看 status/branch/log，未修改服务器。
 - 本项新增 3 个 backend API 测试、52 项矩阵并更新事实/审计文档；没有修改业务代码或原始实验数据。
+- 本项校准三份核心正式 Markdown，新增可复现 PDF 导出脚本并更新三份同名正式 PDF；其余四份历史 PDF 未覆盖，`tmp/` 未提交。
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E；下一步从重写 `docs/12_软件需求规格说明书.md` 开始，并以 `docs/project-facts.md` 与 `docs/testing/public-api-coverage-matrix.md` 为事实源。若之后恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E；下一步盘点仓库现有管理证据，先建立 `05_management` 的 10 天站会/看板/任务证据缺口表，只引用真实材料，缺失项标记 UNVERIFIED。之后再准备 `06_defense`。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。

@@ -14,7 +14,7 @@
 | R08 | 测试报告写清总数、结果、环境和失败原因 | 测试 10 | ✅ 已完成并验证 | 当前 runner 可复现 | 最新逐套 205 次执行结果已记录并区分提交 | `testing/test-inventory.md` | 否 |
 | R09 | 前端、后端、数据库容器化 | 容器化 8 | ✅ 已完成并验证 | 7 Dockerfile；Compose 8 默认服务 | `docker compose config` PASS | README | 否 |
 | R10 | 数据库自动初始化、迁移与测试数据 | 容器化 8 | ✅ 已完成并验证 | V001~V019、seed/clean/verify | CI 配置和脚本静态验证 | database/README 相关文档 | 否 |
-| R11 | push 后八步 CI/CD 且失败阻断 | 原系统 CI/CD 10 | ⚠️ 基本完成但证据/文档存在问题 | quality-gate -> images -> smoke -> deploy | 历史成功/失败记录存在；当前 HEAD 未重跑且 UI 本地失败 | `.github/workflows/ci.yml` | 是：当前提交 CI |
+| R11 | push 后八步 CI/CD 且失败阻断 | 原系统 CI/CD 10 | ⚠️ 基本完成但证据/文档存在问题 | quality-gate -> images -> smoke -> deploy | 历史成功/失败记录存在；UI 本地 3/3，但当前 HEAD CI 未重跑 | `.github/workflows/ci.yml` | 是：当前提交 CI |
 | R12 | 镜像有版本号，不只 latest | CI/CD | ✅ 已完成并验证 | CI 发布 `sha-*` + `main`，部署使用 `sha-*` | 脚本拒绝残余 `:main` | project facts | 否 |
 | R13 | 至少 3 个真正业务微服务 | 微服务划分 7 | ✅ 已完成并验证 | identity/merchant/order/assistant | 71 服务测试通过 | microservices inventory | 否 |
 | R14 | 说明服务业务/数据边界和拆分理由 | 微服务划分 7 | ✅ 已完成并验证 | 4 服务独立 Maven 模块 | 独立 verify 配置 | microservices inventory | 否 |
@@ -27,7 +27,7 @@
 | R21 | 2~3 API，同机同数据同脚本，两模式各 3 次 | 性能对比 4 | ⚠️ 基本完成但证据/文档存在问题 | 3 API/2 模式/18 runs | validator PASS；180/0 | commit/workflow/full-stack resources 缺失 | 是 |
 | R22 | README 环境、端口、启动、健康、账号、初始数据准确 | 交付 6 | ⚠️ 基本完成但证据/文档存在问题 | 根 README 已校准核心入口 | Compose/Kustomize 本轮验证 | 旧部署文档仍过期 | 是 |
 | R23 | 10 天站会、看板、任务、每日截图证据 | 项目管理 4 | ❌ 未完成 | 仓库仅见少量两日截图 | 无完整证据 | 缺 `05_management` | 是 |
-| R24 | 可编辑文档、当前 PDF、模型源文件齐全 | 交付 6 | ❌ 未完成 | mmd 源存在 | 7 PDF 均为旧导出 | 正式 12/13/14 无当前 PDF | 是 |
+| R24 | 可编辑文档、当前 PDF、模型源文件齐全 | 交付 6 | ⚠️ 基本完成但证据/文档存在问题 | mmd 源存在；12/13/14 已校准 | 三份核心 PDF 8/7/8 页已生成并逐页视觉 QA | 其余四份 PDF 仍为历史导出 | 是：补测试/部署/用户等当前 PDF |
 | R25 | PPT、技术总结、个人权重、全员确认 | 演示/答辩 10 | ❌ 未完成 | 仓库未发现 | 无 | 缺 `06_defense` | 是 |
 | R26 | AI 使用说明、开源来源、无 Secret 泄露 | 学术诚信 | ⚠️ 基本完成但证据/文档存在问题 | env/Secret 方式存在 | 未做完整 secret scanner | `10_AI使用说明.md` | 是 |
 | R27 | 最终审计、唯一事实源和风险清单 | 本轮交付 | ✅ 已完成并验证 | 当前代码/配置证据 | 本轮真实结果 | `project-facts.md`、final audit | 否 |
@@ -35,6 +35,6 @@
 ## 统计
 
 - ✅ 已完成并验证：16
-- ⚠️ 基本完成但证据/文档存在问题：8
-- ❌ 未完成：3
+- ⚠️ 基本完成但证据/文档存在问题：9
+- ❌ 未完成：2
 - ❓ 当前无法验证：0
