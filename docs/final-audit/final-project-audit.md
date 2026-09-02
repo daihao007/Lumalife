@@ -2,9 +2,9 @@
 
 ## 1. Overall Result
 
-**基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成，UI E2E 已修复并在本次工作树 3/3 通过；当前阻断项是当前提交必要测试尚未全量重跑、正式文档/PDF仍大面积停留在单体阶段、管理与答辩交付材料缺失，以及公开 API 覆盖没有 52 项一对一证明。
+**基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、52/52 公开 API 直接测试、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成，UI E2E 已修复并在 `9f0a755` 3/3 通过；当前阻断项是同一当前提交必要测试尚未全量重跑、正式文档/PDF仍大面积停留在单体阶段，以及管理与答辩交付材料缺失。
 
-课程项统计：✅ 14；⚠️ 10；❌ 3；❓ 0。
+课程项统计：✅ 16；⚠️ 8；❌ 3；❓ 0。
 
 ## 2. Requirement Audit
 
@@ -29,11 +29,11 @@ identity 3 表、merchant 10 表、order 10 表、assistant 0 表。静态边界
 ## 7. Tests
 
 - Unit/Component：108/108 LOCAL-VERIFIED
-- Integration/API：91/91 LOCAL-VERIFIED
+- Integration/API：94/94 LOCAL-VERIFIED；52 public API 均有直接 MockMvc 证据
 - E2E：19 defined；12 pass、0 fail、7 NOT-RUN
-- Total：218 defined；211 pass、0 fail、0 skipped、7 NOT-RUN
+- Total：221 defined；214 pass、0 fail、0 skipped、7 NOT-RUN
 
-最新逐套本地结果 202：202 pass / 0 fail。Java 164 与 Vitest 35 来自 `dc96528` 前序审计，UI 3/3 来自本次接力工作树；9 个 Microservice E2E pass 来自旧提交既有证据。不得宣传“当前 HEAD 211/218 全通过”。
+最新逐套本地结果 205：205 pass / 0 fail。backend 96 来自本次 API 覆盖工作树，services 71 与 Vitest 35 来自 `dc96528` 前序审计，UI 3/3 来自 `9f0a755`；9 个 Microservice E2E pass 来自旧提交既有证据。不得宣传“当前 HEAD 214/221 全通过”。
 
 ## 8. CI/CD
 
@@ -66,9 +66,8 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 ### P0
 
 1. 在当前 UI 修复提交上重跑必要测试，优先完成隔离 Microservice E2E 9 项并保留 commit-bound artifact。
-2. 建立 52 个公共 API -> API case 的逐项矩阵并补缺口。
-3. 将 12/13/14 正式需求/概要/详细文档改写为当前 BFF+4服务架构并重新导出 PDF。
-4. 补齐 `05_management` 的 10 天站会/看板证据与 `06_defense` 的 PPT、技术总结、个人权重、全员确认。
+2. 将 12/13/14 正式需求/概要/详细文档改写为当前 BFF+4服务架构并重新导出 PDF。
+3. 补齐 `05_management` 的 10 天站会/看板证据与 `06_defense` 的 PPT、技术总结、个人权重、全员确认。
 
 ### P1
 
@@ -88,8 +87,8 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 
 1. 为什么 4 个服务是业务边界而不是按 Controller 拆分？
 2. 默认 Compose 是逻辑分库还是物理数据库？Kubernetes 为什么还有 legacy MySQL？
-3. 52 个公共 API 如何证明全部有 API 测试？目前不能完整证明。
-4. 为什么“总测试 218”却本轮只执行 202？必须解释既有证据和 NOT-RUN。
+3. 52 个公共 API 如何证明全部有 API 测试？应展示 `testing/public-api-coverage-matrix.md` 与 28/28 ApiSecurity 测试结果，并说明 52/52 不等于穷举所有分支。
+4. 为什么“总测试 221”却最新逐套只执行 205，且不是同一提交？必须解释既有证据、提交边界和 7 项 NOT-RUN。
 5. UI E2E 原失败为何是注册路由竞态，修复后 CI 是否取得 3/3 和成功质量门证据？
 6. HTTP 失败处理为什么不能称为熔断？因为未使用 circuit breaker，只实现 timeout/503/fallback/隔离。
 7. HPA 为什么扩容？requests、CPU 60% target、min/max 和 1->2->3->1 原始 CSV 如何对应？

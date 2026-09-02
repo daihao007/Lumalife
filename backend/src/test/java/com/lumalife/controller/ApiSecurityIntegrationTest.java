@@ -698,6 +698,127 @@ class ApiSecurityIntegrationTest {
       .andExpect(jsonPath("$.code").value(40300));
   }
 
+  @Test
+  void userCanSetDefaultAddressManageFavoritesAndCleanCartThroughApi() throws Exception {
+    JsonNode registered = registerUser("用户资料补充覆盖");
+    String userToken = registered.path("token").asText();
+    long firstAddressId = createAddress(userToken, "覆盖矩阵地址一");
+    createAddress(userToken, "覆盖矩阵地址二");
+
+    mvc.perform(post("/api/v1/user/addresses/{id}/default", firstAddressId)
+        .header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.id").value(firstAddressId))
+      .andExpect(jsonPath("$.data.defaultAddress").value(true));
+
+    mvc.perform(post("/api/v1/user/favorites")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"merchantId\":1}"))
+      .andExpect(status().isOk());
+    mvc.perform(get("/api/v1/user/favorites").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.id == 1)]").isNotEmpty());
+    mvc.perform(post("/api/v1/user/favorites/1/delete").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk());
+    mvc.perform(get("/api/v1/user/favorites").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.id == 1)]").isEmpty());
+
+    postJson("/api/v1/cart/items", userToken, "{\"productId\":1001,\"quantity\":1}");
+    postJson("/api/v1/cart/items", userToken, "{\"productId\":1002,\"quantity\":1}");
+    mvc.perform(post("/api/v1/cart/items/1001/delete").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.length()").value(1))
+      .andExpect(jsonPath("$.data[0].productId").value(1002));
+    mvc.perform(post("/api/v1/cart/clear").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk());
+    mvc.perform(get("/api/v1/cart").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.length()").value(0));
+  }
+
+  @Test
+  void merchantCanReadAndDeleteOwnedCatalogResourcesThroughApi() throws Exception {
+    String merchantToken = login("13800000003", "abc123456");
+
+    mvc.perform(get("/api/v1/merchant-admin/profile").header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.merchant.id").value(2));
+    mvc.perform(get("/api/v1/merchant-admin/products").header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data").isArray());
+    mvc.perform(get("/api/v1/merchant-admin/group-deals").header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data").isArray());
+
+    long productId = data(postJson("/api/v1/merchant-admin/products", merchantToken,
+      "{\"name\":\"待删除商品\",\"description\":\"覆盖矩阵\",\"priceCent\":1880,\"stock\":2,\"listed\":false}"))
+      .path("id").asLong();
+    mvc.perform(post("/api/v1/merchant-admin/products/{id}/delete", productId)
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk());
+    mvc.perform(get("/api/v1/merchant-admin/products").header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.id == %d)]".formatted(productId)).isEmpty());
+
+    long dealId = data(postJson("/api/v1/merchant-admin/group-deals", merchantToken,
+      "{\"title\":\"待删除套餐\",\"description\":\"覆盖矩阵\",\"priceCent\":3880,\"stock\":2,\"active\":false}"))
+      .path("id").asLong();
+    mvc.perform(post("/api/v1/merchant-admin/group-deals/{id}/delete", dealId)
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk());
+    mvc.perform(get("/api/v1/merchant-admin/group-deals").header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.id == %d)]".formatted(dealId)).isEmpty());
+  }
+
+  @Test
+  void userAndMerchantCanCompleteConversationRoundTripAndUseAssistantApi() throws Exception {
+    JsonNode registered = registerUser("客服接口覆盖用户");
+    String userToken = registered.path("token").asText();
+    long userId = registered.path("user").path("id").asLong();
+    String merchantToken = login("13800000002", "abc123456");
+    String question = "覆盖矩阵客服提问";
+    String reply = "覆盖矩阵商家回复";
+
+    mvc.perform(post("/api/v1/conversations/1/messages")
+        .header("Authorization", bearer(userToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"content\":\"%s\"}".formatted(question)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.content == '%s')]".formatted(question)).isNotEmpty());
+    mvc.perform(get("/api/v1/conversations").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.merchantId == 1)]").isNotEmpty());
+    mvc.perform(get("/api/v1/conversations/1").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.content == '%s')]".formatted(question)).isNotEmpty());
+
+    mvc.perform(get("/api/v1/merchant-admin/conversations").header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.userId == %d)]".formatted(userId)).isNotEmpty());
+    mvc.perform(get("/api/v1/merchant-admin/conversations/{userId}", userId)
+        .header("Authorization", bearer(merchantToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.content == '%s')]".formatted(question)).isNotEmpty());
+    mvc.perform(post("/api/v1/merchant-admin/conversations/{userId}/messages", userId)
+        .header("Authorization", bearer(merchantToken))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"content\":\"%s\"}".formatted(reply)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.content == '%s')]".formatted(reply)).isNotEmpty());
+    mvc.perform(get("/api/v1/conversations/1").header("Authorization", bearer(userToken)))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data[?(@.content == '%s')]".formatted(reply)).isNotEmpty());
+
+    mvc.perform(post("/api/v1/assistant/ask")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"question\":\"如何支付订单？\"}"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.data.answer").isNotEmpty());
+  }
+
   private String login(String phone, String password) throws Exception {
     String body = """
       {"phone":"%s","password":"%s"}

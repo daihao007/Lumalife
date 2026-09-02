@@ -9,9 +9,9 @@
 | R03 | 9 个 UC 的需求、系统/组件/对象三层模型 | 文档 10 | ⚠️ 基本完成但证据/文档存在问题 | 相关类仍存在 | 27 个 mmd/27 个 SVG | d03/d04 为单体基线且编号混用 | 是 |
 | R04 | 同表追溯 REQ/UC/三层设计/代码/测试 | 文档 10 | ⚠️ 基本完成但证据/文档存在问题 | 当前服务代码已索引 | 当前结果已更新 | `traceability-matrix.md`；历史 22 过期 | 是：迁移旧编号 |
 | R05 | 有断言的单元测试并实际运行 | 测试 10 | ✅ 已完成并验证 | 108 Unit/Component case | LOCAL-VERIFIED 108/108 | `testing/test-inventory.md` | 否 |
-| R06 | 集成/API 覆盖主、备选和异常 | 测试 10 | ⚠️ 基本完成但证据/文档存在问题 | 91 Spring API/integration case | LOCAL-VERIFIED 91/91 | 无 52 public API 一对一矩阵 | 是 |
+| R06 | 集成/API 覆盖主、备选和异常 | 测试 10 | ✅ 已完成并验证 | 94 Spring API/integration case | backend 96/96；核心权限、参数、状态、幂等异常 | `testing/public-api-coverage-matrix.md` | 否 |
 | R07 | E2E 覆盖全部 UC 且当前版本通过 | 测试/用例回归 | ⚠️ 基本完成但证据/文档存在问题 | 19 个 E2E 场景 | UI 3/3 已在本次工作树通过；remote 9/9 为旧提交；legacy 7 NOT-RUN | Inventory | 是：当前提交重跑隔离 Microservice E2E |
-| R08 | 测试报告写清总数、结果、环境和失败原因 | 测试 10 | ✅ 已完成并验证 | 当前 runner 可复现 | 本轮 202 次执行结果已记录 | `testing/test-inventory.md` | 否 |
+| R08 | 测试报告写清总数、结果、环境和失败原因 | 测试 10 | ✅ 已完成并验证 | 当前 runner 可复现 | 最新逐套 205 次执行结果已记录并区分提交 | `testing/test-inventory.md` | 否 |
 | R09 | 前端、后端、数据库容器化 | 容器化 8 | ✅ 已完成并验证 | 7 Dockerfile；Compose 8 默认服务 | `docker compose config` PASS | README | 否 |
 | R10 | 数据库自动初始化、迁移与测试数据 | 容器化 8 | ✅ 已完成并验证 | V001~V019、seed/clean/verify | CI 配置和脚本静态验证 | database/README 相关文档 | 否 |
 | R11 | push 后八步 CI/CD 且失败阻断 | 原系统 CI/CD 10 | ⚠️ 基本完成但证据/文档存在问题 | quality-gate -> images -> smoke -> deploy | 历史成功/失败记录存在；当前 HEAD 未重跑且 UI 本地失败 | `.github/workflows/ci.yml` | 是：当前提交 CI |
@@ -20,7 +20,7 @@
 | R14 | 说明服务业务/数据边界和拆分理由 | 微服务划分 7 | ✅ 已完成并验证 | 4 服务独立 Maven 模块 | 独立 verify 配置 | microservices inventory | 否 |
 | R15 | 表唯一归属，不跨服务直接访问 | 数据归属 5 | ✅ 已完成并验证 | 三服务数据库与 23 张归属表 | ownership shell suite PASS | data ownership | 否 |
 | R16 | 跨服务接口/事件及失败处理说明 | 数据归属 5 | ✅ 已完成并验证 | HTTP + RabbitMQ Outbox/Inbox/Saga | 故障/服务测试证据 | service communication | 否 |
-| R17 | 所有后端公开接口均有 API 测试 | 用例回归 4 | ⚠️ 基本完成但证据/文档存在问题 | public API 52 | 无 52 项一对一 coverage 证据 | 旧 CT-RT 矩阵不完整 | 是 |
+| R17 | 所有后端公开接口均有 API 测试 | 用例回归 4 | ✅ 已完成并验证 | public API 52 | 52/52 直接 MockMvc API 证据；ApiSecurity 28/28 | `testing/public-api-coverage-matrix.md` | 否 |
 | R18 | 微服务自动构建、测试、镜像、K8s 部署/探针/版本 | 微服务流水线 5 | ✅ 已完成并验证 | CI、7 Deployment、探针、sha tag | Kustomize PASS；历史 CI 证据 | project facts | 否 |
 | R19 | HPA 压力扩容、冷却缩容及完整指标 | 自动扩缩容 3 | ✅ 已完成并验证 | 2 HPA；merchant 为实验目标 | 旧提交 raw CSV 1->2->3->1、14,467/0 | HPA report/raw | 是：修正断链 |
 | R20 | 停止依赖后设计结果且其他服务不崩 | 故障处理 2 | ✅ 已完成并验证 | timeout/503/readiness isolation | raw 200->503->200，backend ready 200 | fault summary | 是：强化脚本 gate |
@@ -34,7 +34,7 @@
 
 ## 统计
 
-- ✅ 已完成并验证：14
-- ⚠️ 基本完成但证据/文档存在问题：10
+- ✅ 已完成并验证：16
+- ⚠️ 基本完成但证据/文档存在问题：8
 - ❌ 未完成：3
 - ❓ 当前无法验证：0

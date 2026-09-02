@@ -85,7 +85,7 @@ frontend -> backend BFF/API facade -> identity / merchant / order / assistant
 
 - 公共业务 API：**52**（仅 backend `/api/v1` 显式 method mappings；不计 Actuator/Swagger/internal）
 - 内部业务 API：**65**（identity 13、merchant 30、order 21、assistant 1）
-- API 覆盖尚无 52 项公共接口逐项、逐异常路径的一对一可执行清单，因此课程“所有公开接口均有 API 测试”状态为 `⚠️`。
+- 52 个公共接口均有直接 `MockMvc` API 测试，逐项映射见 [`testing/public-api-coverage-matrix.md`](testing/public-api-coverage-matrix.md)。矩阵证明每个公开映射至少有直接 HTTP 断言；不把它夸大为所有参数组合和异常分支的穷举覆盖。
 
 ## Tests
 
@@ -94,11 +94,11 @@ frontend -> backend BFF/API facade -> identity / merchant / order / assistant
 | 类型 | 源码 Case | 本轮/证据 Passed | Failed | Skipped | NOT-RUN |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Unit/Component | 108 | 108 | 0 | 0 | 0 |
-| Integration/API | 91 | 91 | 0 | 0 | 0 |
+| Integration/API | 94 | 94 | 0 | 0 | 0 |
 | E2E | 19 | 12 | 0 | 0 | 7 |
-| Total | **218** | **211** | **0** | **0** | **7** |
+| Total | **221** | **214** | **0** | **0** | **7** |
 
-证据分层：最新逐套本地结果为 202 次执行（202 pass / 0 fail），但 Java 164 与 Vitest 35 来自 `dc96528` 前序审计，UI E2E 3/3 来自本次 `71d74a6` 接力工作树，尚不是同一当前提交的全量重跑。旧提交 `8c335eb` 的 Microservice E2E 9/9 为 `EXISTING-EVIDENCE-VERIFIED`；legacy API E2E 7 项因有状态写入未重跑，记 `NOT-RUN`。6 个 Shell 验证套件另列，不并入 218：前序安全执行 5 个均通过，MySQL contract 因会写业务数据而未执行。
+证据分层：最新逐套本地结果为 205 次执行（205 pass / 0 fail），但 backend 96 来自本次 52 API 覆盖工作树，services 71 与 Vitest 35 来自 `dc96528` 前序审计，UI E2E 3/3 来自 `9f0a755`，尚不是同一当前提交的全量重跑。旧提交 `8c335eb` 的 Microservice E2E 9/9 为 `EXISTING-EVIDENCE-VERIFIED`；legacy API E2E 7 项因有状态写入未重跑，记 `NOT-RUN`。6 个 Shell 验证套件另列，不并入 221：前序安全执行 5 个均通过，MySQL contract 因会写业务数据而未执行。
 
 UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 确认注册完成后进入首页，并按唯一昵称定位商家会话；2026-09-03 完整 Playwright 3/3 通过。当前没有已执行测试失败，但当前提交的其余必要测试仍待重跑。
 
@@ -143,7 +143,7 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 
 ## Evidence Status
 
-- LOCAL-VERIFIED：前序 `dc96528` 的 Java 164/164、Vitest 35/35、frontend build、Compose config、Kustomize render、性能矩阵只读校验、5 个静态 Shell 套件；本次接力工作树的 UI E2E 3/3。
+- LOCAL-VERIFIED：本次 API 覆盖工作树的 backend 96/96；前序 `dc96528` 的 services 71/71、Vitest 35/35、frontend build、Compose config、Kustomize render、性能矩阵只读校验、5 个静态 Shell 套件；`9f0a755` 的 UI E2E 3/3。
 - SERVER-VERIFIED：0（本轮未连接服务器）。
 - EXISTING-EVIDENCE-VERIFIED：Microservice E2E 9/9、HPA、故障实验、性能原始数据。
-- UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、完整公开 API 一对一覆盖、教师确认、管理/答辩材料。
+- UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、教师确认、管理/答辩材料。
