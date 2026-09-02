@@ -2,9 +2,9 @@
 
 ## 1. Overall Result
 
-**基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成；当前阻断项是 UI E2E 1 个失败、正式文档/PDF仍大面积停留在单体阶段、管理与答辩交付材料缺失，以及公开 API 覆盖没有 52 项一对一证明。
+**基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成，UI E2E 已修复并在本次工作树 3/3 通过；当前阻断项是当前提交必要测试尚未全量重跑、正式文档/PDF仍大面积停留在单体阶段、管理与答辩交付材料缺失，以及公开 API 覆盖没有 52 项一对一证明。
 
-课程项统计：✅ 14；⚠️ 9；❌ 4；❓ 0。
+课程项统计：✅ 14；⚠️ 10；❌ 3；❓ 0。
 
 ## 2. Requirement Audit
 
@@ -30,14 +30,14 @@ identity 3 表、merchant 10 表、order 10 表、assistant 0 表。静态边界
 
 - Unit/Component：108/108 LOCAL-VERIFIED
 - Integration/API：91/91 LOCAL-VERIFIED
-- E2E：19 defined；11 pass、1 fail、7 NOT-RUN
-- Total：218 defined；210 pass、1 fail、0 skipped、7 NOT-RUN
+- E2E：19 defined；12 pass、0 fail、7 NOT-RUN
+- Total：218 defined；211 pass、0 fail、0 skipped、7 NOT-RUN
 
-本轮本地实际执行 202：201 pass / 1 fail。9 个 Microservice E2E pass 来自旧提交既有证据，不属于本轮；不得宣传“当前 HEAD 210/218 全通过”。
+最新逐套本地结果 202：202 pass / 0 fail。Java 164 与 Vitest 35 来自 `dc96528` 前序审计，UI 3/3 来自本次接力工作树；9 个 Microservice E2E pass 来自旧提交既有证据。不得宣传“当前 HEAD 211/218 全通过”。
 
 ## 8. CI/CD
 
-静态配置满足失败阻断：11 类验证 -> quality gate -> 6 镜像 -> Kind smoke -> acceptance deploy；ECS 仅消费成功 main push 的 bundle。当前 UI E2E 本地失败意味着当前 HEAD 若同样失败，质量门应阻止镜像和部署。当前提交未以 GitHub Actions 重新验证。
+静态配置满足失败阻断：11 类验证 -> quality gate -> 6 镜像 -> Kind smoke -> acceptance deploy；ECS 仅消费成功 main push 的 bundle。UI E2E 修复后本地 3/3，但当前提交尚未以 GitHub Actions 重新验证。
 
 ## 9. Kubernetes
 
@@ -65,15 +65,15 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 
 ### P0
 
-1. 修复并重跑当前 UI E2E 客服往返失败，获得 3/3 真实结果。
-2. 将 12/13/14 正式需求/概要/详细文档改写为当前 BFF+4服务架构并重新导出 PDF。
-3. 补齐 `05_management` 的 10 天站会/看板证据与 `06_defense` 的 PPT、技术总结、个人权重、全员确认。
-4. 建立 52 个公共 API -> API case 的逐项矩阵并补缺口。
+1. 在当前 UI 修复提交上重跑必要测试，优先完成隔离 Microservice E2E 9 项并保留 commit-bound artifact。
+2. 建立 52 个公共 API -> API case 的逐项矩阵并补缺口。
+3. 将 12/13/14 正式需求/概要/详细文档改写为当前 BFF+4服务架构并重新导出 PDF。
+4. 补齐 `05_management` 的 10 天站会/看板证据与 `06_defense` 的 PPT、技术总结、个人权重、全员确认。
 
 ### P1
 
 1. 将历史 CR/UC/SEQ 三套编号迁移到唯一 `REQ/UC/SYS-SEQ/COMP-SEQ/OBJ-SEQ`。
-2. 重新执行当前 HEAD 的隔离 Microservice E2E，并保存 commit-bound artifact。
+2. 当前 HEAD 的隔离 Microservice E2E 已提升为 P0，完成后再触发完整 GitHub Actions。
 3. 重新跑性能 workflow，采集全部容器 CPU/内存，记录 commit 和 workflow run。
 4. HPA 证据目录断链和 NIGHTLY 120/180 秒混写已校准；答辩前再做链接检查。
 5. 为 RabbitMQ publisher 增加 confirm/return，为毒消息增加 DLQ；这属于实现增强，未在本轮审计擅自改代码。
@@ -90,7 +90,7 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 2. 默认 Compose 是逻辑分库还是物理数据库？Kubernetes 为什么还有 legacy MySQL？
 3. 52 个公共 API 如何证明全部有 API 测试？目前不能完整证明。
 4. 为什么“总测试 218”却本轮只执行 202？必须解释既有证据和 NOT-RUN。
-5. UI E2E 为什么失败，CI 是否会因此阻止发镜像？
+5. UI E2E 原失败为何是注册路由竞态，修复后 CI 是否取得 3/3 和成功质量门证据？
 6. HTTP 失败处理为什么不能称为熔断？因为未使用 circuit breaker，只实现 timeout/503/fallback/隔离。
 7. HPA 为什么扩容？requests、CPU 60% target、min/max 和 1->2->3->1 原始 CSV 如何对应？
 8. 性能为什么微服务更慢？应解释网络、BFF、序列化和 fan-out 开销，不得声称提升。
@@ -100,7 +100,7 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 ## 答辩前重点准备的证据
 
 - `docs/project-facts.md` 与本 Checklist。
-- `ui-e2e/reports/test-results` 的失败 trace，以及修复后的新报告。
+- `ui-e2e/tests/core-flows.spec.ts` 的唯一用户/确定路由修复，以及 2026-09-03 本地 3/3 输出；成功运行默认不会保留失败 trace。
 - `.github/workflows/ci.yml` 的 quality-gate、images、smoke、deploy needs 链。
 - `k8s/hpa.yaml`、Kustomize 渲染结果、HPA raw CSV。
 - `services/data-ownership.yml` 和 ownership shell gate。

@@ -16,14 +16,16 @@ async function login(page: Page, phone: string, expectedNav = "nav-home", passwo
 }
 
 async function register(page: Page, label: string) {
+  const nickname = `UI E2E ${label}`;
   await clearAndOpen(page);
   await page.getByTestId("register-mode").click();
   await page.getByTestId("auth-phone").fill(`ui-e2e-${Date.now()}-${label}`);
   await page.getByTestId("auth-password").fill("abc123456");
   await page.getByTestId("auth-confirm-password").fill("abc123456");
-  await page.getByTestId("auth-nickname").fill(`UI E2E ${label}`);
+  await page.getByTestId("auth-nickname").fill(nickname);
   await page.getByTestId("auth-submit").click();
-  await expect(page.getByTestId("nav-home")).toBeVisible();
+  await expect(page).toHaveURL(/#\/profile$/);
+  return nickname;
 }
 
 test("用户可以通过真实页面登录并打开商家详情", async ({ page }) => {
@@ -58,7 +60,8 @@ test("用户和商家可以在两个真实浏览器上下文中完成客服往�
   const userMessage = `UI E2E 客服提问 ${runId}`;
   const merchantReply = `UI E2E 客服回复 ${runId}`;
   try {
-    await login(userPage, "13800000001");
+    const userNickname = await register(userPage, `support-${runId}`);
+    await userPage.getByTestId("nav-home").click();
     await userPage.getByTestId("merchant-card-1").click();
     await userPage.getByTestId("contact-merchant").click();
     await userPage.getByTestId("user-chat-input").fill(userMessage);
@@ -67,7 +70,7 @@ test("用户和商家可以在两个真实浏览器上下文中完成客服往�
 
     await login(merchantPage, "13800000002", "nav-merchant-orders");
     await merchantPage.getByTestId("nav-merchant-support").click();
-    const conversation = merchantPage.getByRole("button", { name: /林夏/ }).first();
+    const conversation = merchantPage.getByRole("button", { name: new RegExp(userNickname) }).first();
     await expect(conversation).toBeVisible();
     await conversation.click();
     await expect(merchantPage.locator(".chat-messages").getByText(userMessage, { exact: true })).toBeVisible();

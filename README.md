@@ -2,7 +2,7 @@
 
 LumaLife 是一个面向课程验收场景的本地生活服务平台演示项目，覆盖用户消费闭环、商家履约闭环和平台观测闭环。
 
-> 最终答辩事实口径（2026-09-02，`main@dc96528`）：关键数字、验证来源与未完成项统一见 [`docs/project-facts.md`](docs/project-facts.md) 和 [`docs/final-audit/final-project-audit.md`](docs/final-audit/final-project-audit.md)。带日期的阶段报告与旧 PDF 是历史证据，不代表当前 HEAD。
+> 最终答辩事实口径（2026-09-03，接力基线 `main@71d74a6`）：关键数字、验证来源与未完成项统一见 [`docs/project-facts.md`](docs/project-facts.md) 和 [`docs/final-audit/final-project-audit.md`](docs/final-audit/final-project-audit.md)。带日期的阶段报告与旧 PDF 是历史证据，不代表当前 HEAD。
 
 ## 技术栈
 
@@ -150,7 +150,7 @@ LumaLife/
 
 - 前端入口已从单文件拆分为 `App.tsx`、`api.ts`、`types.ts`、`utils.ts`、`pages/` 和 `components/`，业务行为保持不变。
 - 后端 Controller 已按认证、商家目录、购物车、订单、商家商品后台、订单履约后台、管理员看板和 AI 客服拆出 Service 门面。当前公共业务 API 为 52；内部业务 API 为 identity 13、merchant 30、order 21（含评价投影）、assistant 1，共 65。服务库按 identity/merchant/order 归属隔离；backend 是 BFF 入口，兼容能力保留在 `DemoStore`。当前边界见 [`docs/architecture/`](docs/architecture/) 三表。
-- 本轮形式化源码测试共 218：Unit/Component 108、Integration/API 91、E2E 19。本地实际执行 202 项，201 通过、1 个 UI E2E 失败；旧提交另有 Microservice E2E 9/9 既有证据，legacy E2E 7 项本轮未运行。唯一口径见 [`docs/testing/test-inventory.md`](docs/testing/test-inventory.md)，不得沿用历史 40/59/78/92 等数字或写成“全部通过”。
+- 形式化源码测试共 218：Unit/Component 108、Integration/API 91、E2E 19。最新逐套本地结果为 202 项全通过，其中 Java/Vitest 来自前序 `dc96528`，UI E2E 3/3 来自本次修复工作树；旧提交另有 Microservice E2E 9/9 既有证据，legacy E2E 7 项未运行。唯一口径见 [`docs/testing/test-inventory.md`](docs/testing/test-inventory.md)，不得沿用历史 40/59/78/92 等数字，也不得写成“当前 HEAD 218 项全部通过”。
 - MySQL Schema、V001～V019 版本迁移、演示 seed、清理机制和关系表业务读写已落地，见 `docs/06_数据库设计.md`；V001～V018 为已存在的基线/渐进迁移，V019 补充库存释放结果去重、过期预占重试字段和 `CHECK_REQUIRED`/`RELEASE_FAILED` 状态约束。CI 会直接检查购物车关系行，并在重启后端后通过 API 验证恢复结果。
 - 单体后端代码审计与用户认证、商家商品、订单三服务拆分草案见 `docs/15_单体后端审计与三服务拆分草案.md`；该草案是历史设计快照，明确排除骑手领域，当前四服务事实以 D07/架构矩阵为准。
 - 四服务的完整外部/内部 API、Schema 数据归属、错误码、事件和契约测试冻结候选见 `docs/16_三服务接口数据归属与契约草案.md`；OpenAPI/AsyncAPI 文件位于 `docs/contracts/`。库存预占/确认/释放已由 merchant-service 通过 RabbitMQ transactional Outbox/Inbox 实现至少一次投递和幂等消费，释放结果明确区分 `RELEASED`、`CHECK_REQUIRED`、`RELEASE_FAILED`，order Saga 不会把人工核对写成 `RELEASED`。

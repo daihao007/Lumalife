@@ -1,11 +1,11 @@
 # Project Facts
 
-> 最终答辩唯一事实源。审计日期：2026-09-02；代码基线：`dc96528326363344714a99632bf5dcc3e7696b37`。若本文件与带日期的阶段报告冲突，以本文件及其列出的原始证据为准。历史报告不得改写为“本次执行”。
+> 最终答辩唯一事实源。更新日期：2026-09-03；接力基线：`71d74a6`，本次 UI 修复提交见当前 Git 历史。若本文件与带日期的阶段报告冲突，以本文件及其列出的原始证据为准。历史报告不得改写为“本次执行”。
 
 ## Project Version
 
 - 当前分支：`main`
-- 当前提交：`dc96528`
+- 当前接力基线：`71d74a6`（UI 修复提交见当前 Git 历史）
 - 单体基线标签：`monolith-start`（`3eb8f44`）
 - Java 项目声明版本：17；本轮本地测试实际 JVM：21.0.7
 - 前端：React 18 / TypeScript / Vite；本轮本地 Node：24.15
@@ -95,12 +95,12 @@ frontend -> backend BFF/API facade -> identity / merchant / order / assistant
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Unit/Component | 108 | 108 | 0 | 0 | 0 |
 | Integration/API | 91 | 91 | 0 | 0 | 0 |
-| E2E | 19 | 11 | 1 | 0 | 7 |
-| Total | **218** | **210** | **1** | **0** | **7** |
+| E2E | 19 | 12 | 0 | 0 | 7 |
+| Total | **218** | **211** | **0** | **0** | **7** |
 
-证据分层：本轮 `LOCAL-VERIFIED` 为 202 次执行（201 pass / 1 fail）；旧提交 `8c335eb` 的 Microservice E2E 9/9 为 `EXISTING-EVIDENCE-VERIFIED`；legacy API E2E 7 项本轮因有状态写入未重跑，记 `NOT-RUN`。6 个 Shell 验证套件另列，不并入 218：本轮安全执行 5 个均通过，MySQL contract 因会写业务数据而未执行。
+证据分层：最新逐套本地结果为 202 次执行（202 pass / 0 fail），但 Java 164 与 Vitest 35 来自 `dc96528` 前序审计，UI E2E 3/3 来自本次 `71d74a6` 接力工作树，尚不是同一当前提交的全量重跑。旧提交 `8c335eb` 的 Microservice E2E 9/9 为 `EXISTING-EVIDENCE-VERIFIED`；legacy API E2E 7 项因有状态写入未重跑，记 `NOT-RUN`。6 个 Shell 验证套件另列，不并入 218：前序安全执行 5 个均通过，MySQL contract 因会写业务数据而未执行。
 
-当前唯一失败：`ui-e2e/tests/core-flows.spec.ts` 客服往返场景在第 71 行无法找到名称匹配 `/林夏/` 的会话按钮。
+UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 确认注册完成后进入首页，并按唯一昵称定位商家会话；2026-09-03 完整 Playwright 3/3 通过。当前没有已执行测试失败，但当前提交的其余必要测试仍待重跑。
 
 ## Kubernetes
 
@@ -121,7 +121,7 @@ frontend -> backend BFF/API facade -> identity / merchant / order / assistant
 
 ## HPA Experiment
 
-状态：`EXISTING-EVIDENCE-VERIFIED`。提交 `8c335eb`、镜像 `sha-8c335eb` 的远端 K3s 原始 CSV 证明 merchant-service `1 -> 2 -> 3 -> 1`；20 workers、120 秒负载、14,467 请求、0 错误。该实验不是当前 `dc96528` 的本轮重跑。
+状态：`EXISTING-EVIDENCE-VERIFIED`。提交 `8c335eb`、镜像 `sha-8c335eb` 的远端 K3s 原始 CSV 证明 merchant-service `1 -> 2 -> 3 -> 1`；20 workers、120 秒负载、14,467 请求、0 错误。该实验不是当前接力基线的本轮重跑。
 
 ## Fault Handling
 
@@ -143,7 +143,7 @@ frontend -> backend BFF/API facade -> identity / merchant / order / assistant
 
 ## Evidence Status
 
-- LOCAL-VERIFIED：Java 164/164、Vitest 35/35、UI E2E 2/3、frontend build、Compose config、Kustomize render、性能矩阵只读校验、5 个静态 Shell 套件。
+- LOCAL-VERIFIED：前序 `dc96528` 的 Java 164/164、Vitest 35/35、frontend build、Compose config、Kustomize render、性能矩阵只读校验、5 个静态 Shell 套件；本次接力工作树的 UI E2E 3/3。
 - SERVER-VERIFIED：0（本轮未连接服务器）。
 - EXISTING-EVIDENCE-VERIFIED：Microservice E2E 9/9、HPA、故障实验、性能原始数据。
 - UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、完整公开 API 一对一覆盖、教师确认、管理/答辩材料。

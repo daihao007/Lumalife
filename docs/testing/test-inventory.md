@@ -1,6 +1,6 @@
 # Test Inventory
 
-> 本轮测试日期：2026-09-02；当前代码：`dc96528`。旧文档中的 40、59、78、92 等数字均不是当前事实。以下只统计具有明确 runner case 边界的测试；6 个 Shell 验证脚本作为套件单列。
+> 最新复验日期：2026-09-03；接力基线：`71d74a6`。Java/Vitest 等全量本地结果来自前序 `dc96528` 审计，UI E2E 结果来自本次修复工作树；尚未在同一当前提交重跑的项目不得写成“当前 HEAD 全部通过”。旧文档中的 40、59、78、92 等数字均不是当前事实。以下只统计具有明确 runner case 边界的测试；6 个 Shell 验证脚本作为套件单列。
 
 ## 统计口径
 
@@ -12,8 +12,8 @@
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Unit/Component | 11 | 108 | 108 | 0 | 0 | 0 | LOCAL-VERIFIED；JVM 21.0.7 / Node 24.15 |
 | Integration/API | 15 | 91 | 91 | 0 | 0 | 0 | LOCAL-VERIFIED；Spring Boot test context |
-| E2E | 3 | 19 | 11 | 1 | 0 | 7 | UI 3 本地；microservice 9 为旧提交证据；legacy 7 未重跑 |
-| Total | **29** | **218** | **210** | **1** | **0** | **7** | 混合来源，见下 |
+| E2E | 3 | 19 | 12 | 0 | 0 | 7 | UI 3 本地；microservice 9 为旧提交证据；legacy 7 未重跑 |
+| Total | **29** | **218** | **211** | **0** | **0** | **7** | 混合来源，见下 |
 
 ## 本轮实际执行
 
@@ -22,11 +22,11 @@
 | `cd backend && mvn test` | 93 | 93 | 0 | LOCAL-VERIFIED |
 | `cd services && mvn test` | 71 | 71 | 0 | LOCAL-VERIFIED |
 | `cd frontend && npm test -- --reporter=verbose` | 35 | 35 | 0 | LOCAL-VERIFIED |
-| `cd ui-e2e && npm test` | 3 | 2 | 1 | LOCAL-VERIFIED |
+| `cd ui-e2e && npm test` | 3 | 3 | 0 | LOCAL-VERIFIED；2026-09-03 修复后连续两次完整运行均 3/3（12.4s、11.1s） |
 
-本轮合计实际执行 **202**，结果 **201 passed / 1 failed / 0 skipped**。
+最新逐套结果合计 **202**，结果 **202 passed / 0 failed / 0 skipped**。其中 Java 164 与 Vitest 35 来自 `dc96528` 前序审计，UI 3 来自 `71d74a6` 接力工作树，不能表述为同一当前提交一次性执行 202 项。
 
-失败详情：`ui-e2e/tests/core-flows.spec.ts:71` 的客服往返场景期望出现名称匹配 `/林夏/` 的会话按钮，但 10 秒内未找到。未修改代码迁就旧文档。
+修复详情：客服场景原先复用可变种子用户并以始终可见的 `nav-home` 作为注册完成信号，存在状态污染和注册/路由竞态。现改为注册唯一用户、等待确定的 `#/profile` 成功路由，再进入首页并按唯一昵称定位会话。修复后连续两次完整 Playwright 均 3/3 通过。
 
 ## Existing Evidence
 
@@ -48,5 +48,5 @@
 ## 解释限制
 
 - 218 是源码中形式化 case 数，不代表 218 项都在同一环境本轮执行。
-- 210 passed 混合了 201 个本轮本地通过和 9 个旧提交既有证据；严禁写成“当前 HEAD 210/218 全部通过”。
+- 211 passed 混合了 202 个本地最新逐套通过结果和 9 个旧提交既有证据；严禁写成“当前 HEAD 211/218 全部通过”。
 - Shell 脚本内部多个断言没有统一 case ID，因此只按 6 个套件统计。
