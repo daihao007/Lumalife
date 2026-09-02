@@ -4,7 +4,7 @@
 
 ## 当前基线与线上链接
 
-- 当前 `main`：[`57c474b2e22778163a2ffc9daf12f900abf3ac37`](https://github.com/daihao007/Lumalife/commit/57c474b2e22778163a2ffc9daf12f900abf3ac37)。本地工作树还有未提交收口改动，未把它们伪装成该远端 SHA 的 CI 结果。
+- 当前验收基线：`8c335eb7d79400c1f56630bd5c6530ac86e25cf2`。Microservice E2E 与 HPA 均直接在该提交部署的远端 K3s 上重新生成；历史 CI 链接保留作流水线记录，不冒充本次现场验收。
 - 最新 Monolith CI：[`33584079761`](https://github.com/daihao007/Lumalife/actions/runs/33584079761)，包含 Backend、Frontend、Microservice E2E、Kubernetes smoke、Kubernetes acceptance 和 quality gate。
 - Microservice E2E：[`job 100104417404`](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100104417404)，UC01～UC09 为 9/9 PASS。
 - Kubernetes rollout smoke：[`job 100105159011`](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105159011)。
@@ -18,7 +18,7 @@
 | --- | --- | --- |
 | Microservice E2E | [`../e2e/microservices/latest/`](../e2e/microservices/latest/) | UC01～UC09，9/9 PASS |
 | Fault tolerance | [`../cloud-native/fault/`](../cloud-native/fault/) | merchant-service 停止/恢复，PASS |
-| HPA final acceptance | [`../cloud-native/hpa-observation-20260902.csv`](../cloud-native/hpa-observation-20260902.csv)、[summary](../cloud-native/hpa-observation-20260902-summary.md)、[raw HPA evidence](second-stage-20260902/hpa/) | PASS；远端 K3s metrics.k8s.io 可用，merchant-service 真实 1→2→3→1 |
+| HPA final acceptance | [`../cloud-native/hpa-observation-20260902-8c335eb.csv`](../cloud-native/hpa-observation-20260902-8c335eb.csv)、[summary](../cloud-native/hpa-observation-20260902-8c335eb-summary.md) | PASS；当前镜像 `sha-8c335eb`，14,467 请求、0 错误，merchant-service 真实 1→2→3→1 |
 | HPA historical blocked preflight | [`../cloud-native/hpa-observation-20260902-blocked.csv`](../cloud-native/hpa-observation-20260902-blocked.csv)、[summary](../cloud-native/hpa-observation-20260902-blocked-summary.md)、[Docker diagnostic](../cloud-native/hpa-observation-20260902-blocked-docker-diagnostic.txt) | 历史 BLOCKED；本机无 context/API server，不覆盖远端 PASS |
 | HPA report | [`../../docs/HPA_EXPERIMENT_REPORT.md`](../../docs/HPA_EXPERIMENT_REPORT.md) | PASS；只依据真实 metrics、CSV、事件和日志 |
 | Performance raw result | [`../performance/results/nightly-20260902/`](../performance/results/nightly-20260902/) | 2 modes × 3 APIs × 3 repeats；每组 JSON/CSV、CPU/Memory CSV、summary 已保存 |

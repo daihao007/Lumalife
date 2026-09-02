@@ -95,6 +95,13 @@ grep -q 'secretKeyRef' "${HPA_SCRIPT}"
 grep -q 'name":"lumalife-runtime' "${HPA_SCRIPT}"
 grep -q 'final_errors' "${HPA_SCRIPT}"
 grep -q 'final_error_rate.*0.00' "${HPA_SCRIPT}"
+grep -q 'baseline_state.*1 1 1 1' "${HPA_SCRIPT}"
+grep -q 'experiment_status.*!=.*PASS' "${HPA_SCRIPT}"
+grep -q 'kubectl.*logs.*LOAD_NAME.*LOAD_LOG' "${HPA_SCRIPT}"
+grep -q 'kubectl patch --local' "${HPA_SCRIPT}"
+grep -q 'Load Pod creation failed' "${HPA_SCRIPT}"
+grep -q 'Load Pod entered.*before load observation' "${HPA_SCRIPT}"
+grep -q 'Load Pod did not complete successfully' "${HPA_SCRIPT}"
 if grep -q 'compose-internal-token' "${HPA_SCRIPT}"; then
   echo "HPA experiment must obtain its token from lumalife-runtime." >&2
   exit 1

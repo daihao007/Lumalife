@@ -1,0 +1,19 @@
+NAME                                         READY   STATUS      RESTARTS      AGE    IP            NODE                      NOMINATED NODE   READINESS GATES
+assistant-service-86bd9d8466-mrlxp           1/1     Running     0             91m    10.42.0.14    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+backend-8489555fdf-vgl5h                     1/1     Running     3 (51m ago)   91m    10.42.0.19    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+frontend-5959567cf7-4sfsl                    1/1     Running     3 (54m ago)   91m    10.42.0.20    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+frontend-5959567cf7-vq4sq                    1/1     Running     1 (58m ago)   91m    10.42.0.15    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+identity-service-99d4b779b-hfqf4             1/1     Running     0             91m    10.42.0.16    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+image-prefetch-sha-9386a14-0-33604616583-1   0/1     Completed   0             113m   10.42.0.254   iz2ze45nn072gmmp54dzf7z   <none>           <none>
+image-prefetch-sha-9386a14-1-33604616583-1   0/1     Completed   0             113m   10.42.0.2     iz2ze45nn072gmmp54dzf7z   <none>           <none>
+image-prefetch-sha-9386a14-2-33604616583-1   0/1     Completed   0             113m   10.42.0.3     iz2ze45nn072gmmp54dzf7z   <none>           <none>
+image-prefetch-sha-9386a14-3-33604616583-1   0/1     Completed   0             113m   10.42.0.4     iz2ze45nn072gmmp54dzf7z   <none>           <none>
+image-prefetch-sha-9386a14-4-33604616583-1   0/1     Completed   0             113m   10.42.0.5     iz2ze45nn072gmmp54dzf7z   <none>           <none>
+image-prefetch-sha-9386a14-5-33604616583-1   0/1     Completed   0             113m   10.42.0.6     iz2ze45nn072gmmp54dzf7z   <none>           <none>
+merchant-service-5c6756dcd5-srtb2            1/1     Running     1 (58m ago)   91m    10.42.0.17    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+mysql-0                                      1/1     Running     0             24h    10.42.0.120   iz2ze45nn072gmmp54dzf7z   <none>           <none>
+mysql-identity-0                             1/1     Running     0             19h    10.42.0.175   iz2ze45nn072gmmp54dzf7z   <none>           <none>
+mysql-merchant-0                             1/1     Running     0             19h    10.42.0.174   iz2ze45nn072gmmp54dzf7z   <none>           <none>
+mysql-order-0                                1/1     Running     0             19h    10.42.0.176   iz2ze45nn072gmmp54dzf7z   <none>           <none>
+order-service-55d9497477-pwc5x               1/1     Running     0             91m    10.42.0.18    iz2ze45nn072gmmp54dzf7z   <none>           <none>
+rabbitmq-7d48f4b47-849q8                     1/1     Running     2 (54m ago)   114m   10.42.0.250   iz2ze45nn072gmmp54dzf7z   <none>           <none>

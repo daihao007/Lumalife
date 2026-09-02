@@ -4,7 +4,7 @@
 
 **HPA：PASS。** 2026-09-02 在远端 ECS 的单节点 K3s 验收集群完成了真实实验：`metrics.k8s.io` 可用，`merchant-service` 的 Ready 副本和 HPA current/desired 均观察到 `1 → 2 → 3 → 1`。本结论只依据本次 raw CSV、kubectl transcript、事件、资源指标和请求日志，不依据清单存在或历史观测推断。
 
-现场环境：K3s `v1.36.3+k3s1`、Kubernetes context `default`、namespace `lumalife`；目标 Deployment 使用 `ghcr.io/daihao007/lumalife-merchant-service:sha-57c474b`。实验负载为 20 workers、180 秒，冷却 180 秒，10 秒采样。
+现场环境：K3s `v1.36.3+k3s1`、Kubernetes context `default`、namespace `lumalife`；验收提交为 `8c335eb7d79400c1f56630bd5c6530ac86e25cf2`，目标 Deployment 使用 `ghcr.io/daihao007/lumalife-merchant-service:sha-8c335eb`。实验负载为 20 workers、120 秒，冷却 180 秒，10 秒目标采样间隔。
 
 ## 2. metrics.k8s.io 与目标配置
 
@@ -23,13 +23,13 @@
 
 | 阶段 | timestamp (UTC) | replicas / Ready | HPA current / desired | HPA CPU / target | CPU / Memory | 累计请求 / 错误 | 吞吐 req/s | Avg / P95 ms |
 | --- | --- | --- | --- | --- | --- | ---: | ---: | --- |
-| baseline | 06:32:39 | 1 / 1 | 1 / 1 | 6% / 60% | 3m / 194Mi | 0 / 0 | 0.00 | N/A / N/A |
-| load | 06:33:35 | 2 / 2 | 2 / 2 | 976% / 60% | 1319m / 343Mi | 6,974 / 0 | 168.00 | 100.12 / 255 |
-| load | 06:34:35 | 3 / 3 | 3 / 3 | 609% / 60% | 1340m / 489Mi | 15,013 / 0 | 180.30 | 71.85 / 210 |
-| load-complete | 06:36:53 | 3 / 3 | 3 / 3 | 7% / 60% | 11m / 585Mi | 24,857 / 0 | 0.00 | 56.36 / 178 |
-| cooldown | 06:38:33 | 1 / 1 | 1 / 1 | 6% / 60% | 3m / 200Mi | 24,857 / 0 | 0.00 | 56.36 / 178 |
+| baseline | 09:24:41 | 1 / 1 | 1 / 1 | 8% / 60% | 6m / 196Mi | 0 / 0 | 0.00 | N/A / N/A |
+| load | 09:25:25 | 2 / 2 | 2 / 2 | 1408% / 60% | 1297m / 394Mi | 4,376 / 0 | 139.50 | 110.82 / 300 |
+| load | 09:26:21 | 3 / 3 | 3 / 3 | 570% / 60% | 1338m / 550Mi | 11,596 / 0 | 163.90 | 73.19 / 230 |
+| load-complete | 09:26:53 | 3 / 3 | 3 / 3 | 308% / 60% | 617m / 591Mi | 14,467 / 0 | 0.00 | 66.06 / 210 |
+| cooldown | 09:29:14 | 1 / 1 | 1 / 1 | 6% / 60% | 3m / 208Mi | 14,467 / 0 | 0.00 | 66.06 / 210 |
 
-负载期间累计 **24,857 请求、0 错误、error rate 0.00%**。Avg/P95 是脚本按请求日志累计计算的值；逐次采样和所有原始请求记录见 CSV/日志，不用表格摘要替代原始数据。
+负载期间累计 **14,467 请求、0 错误、error rate 0.00%**。Avg/P95 是脚本按请求日志累计计算的值；逐次采样和所有原始请求记录见 CSV/日志，不用表格摘要替代原始数据。
 
 ## 4. 扩缩容事件与结果判定
 
@@ -46,10 +46,10 @@
 
 统一证据目录：[`04_tests/evidence/second-stage-20260902/hpa/`](../04_tests/evidence/second-stage-20260902/hpa/)。同一批文件也保存在 `04_tests/cloud-native/`，便于按脚本入口复现：
 
-- `hpa-observation-20260902.csv`、`hpa-observation-20260902-summary.md`；
-- `hpa-observation-20260902-load.log`、`hpa-observation-20260902-load-create.log`；
-- `hpa-observation-20260902-kubectl.log`、`hpa-observation-20260902-top.log`；
-- `hpa-observation-20260902-events.log`、`hpa-observation-20260902-service.log`；
+- `hpa-observation-20260902-8c335eb.csv`、`hpa-observation-20260902-8c335eb-summary.md`；
+- `hpa-observation-20260902-8c335eb-load.log`、`hpa-observation-20260902-8c335eb-load-create.log`；
+- `hpa-observation-20260902-8c335eb-kubectl.log`、`hpa-observation-20260902-8c335eb-top.log`；
+- `hpa-observation-20260902-8c335eb-events.log`、`hpa-observation-20260902-8c335eb-service.log`；
 - `hpa-observation-20260902-metrics-server.yaml`、`metrics-server-pods.txt`、`metrics-api.json`、`nodes.txt`；
 - `hpa-observation-20260902-hpa.yaml`、`deployment.yaml` 以及实验结束后的 `final-*` 快照。
 
@@ -80,7 +80,7 @@ kubectl top nodes
 NAMESPACE=lumalife \
 TARGET_DEPLOYMENT=merchant-service \
 HPA_NAME=merchant-service \
-LOAD_SECONDS=180 \
+LOAD_SECONDS=120 \
 COOLDOWN_SECONDS=180 \
 SAMPLE_SECONDS=10 \
 LOAD_CONCURRENCY=20 \

@@ -14,6 +14,7 @@ readonly LOAD_SECONDS="${LOAD_SECONDS:-120}"
 readonly COOLDOWN_SECONDS="${COOLDOWN_SECONDS:-150}"
 readonly LOAD_CONCURRENCY="${LOAD_CONCURRENCY:-20}"
 readonly SAMPLE_SECONDS="${SAMPLE_SECONDS:-10}"
+readonly BASELINE_TIMEOUT_SECONDS="${BASELINE_TIMEOUT_SECONDS:-300}"
 readonly OUTPUT="${OUTPUT:-04_tests/cloud-native/hpa-observation.csv}"
 readonly LOAD_NAME="hpa-load-${RANDOM}"
 readonly LOAD_LOG="${OUTPUT%.csv}-load.log"
@@ -163,6 +164,20 @@ fi
 
 kubectl --request-timeout=10s -n "${NAMESPACE}" get hpa "${HPA_NAME}" -o yaml > "${OUTPUT%.csv}-hpa.yaml"
 kubectl --request-timeout=10s -n "${NAMESPACE}" get deployment "${TARGET_DEPLOYMENT}" -o yaml > "${OUTPUT%.csv}-deployment.yaml"
+baseline_deadline=$((SECONDS + BASELINE_TIMEOUT_SECONDS))
+baseline_ready=false
+while ((SECONDS < baseline_deadline)); do
+  baseline_state="$(kubectl --request-timeout=10s -n "${NAMESPACE}" get deployment "${TARGET_DEPLOYMENT}" -o jsonpath='{.status.replicas} {.status.readyReplicas}' 2>/dev/null || true) $(kubectl --request-timeout=10s -n "${NAMESPACE}" get hpa "${HPA_NAME}" -o jsonpath='{.status.currentReplicas} {.status.desiredReplicas}' 2>/dev/null || true)"
+  if [[ "${baseline_state}" == "1 1 1 1" ]]; then
+    baseline_ready=true
+    break
+  fi
+  sleep "${SAMPLE_SECONDS}"
+done
+if [[ "${baseline_ready}" != "true" ]]; then
+  blocked_summary "Target did not stabilize at one desired/current/available/ready replica within ${BASELINE_TIMEOUT_SECONDS} seconds (last state: ${baseline_state:-unknown})."
+  exit 2
+fi
 record baseline
 
 load_command="
@@ -173,36 +188,57 @@ load_command="
     printf '%s %s %s\\n' \$(date +%s%3N) \${code} \${millis};
   done
 "
-load_overrides='{"apiVersion":"v1","spec":{"containers":[{"name":"'"${LOAD_NAME}"'","env":[{"name":"LUMALIFE_INTERNAL_SERVICE_TOKEN","valueFrom":{"secretKeyRef":{"name":"lumalife-runtime","key":"internal-service-token","optional":false}}}]}]}}'
-kubectl -n "${NAMESPACE}" run "${LOAD_NAME}" \
+load_env_patch='[{"op":"add","path":"/spec/containers/0/env","value":[{"name":"LUMALIFE_INTERNAL_SERVICE_TOKEN","valueFrom":{"secretKeyRef":{"name":"lumalife-runtime","key":"internal-service-token","optional":false}}}]}]'
+if ! kubectl -n "${NAMESPACE}" run "${LOAD_NAME}" \
   --image="${LOAD_IMAGE}" \
-  --overrides="${load_overrides}" \
   --restart=Never \
+  --dry-run=client -o json \
   --command -- sh -ec "for worker in \$(seq 1 ${LOAD_CONCURRENCY}); do ( ${load_command} ) & done; wait" \
-  > "${OUTPUT%.csv}-load-create.log" 2>&1 &
-load_create_pid=$!
+  | kubectl patch --local -f - --type=json -p="${load_env_patch}" -o json \
+  | kubectl apply -f - \
+  > "${OUTPUT%.csv}-load-create.log" 2>&1; then
+  blocked_summary "Load Pod creation failed; see ${OUTPUT%.csv}-load-create.log."
+  exit 2
+fi
 
 for _ in $(seq 1 30); do
   phase="$(kubectl -n "${NAMESPACE}" get pod "${LOAD_NAME}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
   if [[ "${phase}" == "Running" || "${phase}" == "Failed" || "${phase}" == "Succeeded" ]]; then break; fi
   sleep 1
 done
+if [[ "${phase}" != "Running" ]]; then
+  kubectl -n "${NAMESPACE}" logs "${LOAD_NAME}" > "${LOAD_LOG}" 2>> "${KUBECTL_LOG}" || true
+  blocked_summary "Load Pod entered ${phase:-an unknown phase} before load observation; see ${LOAD_LOG}."
+  exit 2
+fi
 kubectl -n "${NAMESPACE}" logs -f "${LOAD_NAME}" > "${LOAD_LOG}" 2>/dev/null &
 logs_pid=$!
 
-for _ in $(seq 1 $((LOAD_SECONDS / SAMPLE_SECONDS))); do
+load_observation_deadline=$((SECONDS + LOAD_SECONDS))
+while ((SECONDS < load_observation_deadline)); do
   sleep "${SAMPLE_SECONDS}"
   record load
 done
 
-kubectl -n "${NAMESPACE}" delete pod "${LOAD_NAME}" --ignore-not-found --wait=true >/dev/null
+load_completion_deadline=$((SECONDS + 60))
+while ((SECONDS < load_completion_deadline)); do
+  phase="$(kubectl -n "${NAMESPACE}" get pod "${LOAD_NAME}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+  if [[ "${phase}" == "Succeeded" || "${phase}" == "Failed" ]]; then break; fi
+  sleep 1
+done
 kill "${logs_pid}" >/dev/null 2>&1 || true
 wait "${logs_pid}" 2>/dev/null || true
-wait "${load_create_pid}" 2>/dev/null || true
+kubectl -n "${NAMESPACE}" logs "${LOAD_NAME}" > "${LOAD_LOG}" 2>> "${KUBECTL_LOG}" || true
+kubectl -n "${NAMESPACE}" delete pod "${LOAD_NAME}" --ignore-not-found --wait=true >/dev/null
+if [[ "${phase}" != "Succeeded" ]]; then
+  blocked_summary "Load Pod did not complete successfully (final phase: ${phase:-unknown}); see ${LOAD_LOG}."
+  exit 2
+fi
 capture_service_logs "load complete merchant-service logs" --request-timeout=10s -n "${NAMESPACE}" logs --all-containers --prefix --tail=200 -l "app=${TARGET_DEPLOYMENT}" || true
 record load-complete
 
-for _ in $(seq 1 $((COOLDOWN_SECONDS / SAMPLE_SECONDS))); do
+cooldown_deadline=$((SECONDS + COOLDOWN_SECONDS))
+while ((SECONDS < cooldown_deadline)); do
   sleep "${SAMPLE_SECONDS}"
   record cooldown
 done
@@ -219,10 +255,14 @@ experiment_status="BLOCKED"
 if [[ "${metrics_condition}" == "True" && "${scale_up_observed}" == "true" && "${scale_down_observed}" == "true" && "${final_requests}" -gt 0 && "${final_errors}" -eq 0 && "${final_error_rate}" == "0.00" ]]; then
   experiment_status="PASS"
 fi
+git_commit="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
+target_image="$(kubectl -n "${NAMESPACE}" get deployment "${TARGET_DEPLOYMENT}" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || printf 'unknown')"
 cat > "${SUMMARY}" <<EOF
 # HPA experiment summary
 
 - Status: **${experiment_status}**
+- Git commit: ${git_commit}
+- Target image: ${target_image}
 - Target: ${TARGET_DEPLOYMENT}
 - Namespace: ${NAMESPACE}
 - Load: ${LOAD_CONCURRENCY} workers for ${LOAD_SECONDS} seconds
@@ -250,3 +290,6 @@ scale-down transitions are observed, and every recorded request returned HTTP
 EOF
 
 echo "HPA experiment observations written to ${OUTPUT}"
+if [[ "${experiment_status}" != "PASS" ]]; then
+  exit 1
+fi

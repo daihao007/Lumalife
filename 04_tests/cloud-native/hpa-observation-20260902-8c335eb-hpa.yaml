@@ -1,0 +1,71 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"autoscaling/v2","kind":"HorizontalPodAutoscaler","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"merchant-service","app.kubernetes.io/part-of":"lumalife"},"name":"merchant-service","namespace":"lumalife"},"spec":{"behavior":{"scaleDown":{"policies":[{"periodSeconds":60,"type":"Percent","value":50}],"selectPolicy":"Max","stabilizationWindowSeconds":120},"scaleUp":{"policies":[{"periodSeconds":60,"type":"Percent","value":100}],"selectPolicy":"Max","stabilizationWindowSeconds":0}},"maxReplicas":3,"metrics":[{"resource":{"name":"cpu","target":{"averageUtilization":60,"type":"Utilization"}},"type":"Resource"}],"minReplicas":1,"scaleTargetRef":{"apiVersion":"apps/v1","kind":"Deployment","name":"merchant-service"}}}
+  creationTimestamp: "2026-09-02T03:14:41Z"
+  labels:
+    app.kubernetes.io/name: merchant-service
+    app.kubernetes.io/part-of: lumalife
+  name: merchant-service
+  namespace: lumalife
+  resourceVersion: "103419"
+  uid: 65c4a72a-b57d-4fdb-984e-234c481a1877
+spec:
+  behavior:
+    scaleDown:
+      policies:
+      - periodSeconds: 60
+        type: Percent
+        value: 50
+      selectPolicy: Max
+      stabilizationWindowSeconds: 120
+    scaleUp:
+      policies:
+      - periodSeconds: 60
+        type: Percent
+        value: 100
+      selectPolicy: Max
+      stabilizationWindowSeconds: 0
+  maxReplicas: 3
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 60
+        type: Utilization
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: merchant-service
+status:
+  conditions:
+  - lastTransitionTime: "2026-09-02T03:14:56Z"
+    message: recommended size matches current size
+    reason: ReadyForNewScale
+    status: "True"
+    type: AbleToScale
+  - lastTransitionTime: "2026-09-02T08:45:41Z"
+    message: the HPA was able to successfully calculate a replica count from cpu resource
+      utilization (percentage of request)
+    reason: ValidMetricFound
+    status: "True"
+    type: ScalingActive
+  - lastTransitionTime: "2026-09-02T08:52:56Z"
+    message: the desired count is within the acceptable range
+    reason: DesiredWithinRange
+    status: "False"
+    type: ScalingLimited
+  currentMetrics:
+  - resource:
+      current:
+        averageUtilization: 8
+        averageValue: 4m
+      name: cpu
+    type: Resource
+  currentReplicas: 1
+  desiredReplicas: 1
+  lastScaleTime: "2026-09-02T09:10:57Z"

@@ -8,8 +8,10 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const baseUrl = (process.env.MS_E2E_BASE_URL || "http://127.0.0.1:18080").replace(/\/$/, "");
 const reportDir = path.resolve(rootDir, process.env.MS_E2E_REPORT_DIR || "04_tests/e2e/microservices/latest");
 const timeoutMs = Number(process.env.MS_E2E_TIMEOUT_MS || 10000);
+const sagaTimeoutMs = Number(process.env.MS_E2E_SAGA_TIMEOUT_MS || 60000);
 const runId = process.env.MS_E2E_RUN_ID || `${new Date().toISOString().replace(/[-:.]/g, "")}-${process.pid}`;
 const composeProject = process.env.MS_E2E_COMPOSE_PROJECT || "";
+const kubernetesNamespace = process.env.MS_E2E_KUBERNETES_NAMESPACE || "";
 const composeFiles = ["-f", path.join(rootDir, "docker-compose.yml"), "-f", path.join(rootDir, "docker-compose.e2e.yml")];
 const results = [];
 const requestLog = [];
@@ -105,8 +107,20 @@ async function gitCommit() {
 }
 
 async function dbScalar(database, sql) {
-  assert(composeProject, "数据库一致性检查需要 MS_E2E_COMPOSE_PROJECT");
   const mysqlScript = 'MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$MYSQL_USER" --database="$1" --batch --skip-column-names --raw --execute="$2"';
+  if (kubernetesNamespace) {
+    const databasePods = new Map([
+      [process.env.MYSQL_IDENTITY_DATABASE || "life_assistant_identity", "mysql-identity-0"],
+      [process.env.MYSQL_MERCHANT_DATABASE || "life_assistant_merchant", "mysql-merchant-0"],
+      [process.env.MYSQL_ORDER_DATABASE || "life_assistant_order", "mysql-order-0"]
+    ]);
+    const pod = databasePods.get(database);
+    assert(pod, `Kubernetes 数据库 ${database} 没有对应的 StatefulSet Pod`);
+    const args = ["-n", kubernetesNamespace, "exec", `pod/${pod}`, "--", "sh", "-c", mysqlScript, "sh", database, sql];
+    const { stdout } = await execFileAsync("kubectl", args, { cwd: rootDir, timeout: timeoutMs });
+    return stdout.trim().split(/\r?\n/).filter(Boolean).at(-1) || "";
+  }
+  assert(composeProject, "数据库一致性检查需要 MS_E2E_COMPOSE_PROJECT 或 MS_E2E_KUBERNETES_NAMESPACE");
   const args = ["compose", "-p", composeProject, ...composeFiles, "exec", "-T", "mysql", "sh", "-c", mysqlScript, "sh", database, sql];
   const { stdout } = await execFileAsync("docker", args, { cwd: rootDir, timeout: timeoutMs });
   return stdout.trim().split(/\r?\n/).filter(Boolean).at(-1) || "";
@@ -220,7 +234,7 @@ async function uc03DeliveryPaymentSaga() {
   const clientRequestId = `ms-e2e-uc03-${Date.now()}-${sequence++}`;
   const paid = expect(await request("POST", "/api/v1/payments", user.token, { orderId, clientRequestId }), 200, "UC03 支付失败");
   assert(paid.data?.status === "PAID", "UC03 支付后订单未变为 PAID", { response: paid });
-  await poll("UC03 Saga CONFIRMED", async () => sagaState(orderId), (value) => value.saga === "CONFIRMED" && value.payment === "SUCCESS" && value.reservation === "CONFIRMED" && value.order === "PAID");
+  await poll("UC03 Saga CONFIRMED", async () => sagaState(orderId), (value) => value.saga === "CONFIRMED" && value.payment === "SUCCESS" && value.reservation === "CONFIRMED" && value.order === "PAID", sagaTimeoutMs);
   const repeated = expect(await request("POST", "/api/v1/payments", user.token, { orderId, clientRequestId }), 200, "UC03 幂等支付重试失败");
   assert(repeated.data?.id === orderId && repeated.data.status === "PAID", "UC03 幂等支付结果错误", { response: repeated });
   expectError(await request("POST", `/api/v1/orders/${orderId}/cancel`, user.token), [409], "UC03 已支付订单不应取消");
@@ -244,7 +258,7 @@ async function uc04FulfillmentAndReview() {
   const merchant = await login("13800000002", "abc123456");
   const otherMerchant = await login("13800000003", "abc123456");
   const created = await createPaidDelivery(user, 1002, "UC04");
-  assert((await poll("UC04 Saga CONFIRMED", async () => sagaState(created.orderId), (value) => value.saga === "CONFIRMED" && value.reservation === "CONFIRMED")).order === "PAID", "UC04 支付与 Saga 状态不一致");
+  assert((await poll("UC04 Saga CONFIRMED", async () => sagaState(created.orderId), (value) => value.saga === "CONFIRMED" && value.reservation === "CONFIRMED", sagaTimeoutMs)).order === "PAID", "UC04 支付与 Saga 状态不一致");
   const merchantOrders = expect(await request("GET", "/api/v1/merchant-admin/orders", merchant.token), 200, "UC04 商家订单列表失败");
   assert(merchantOrders.data?.some((item) => item.id === created.orderId), "UC04 商家未看到自己的订单", { response: merchantOrders });
   expectError(await request("POST", `/api/v1/merchant-admin/orders/${created.orderId}/transition`, otherMerchant.token, { next: "ACCEPTED" }), [403], "UC04 其他商家不应处理订单");
@@ -270,7 +284,7 @@ async function uc05GroupBuyPayment() {
   const paid = expect(await request("POST", "/api/v1/payments", user.token, { orderId, clientRequestId }), 200, "UC05 团购支付失败");
   const couponCode = paid.data?.couponCode;
   assert(paid.data?.status === "PAID" && /^\d{12}$/.test(couponCode || ""), "UC05 支付未生成 12 位券码", { response: paid });
-  await poll("UC05 Saga CONFIRMED", async () => sagaState(orderId), (value) => value.saga === "CONFIRMED" && value.payment === "SUCCESS" && value.reservation === "CONFIRMED");
+  await poll("UC05 Saga CONFIRMED", async () => sagaState(orderId), (value) => value.saga === "CONFIRMED" && value.payment === "SUCCESS" && value.reservation === "CONFIRMED", sagaTimeoutMs);
   const repeated = expect(await request("POST", "/api/v1/payments", user.token, { orderId, clientRequestId }), 200, "UC05 团购幂等支付失败");
   assert(repeated.data?.couponCode === couponCode, "UC05 幂等支付重复生成券码", { response: repeated });
   const couponStatus = await dbScalar(process.env.MYSQL_ORDER_DATABASE || "life_assistant_order", `SELECT status FROM service_coupon WHERE code='${couponCode}'`);
@@ -421,7 +435,10 @@ async function writeReports() {
         merchant: process.env.MYSQL_MERCHANT_DATABASE || "life_assistant_merchant",
         order: process.env.MYSQL_ORDER_DATABASE || "life_assistant_order"
       },
-      composeProject: composeProject || null
+      composeProject: composeProject || null,
+      kubernetesNamespace: kubernetesNamespace || null,
+      requestTimeoutMs: timeoutMs,
+      sagaTimeoutMs
     },
     health: { services: health, migration: state.migration || null },
     total: results.length, passed: results.filter((item) => item.status === "passed").length,

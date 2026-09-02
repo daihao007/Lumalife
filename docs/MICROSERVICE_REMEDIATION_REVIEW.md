@@ -112,8 +112,8 @@ RELEASED
 
 | 检查项 | 结果 |
 |---|---|
-| `mvn -B -ntp -f backend/pom.xml verify` | PASS，92/92 |
-| `mvn -B -ntp -f services/pom.xml verify` | PASS，40/40（identity 11、merchant 9、order 18、assistant 2） |
+| `mvn -B -ntp -f backend/pom.xml verify` | PASS，93/93 |
+| `mvn -B -ntp -f services/pom.xml verify` | PASS，71/71 |
 | `mvn -B -ntp -f services/order-service/pom.xml verify` | PASS，18/18，包含 Saga 与 `OrderStoreConsistencyTest` |
 | `docker compose config` | PASS |
 | `kubectl kustomize k8s` | PASS，8 个 Deployment |
@@ -144,8 +144,8 @@ service DB isolation：PASS
 K8s manifests：PASS
 Saga compensation：PASS WITH MINOR ISSUES（CHECK_REQUIRED 释放失败映射留待故障实验）
 
-backend tests：PASS（92/92）
-services tests：PASS（36/36）
+backend tests：PASS（93/93）
+services tests：PASS（71/71）
 ownership check：PASS
 kustomize：PASS
 

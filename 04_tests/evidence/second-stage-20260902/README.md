@@ -9,7 +9,7 @@
 | Microservice E2E 报告 | [`docs/MICROSERVICE_E2E_REPORT.md`](../../../docs/MICROSERVICE_E2E_REPORT.md) |
 | HPA 报告 | [`docs/HPA_EXPERIMENT_REPORT.md`](../../../docs/HPA_EXPERIMENT_REPORT.md) |
 | 性能结果 | [`04_tests/performance/results/nightly-20260902/`](../../performance/results/nightly-20260902/) |
-| HPA 原始证据 | [`04_tests/cloud-native/hpa-observation-20260902.csv`](../../cloud-native/hpa-observation-20260902.csv)、[`hpa/`](hpa/)；历史 BLOCKED preflight 仍见 [`hpa-observation-20260902-blocked.csv`](../../cloud-native/hpa-observation-20260902-blocked.csv) |
+| HPA 原始证据 | [`04_tests/cloud-native/hpa-observation-20260902-8c335eb.csv`](../../cloud-native/hpa-observation-20260902-8c335eb.csv) 及同名前缀 summary/log/yaml；历史 BLOCKED preflight 仍见 [`hpa-observation-20260902-blocked.csv`](../../cloud-native/hpa-observation-20260902-blocked.csv) |
 | 故障注入 | [`04_tests/cloud-native/fault/`](../../cloud-native/fault/) |
 
 当前可交付结论：Microservice E2E、故障实验、远端 HPA 和本地性能原始结果可引用；HPA 已在 K3s 上真实完成 1→2→3→1。性能 workflow 的当前修复仍需目标 CI run 成功后再追加实际 artifact run 链接。

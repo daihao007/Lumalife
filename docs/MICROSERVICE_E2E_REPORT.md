@@ -4,16 +4,17 @@
 
 **READY FOR CLOUD-NATIVE EXPERIMENTS**
 
-本轮已在干净的独立 Docker Compose 环境中，以真实 `backend → remote microservices → service-owned databases / RabbitMQ` 链路完成 UC01–UC09。九个用例全部通过，基础设施和服务健康检查通过，原有 Monolith E2E 入口仍然保留。
+本轮直接对远端现有 K3s 部署执行，以真实 `backend → remote microservices → service-owned databases / RabbitMQ` 链路完成 UC01–UC09。九个用例全部通过，未启动 Docker 服务；原有 Compose/Monolith E2E 入口仍作为独立回归方式保留。
 
 当前 main / CI 交付链接：[Monolith CI run 33584079761](https://github.com/daihao007/Lumalife/actions/runs/33584079761)、[Microservice E2E job](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100104417404)、[Kubernetes rollout smoke](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105159011)、[Deploy Kubernetes](https://github.com/daihao007/Lumalife/actions/runs/33584079761/job/100105958216)、[ECS/K3s deployment](https://github.com/daihao007/Lumalife/actions/runs/33584774218/job/100110913513)。统一原始证据索引见 [`04_tests/evidence/README.md`](../04_tests/evidence/README.md)。
 
 本报告对应的实际运行证据：
 
-- Run ID：`20260902T102500Z-p1-retry`
-- Git HEAD：`4f22cc73c1edd5c52dbc7b75e2558fbf508a4cd2`
-- 开始时间：`2026-09-02T02:21:30.133Z`
-- 结束时间：`2026-09-02T02:22:02.769Z`
+- Run ID：`20260902T090344Z-k3s-8c335eb`
+- Git HEAD：`8c335eb7d79400c1f56630bd5c6530ac86e25cf2`
+- 开始时间：`2026-09-02T09:03:44.355Z`
+- 结束时间：`2026-09-02T09:04:18.858Z`
+- 请求记录：87 条，失败用例 0
 - 证据目录：`04_tests/e2e/microservices/latest/`
 - 机器结果：`microservice-e2e-summary.json`
 - 可读摘要：`microservice-e2e-summary.md`
@@ -42,8 +43,8 @@ flowchart LR
 
 | 项目 | 实际值 |
 | --- | --- |
-| Compose project | `lumalife-microservice-e2e` |
-| Compose 来源 | canonical `docker-compose.yml` + 最小覆盖 `docker-compose.e2e.yml` |
+| Kubernetes | context `default`，namespace `lumalife` |
+| 部署镜像 | 当前 K3s Deployment `sha-8c335eb` |
 | backend profile | `prod,remote` |
 | remote flags | identity / merchant / order / assistant 全部 `true` |
 | compatibility store | `false` |
@@ -53,12 +54,12 @@ flowchart LR
 | merchant-service | `127.0.0.1:18082` |
 | order-service | `127.0.0.1:18083` |
 | assistant-service | `127.0.0.1:18084` |
-| MySQL | `127.0.0.1:13306` |
-| frontend | `127.0.0.1:15173` |
-| RabbitMQ | Compose health check `healthy` |
+| MySQL | K3s `mysql-identity-0` / `mysql-merchant-0` / `mysql-order-0` |
+| frontend | 不参与本轮 API 黑盒 E2E |
+| RabbitMQ | K3s Deployment，`rabbitmq-diagnostics -q ping` 通过 |
 | service databases | `life_assistant_identity`, `life_assistant_merchant`, `life_assistant_order` |
 
-启动器 `scripts/run-microservice-e2e.sh` 会清理并创建独立 project、独立 volume 和独立端口，按 MySQL/RabbitMQ → migration → seed/backfill → services → backend/frontend → runner 的顺序执行，并轮询真实 Compose health 状态；失败时保存服务日志和 health 响应。
+本次通过 `kubectl port-forward` 访问现有 K3s Deployment；数据库断言由 runner 使用 `kubectl exec` 进入各自 StatefulSet Pod 执行，避免误读 legacy `mysql-0`。Saga 等待上限独立配置为 90 秒，覆盖两轮 Outbox 发布窗口；HTTP 请求超时为 30 秒。
 
 ## 3. 启动自检结果
 
@@ -70,8 +71,8 @@ flowchart LR
 | order-service health | PASS，HTTP 200 | summary JSON `health.services.order` |
 | assistant-service health | PASS，HTTP 200 | summary JSON `health.services.assistant` |
 | remote migration route | PASS | identity / merchant / order 均为 `remote-service` |
-| MySQL | PASS，Compose `healthy` | `docker-compose-ps.txt` |
-| RabbitMQ | PASS，Compose `healthy` | `docker-compose-ps.txt` |
+| 三个 MySQL StatefulSet | PASS，分别读取 service-owned DB | summary JSON 与数据库断言 |
+| RabbitMQ | PASS，K3s Pod Ready 且诊断 ping 成功 | K3s 现场检查 |
 | backend compatibility store | PASS，关闭 | summary JSON `environment.compatibilityStore=false` |
 
 ## 4. UC01–UC09 测试矩阵

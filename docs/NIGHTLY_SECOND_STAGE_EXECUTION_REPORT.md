@@ -66,7 +66,7 @@ UC03 实测库存 Saga 为 `CONFIRMED`、payment 为 `SUCCESS`；UC08 实测 sen
 | CPU / memory | PASS；每轮有 `kubectl top` CPU/Memory 原始采样 |
 | 原始数据 | `04_tests/cloud-native/hpa-observation-20260902*`；统一索引见 `04_tests/evidence/second-stage-20260902/hpa/` |
 
-本次远端实验的原始 kubectl、metrics-server、事件、merchant-service 日志、请求日志和 CSV 均已保存；共 24,857 请求、0 错误。此前本地无 context 的 BLOCKED preflight 以及 2026-09-01 的短观测仍保留，但不覆盖本次 PASS。报告：`docs/HPA_EXPERIMENT_REPORT.md`。
+当前提交 `8c335eb7d79400c1f56630bd5c6530ac86e25cf2` 的远端实验已保存原始 kubectl、事件、merchant-service 日志、请求日志和 CSV；共 14,467 请求、0 错误，目标镜像为 `sha-8c335eb`。此前本地无 context 的 BLOCKED preflight 和旧镜像观测仍保留为历史，但不覆盖本次 PASS。报告：`docs/HPA_EXPERIMENT_REPORT.md`。
 
 ## 6. Performance
 

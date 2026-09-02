@@ -1,0 +1,32 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  annotations:
+    objectset.rio.cattle.io/applied: H4sIAAAAAAAA/4SSQY/aMBCF/0o1Z5NiQlKw1APHqq2ExIr72JnAbIgd2U5WCPHfV4bArlZiOU7evJdvnnwC7HhLPrCzoNLgaccheozsbNYsQsbu5yBBQMO2AgWr9Z8N+YENgYCWIlYYEdQJ0FoXL7aQRqdfycRAMfPsMoMxHihlcQoB8VB3b5b8ZDc0oKDJwydlkOLHX7bV71VVOfs0wmJLoBKiZxMm2HG4cz93hg5Nsje9pkk4hkgtnAUcUNPh2/v2GPagoJjrgvRC53VdlLnBXC7nsvhVynK2NEuja6SaZlim0JF0kJoiymwkHstPC6Ejk/65867vPm66bYirsPbsPMfjf7bc9i0oOZ0KYBvI9J42DXcv/zZb8lwfQUXfk4BbI+oEX+pKCnm4wj0oY7i/mxEd7t9uLBeI8/k9AAD//wQqzKFnAgAA
+    objectset.rio.cattle.io/id: ""
+    objectset.rio.cattle.io/owner-gvk: k3s.cattle.io/v1, Kind=Addon
+    objectset.rio.cattle.io/owner-name: metrics-apiservice
+    objectset.rio.cattle.io/owner-namespace: kube-system
+  creationTimestamp: "2026-08-31T02:36:43Z"
+  labels:
+    objectset.rio.cattle.io/hash: 54b5eb8b3ff563ca319415761629c9cbfaefe2a6
+  name: v1beta1.metrics.k8s.io
+  resourceVersion: "101604"
+  uid: 05b46d49-950f-4d35-bdf7-6e5f1a73846c
+spec:
+  group: metrics.k8s.io
+  groupPriorityMinimum: 100
+  insecureSkipTLSVerify: true
+  service:
+    name: metrics-server
+    namespace: kube-system
+    port: 443
+  version: v1beta1
+  versionPriority: 100
+status:
+  conditions:
+  - lastTransitionTime: "2026-09-02T08:45:27Z"
+    message: all checks passed
+    reason: Passed
+    status: "True"
+    type: Available
