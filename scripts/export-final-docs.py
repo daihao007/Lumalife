@@ -43,6 +43,14 @@ DOCUMENTS = (
         "LUMALIFE-TR-003",
     ),
     (
+        "deployment",
+        DOCS / "08_部署文档.md",
+        DOCS / "08_部署文档.pdf",
+        "部署文档",
+        "Deployment Guide",
+        "LUMALIFE-DEP-003",
+    ),
+    (
         "requirements",
         DOCS / "12_软件需求规格说明书.md",
         DOCS / "10组-软件需求规格说明书.pdf",
