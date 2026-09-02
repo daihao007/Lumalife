@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import MarkdownContent from "../components/MarkdownContent";
 import type { ChatMessage, ConversationSummary } from "../types";
 
 export default function MerchantSupport({ user, setMessage }: { user: any; setMessage: (msg: string) => void }) {
@@ -65,16 +66,16 @@ export default function MerchantSupport({ user, setMessage }: { user: any; setMe
         <button className="primary" onClick={askMerchantAi} disabled={askingAi}>{askingAi ? "生成中" : "提问"}</button>
       </div>
       {aiError && <p className="form-error" role="alert">{aiError}</p>}
-      {aiAnswer && <div className="answer ai-answer" role="status"><p>{aiAnswer}</p><button onClick={useAiAnswerAsReply}>填入回复框</button></div>}
+      {aiAnswer && <div className="answer ai-answer" role="status"><MarkdownContent content={aiAnswer} /><button onClick={useAiAnswerAsReply}>填入回复框</button></div>}
     </div>
     <div className="chat-layout compact-chat">
       <div className="chat-thread-list">
-        {conversations.map(item => <button className={item.userId === activeUserId ? "chat-thread active" : "chat-thread"} key={item.userId} onClick={() => setActiveUserId(item.userId)}><b>{item.userName}</b><span>{item.lastMessage}</span></button>)}
+        {conversations.map(item => <button className={item.userId === activeUserId ? "chat-thread active" : "chat-thread"} key={item.userId} onClick={() => setActiveUserId(item.userId)}><b>{item.userName}</b><span><MarkdownContent content={item.lastMessage} inline /></span></button>)}
         {!conversations.length && <p className="hint">暂无用户咨询</p>}
       </div>
       <div className="chat-panel">
         <div className="chat-messages">
-          {chatMessages.map(message => <div className={message.senderRole === "USER" ? "chat-bubble" : "chat-bubble mine"} key={message.id}><small>{message.senderName}</small><p>{message.content}</p></div>)}
+          {chatMessages.map(message => <div className={message.senderRole === "USER" ? "chat-bubble" : "chat-bubble mine"} key={message.id}><small>{message.senderName}</small><MarkdownContent content={message.content} /></div>)}
           {!chatMessages.length && <p className="hint">选择用户会话后回复咨询，或先用上方 AI 客服生成回复建议</p>}
         </div>
         <div className="chat-input">

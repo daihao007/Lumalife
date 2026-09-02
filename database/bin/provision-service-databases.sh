@@ -134,6 +134,10 @@ fi
 
 # The public conversation projection uses MERCHANT and MERCHANT_AI. Upgrade an
 # already provisioned merchant database as well as freshly copied tables.
+merchant_chat_sender_legacy_constraint_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='chat_message' AND constraint_name='chat_message_chk_1'")
+if [ "$merchant_chat_sender_legacy_constraint_count" -gt 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.chat_message DROP CHECK chat_message_chk_1"
+fi
 merchant_chat_sender_constraint_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='chat_message' AND constraint_name='ck_chat_sender_role'")
 if [ "$merchant_chat_sender_constraint_count" -gt 0 ]; then
   mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.chat_message DROP CHECK ck_chat_sender_role"

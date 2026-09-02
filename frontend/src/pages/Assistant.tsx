@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Coffee, Send } from "lucide-react";
 import { api } from "../api";
+import MarkdownContent from "../components/MarkdownContent";
 import type { ChatMessage, ConversationSummary, User } from "../types";
 
 export default function Assistant({ user, initialMerchantId }: { user: User | null; initialMerchantId?: number | null }) {
@@ -25,7 +26,7 @@ function PlatformAssistant() {
     <h2>AI 客服</h2>
     <input value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => { if (e.key === "Enter") ask(); }} />
     <button className="primary" onClick={ask}>提问</button>
-    {answer && <p className="answer">{answer}</p>}
+    {answer && <div className="answer"><MarkdownContent content={answer} /></div>}
   </div>;
 }
 
@@ -106,7 +107,7 @@ function MerchantChat({ user, initialMerchantId }: { user: User; initialMerchant
     <section className="account-panel">
       <h3>店家客服</h3>
       {conversations.map(item => <button className={item.merchantId === merchantId ? "chat-thread active" : "chat-thread"} key={item.merchantId} onClick={() => setMerchantId(item.merchantId)}>
-        <b>{item.merchantName}</b><span>{item.lastMessage}</span>
+        <b>{item.merchantName}</b><span><MarkdownContent content={item.lastMessage} inline /></span>
       </button>)}
       {!conversations.length && <p className="hint">{merchantId ? "发送第一条消息后会出现在会话列表中" : "请先从店铺详情页联系店家客服"}</p>}
     </section>
@@ -114,7 +115,7 @@ function MerchantChat({ user, initialMerchantId }: { user: User; initialMerchant
       <h3>{active?.merchantName || (merchantId ? "店家客服" : "请选择会话")}</h3>
       <div className="chat-messages">
         {messages.map(message => <div className={message.senderRole === "USER" ? "chat-bubble mine" : "chat-bubble"} key={message.id}>
-          <small>{message.senderName}</small><p>{message.content}</p>
+          <small>{message.senderName}</small><MarkdownContent content={message.content} />
         </div>)}
         {!messages.length && <p className="hint">可以询问营业时间、菜品库存、配送进度或订单问题。</p>}
       </div>

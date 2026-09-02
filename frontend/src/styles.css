@@ -211,6 +211,13 @@ code { padding: 7px 9px; border-radius: 6px; background: #16211d; color: #fff; w
 .chat-bubble.mine { justify-self: end; background: #e7f3ee; border-color: #b8d8cc; }
 .chat-bubble small { display: block; color: var(--muted); margin-bottom: 4px; }
 .chat-bubble p { margin: 0; }
+.markdown-content > :first-child { margin-top: 0; }
+.markdown-content > :last-child { margin-bottom: 0; }
+.markdown-content p { margin: 0 0 8px; white-space: pre-wrap; }
+.markdown-content ul, .markdown-content ol { margin: 0 0 8px; padding-left: 20px; }
+.markdown-content code { padding: 1px 4px; background: rgba(0, 0, 0, .06); border-radius: 4px; }
+.markdown-preview { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.markdown-preview p { display: inline; margin: 0; }
 .chat-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .chat-input .primary { margin-top: 0; }
 .answer, .review { background: #e7f3ee; border-left: 4px solid var(--teal); padding: 12px; border-radius: 6px; }

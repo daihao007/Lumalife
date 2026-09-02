@@ -87,6 +87,13 @@ sync_latest_migration_marker() {
 upgrade_merchant_chat_constraint() {
   target_host=$1
   target_database=$2
+  legacy_constraint_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --batch --skip-column-names \
+    --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${target_database}' AND table_name='chat_message' AND constraint_name='chat_message_chk_1'")
+  if [ "$legacy_constraint_count" -gt 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+      --database="$target_database" --execute='ALTER TABLE chat_message DROP CHECK chat_message_chk_1'
+  fi
   constraint_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
     --database="$target_database" --batch --skip-column-names \
     --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${target_database}' AND table_name='chat_message' AND constraint_name='ck_chat_sender_role'")

@@ -23,7 +23,7 @@ public class RemoteAssistantAnswerPort {
       @Value("${lumalife.internal.service-token:}") String token) {
     JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
         HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
-    requestFactory.setReadTimeout(Duration.ofSeconds(8));
+    requestFactory.setReadTimeout(Duration.ofSeconds(35));
     RestClient client = builder.baseUrl(baseUrl).requestFactory(requestFactory)
         .defaultHeader("X-Luma-Service-Token", token).build();
     return (mode, question, context, history) -> {

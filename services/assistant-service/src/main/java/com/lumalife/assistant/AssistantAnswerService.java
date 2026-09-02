@@ -73,7 +73,7 @@ public class AssistantAnswerService {
       payload.put("messages", messages);
       payload.put("temperature", 0.45);
       payload.put("max_tokens", 384);
-      HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint)).timeout(Duration.ofSeconds(6))
+      HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint)).timeout(Duration.ofSeconds(30))
           .header("Authorization", "Bearer " + apiKey).header("Content-Type", "application/json")
           .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(payload))).build();
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
