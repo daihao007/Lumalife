@@ -1,0 +1,64 @@
+{
+  "label": "microservices-merchant-detail",
+  "startedAt": "2026-09-01T18:11:10.682Z",
+  "completedAt": "2026-09-01T18:11:10.974Z",
+  "target": "http://127.0.0.1:8080/api/v1/merchants/1",
+  "method": "GET",
+  "workload": {
+    "repeats": 3,
+    "requestsPerRepeat": 10,
+    "concurrency": 4,
+    "warmupRequests": 2,
+    "timeoutMs": 3000
+  },
+  "measurements": [
+    {
+      "phase": "repeat-1",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 66.79,
+      "throughputRps": 149.72,
+      "averageMs": 21.73,
+      "p95Ms": 33.32,
+      "maxMs": 33.32,
+      "errors": []
+    },
+    {
+      "phase": "repeat-2",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 93.09,
+      "throughputRps": 107.42,
+      "averageMs": 34.13,
+      "p95Ms": 47.47,
+      "maxMs": 47.47,
+      "errors": []
+    },
+    {
+      "phase": "repeat-3",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 78.86,
+      "throughputRps": 126.81,
+      "averageMs": 27.61,
+      "p95Ms": 35.35,
+      "maxMs": 35.35,
+      "errors": []
+    }
+  ],
+  "summary": {
+    "requests": 30,
+    "successful": 30,
+    "failed": 0,
+    "errorRate": 0,
+    "averageMs": 27.82,
+    "p95Ms": 47.47,
+    "throughputRps": 127.98
+  }
+}

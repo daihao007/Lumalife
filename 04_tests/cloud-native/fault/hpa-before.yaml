@@ -1,0 +1,61 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"autoscaling/v2","kind":"HorizontalPodAutoscaler","metadata":{"annotations":{},"creationTimestamp":"2026-09-01T18:00:50Z","labels":{"app.kubernetes.io/name":"merchant-service","app.kubernetes.io/part-of":"lumalife"},"name":"merchant-service","namespace":"lumalife","resourceVersion":"120582","uid":"4e6f6cd2-7241-45f2-b6e0-4ba4a41d2c25"},"spec":{"behavior":{"scaleDown":{"policies":[{"periodSeconds":60,"type":"Percent","value":50}],"selectPolicy":"Max","stabilizationWindowSeconds":120},"scaleUp":{"policies":[{"periodSeconds":60,"type":"Percent","value":100}],"selectPolicy":"Max","stabilizationWindowSeconds":0}},"maxReplicas":3,"metrics":[{"resource":{"name":"cpu","target":{"averageUtilization":60,"type":"Utilization"}},"type":"Resource"}],"minReplicas":1,"scaleTargetRef":{"apiVersion":"apps/v1","kind":"Deployment","name":"merchant-service"}},"status":{"conditions":[{"lastTransitionTime":"2026-09-01T18:01:05Z","message":"the HPA controller was able to get the target's current scale","reason":"SucceededGetScale","status":"True","type":"AbleToScale"},{"lastTransitionTime":"2026-09-01T18:01:05Z","message":"the HPA was unable to compute the replica count: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)","reason":"FailedGetResourceMetric","status":"False","type":"ScalingActive"}],"currentMetrics":[{"type":""}],"currentReplicas":1,"desiredReplicas":0}}
+  creationTimestamp: "2026-09-01T18:06:43Z"
+  labels:
+    app.kubernetes.io/name: merchant-service
+    app.kubernetes.io/part-of: lumalife
+  name: merchant-service
+  namespace: lumalife
+  resourceVersion: "121188"
+  uid: 2d6d9240-5359-49c8-b775-235923e62558
+spec:
+  behavior:
+    scaleDown:
+      policies:
+      - periodSeconds: 60
+        type: Percent
+        value: 50
+      selectPolicy: Max
+      stabilizationWindowSeconds: 120
+    scaleUp:
+      policies:
+      - periodSeconds: 60
+        type: Percent
+        value: 100
+      selectPolicy: Max
+      stabilizationWindowSeconds: 0
+  maxReplicas: 3
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 60
+        type: Utilization
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: merchant-service
+status:
+  conditions:
+  - lastTransitionTime: "2026-09-01T18:06:58Z"
+    message: the HPA controller was able to get the target's current scale
+    reason: SucceededGetScale
+    status: "True"
+    type: AbleToScale
+  - lastTransitionTime: "2026-09-01T18:06:58Z"
+    message: 'the HPA was unable to compute the replica count: failed to get cpu utilization:
+      unable to get metrics for resource cpu: unable to fetch metrics from resource
+      metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)'
+    reason: FailedGetResourceMetric
+    status: "False"
+    type: ScalingActive
+  currentMetrics:
+  - type: ""
+  currentReplicas: 1
+  desiredReplicas: 0

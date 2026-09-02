@@ -1,0 +1,64 @@
+{
+  "label": "monolith-merchant-search",
+  "startedAt": "2026-09-01T18:11:22.758Z",
+  "completedAt": "2026-09-01T18:11:22.863Z",
+  "target": "http://127.0.0.1:8080/api/v1/merchants?keyword=%E5%92%96%E5%95%A1",
+  "method": "GET",
+  "workload": {
+    "repeats": 3,
+    "requestsPerRepeat": 10,
+    "concurrency": 4,
+    "warmupRequests": 2,
+    "timeoutMs": 3000
+  },
+  "measurements": [
+    {
+      "phase": "repeat-1",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 15.73,
+      "throughputRps": 635.88,
+      "averageMs": 5.25,
+      "p95Ms": 7.39,
+      "maxMs": 7.39,
+      "errors": []
+    },
+    {
+      "phase": "repeat-2",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 9.62,
+      "throughputRps": 1039.92,
+      "averageMs": 3.14,
+      "p95Ms": 5.18,
+      "maxMs": 5.18,
+      "errors": []
+    },
+    {
+      "phase": "repeat-3",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 7.39,
+      "throughputRps": 1353.55,
+      "averageMs": 2.36,
+      "p95Ms": 2.98,
+      "maxMs": 2.98,
+      "errors": []
+    }
+  ],
+  "summary": {
+    "requests": 30,
+    "successful": 30,
+    "failed": 0,
+    "errorRate": 0,
+    "averageMs": 3.58,
+    "p95Ms": 7.39,
+    "throughputRps": 1009.78
+  }
+}

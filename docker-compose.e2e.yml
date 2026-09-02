@@ -1,0 +1,28 @@
+# Microservice E2E only: reuse the canonical docker-compose.yml definitions and
+# change host bindings so a developer's normal stack can remain running.
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod,remote
+      LUMALIFE_IDENTITY_REMOTE_ENABLED: "true"
+      LUMALIFE_IDENTITY_BACKFILL_COMPLETED: "true"
+      LUMALIFE_MERCHANT_REMOTE_ENABLED: "true"
+      LUMALIFE_MERCHANT_BACKFILL_COMPLETED: "true"
+      LUMALIFE_ORDER_REMOTE_ENABLED: "true"
+      LUMALIFE_ORDER_BACKFILL_COMPLETED: "true"
+      LUMALIFE_ASSISTANT_REMOTE_ENABLED: "true"
+      LUMALIFE_ASSISTANT_BACKFILL_COMPLETED: "true"
+      LUMALIFE_COMPATIBILITY_STORE_ENABLED: "false"
+      LUMALIFE_PERSISTENCE: mysql
+  identity-service:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+  merchant-service:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+  order-service:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+  assistant-service:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod

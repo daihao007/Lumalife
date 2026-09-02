@@ -104,6 +104,23 @@ if [ "$order_merchant_name_snapshot_count" -eq 0 ]; then
   mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_record ADD COLUMN merchant_name_snapshot VARCHAR(160) NOT NULL DEFAULT ''"
 fi
 
+# The public conversation projection uses MERCHANT and MERCHANT_AI. Upgrade an
+# already provisioned merchant database as well as freshly copied tables.
+merchant_chat_sender_constraint_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${MYSQL_MERCHANT_DATABASE}' AND table_name='chat_message' AND constraint_name='ck_chat_sender_role'")
+if [ "$merchant_chat_sender_constraint_count" -gt 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.chat_message DROP CHECK ck_chat_sender_role"
+fi
+mysql_root --execute="ALTER TABLE ${MYSQL_MERCHANT_DATABASE}.chat_message ADD CONSTRAINT ck_chat_sender_role CHECK (sender_role IN ('USER','MERCHANT','MERCHANT_AI','MERCHANT_ADMIN','PLATFORM_ADMIN','ASSISTANT'))"
+
+# Keep an already provisioned order database on the same Saga state machine as
+# the canonical schema. This is additive and idempotent, so an upgrade does
+# not silently retain the pre-compensation constraint from V016.
+order_saga_status_constraint_count=$(mysql_root --batch --skip-column-names --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${MYSQL_ORDER_DATABASE}' AND table_name='order_inventory_saga' AND constraint_name='ck_order_inventory_saga_status'")
+if [ "$order_saga_status_constraint_count" -gt 0 ]; then
+  mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_inventory_saga DROP CHECK ck_order_inventory_saga_status"
+fi
+mysql_root --execute="ALTER TABLE ${MYSQL_ORDER_DATABASE}.order_inventory_saga ADD CONSTRAINT ck_order_inventory_saga_status CHECK (status IN ('RESERVE_PENDING','RESERVED','RESERVE_FAILED','CONFIRM_PENDING','CONFIRMED','CONFIRM_FAILED','RELEASE_PENDING','RELEASED','FAILED'))"
+
 for target_database in "$MYSQL_IDENTITY_DATABASE" "$MYSQL_MERCHANT_DATABASE" "$MYSQL_ORDER_DATABASE"; do
   mysql_root --execute="INSERT INTO ${target_database}.schema_migration(version,description,checksum,installed_at) SELECT version,description,checksum,installed_at FROM ${MYSQL_DATABASE}.schema_migration ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum),installed_at=VALUES(installed_at)"
 done

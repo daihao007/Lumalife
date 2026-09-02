@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Repository;
  * legacy V003 {@code business_state} row is imported once on first startup.</p>
  */
 @Repository
+@Profile({"monolith", "migration"})
 @ConditionalOnProperty(name = "lumalife.persistence", havingValue = "mysql")
 public class JdbcBusinessStateRepository implements BusinessStateRepository {
   private static final String LOCK_NAME = "lumalife-relational-business-state";

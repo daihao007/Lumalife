@@ -3,3 +3,20 @@ lumalife:
   compatibility:
     store:
       enabled: ${LUMALIFE_COMPATIBILITY_STORE_ENABLED:true}
+  migration:
+    identity:
+      enabled: false
+      backfill-completed: false
+    merchant:
+      enabled: false
+      backfill-completed: false
+    order:
+      enabled: false
+      backfill-completed: false
+    assistant:
+      enabled: false
+      backfill-completed: false
+  mysql:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USER:lifeassist}
+    password: ${MYSQL_PASSWORD:}

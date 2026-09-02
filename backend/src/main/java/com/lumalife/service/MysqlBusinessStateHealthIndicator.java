@@ -3,10 +3,12 @@ package com.lumalife.service;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Makes Actuator readiness reflect the MySQL business-state dependency. */
 @Component("businessStateMysql")
+@Profile({"monolith", "migration"})
 @ConditionalOnProperty(name = "lumalife.persistence", havingValue = "mysql")
 public class MysqlBusinessStateHealthIndicator implements HealthIndicator {
   private final BusinessStateRepository repository;

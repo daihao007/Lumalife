@@ -1,0 +1,192 @@
+{
+  "suite": "Microservice E2E UC01–UC09",
+  "runId": "20260901T181647Z-85603",
+  "gitCommit": "cfde357583100763eb73ee4ee9e4faf171597c27",
+  "startedAt": "2026-09-01T18:17:37.992Z",
+  "completedAt": "2026-09-01T18:18:08.961Z",
+  "environmentFailure": null,
+  "environment": {
+    "backendProfile": "prod,remote",
+    "baseUrl": "http://127.0.0.1:18080",
+    "remoteFlags": {
+      "identity": true,
+      "merchant": true,
+      "order": true,
+      "assistant": true
+    },
+    "compatibilityStore": false,
+    "databases": {
+      "identity": "life_assistant_identity",
+      "merchant": "life_assistant_merchant",
+      "order": "life_assistant_order"
+    },
+    "composeProject": "lumalife-microservice-e2e"
+  },
+  "health": {
+    "services": {
+      "backend": {
+        "url": "http://127.0.0.1:18080",
+        "status": 200,
+        "body": {
+          "type": "object"
+        },
+        "durationMs": 64
+      },
+      "identity": {
+        "url": "http://127.0.0.1:18081",
+        "status": 200,
+        "body": {
+          "type": "object"
+        },
+        "durationMs": 8
+      },
+      "merchant": {
+        "url": "http://127.0.0.1:18082",
+        "status": 200,
+        "body": {
+          "type": "object"
+        },
+        "durationMs": 9
+      },
+      "order": {
+        "url": "http://127.0.0.1:18083",
+        "status": 200,
+        "body": {
+          "type": "object"
+        },
+        "durationMs": 12
+      },
+      "assistant": {
+        "url": "http://127.0.0.1:18084",
+        "status": 200,
+        "body": {
+          "type": "object"
+        },
+        "durationMs": 12
+      }
+    },
+    "migration": {
+      "identity": "remote-service",
+      "merchant": "remote-service",
+      "order": "remote-service"
+    }
+  },
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "scenarios": [
+    {
+      "name": "UC01",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:17:38.167Z",
+      "durationMs": 584,
+      "evidence": {
+        "userId": 7,
+        "addressId": 103
+      }
+    },
+    {
+      "name": "UC02",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:17:38.751Z",
+      "durationMs": 364,
+      "evidence": {
+        "userId": 8,
+        "merchantId": 1
+      }
+    },
+    {
+      "name": "UC03",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:17:39.115Z",
+      "durationMs": 8656,
+      "evidence": {
+        "orderId": 4001,
+        "saga": "CONFIRMED",
+        "payment": "SUCCESS",
+        "reservation": "CONFIRMED",
+        "pendingCancelledOrderId": 4002
+      }
+    },
+    {
+      "name": "UC04",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:17:47.771Z",
+      "durationMs": 10391,
+      "evidence": {
+        "orderId": 4003,
+        "reviewId": 4004,
+        "userId": 10
+      }
+    },
+    {
+      "name": "UC05",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:17:58.162Z",
+      "durationMs": 9631,
+      "evidence": {
+        "orderId": 4006,
+        "couponCode": "000000004006",
+        "saga": "CONFIRMED",
+        "couponStatus": "UNUSED"
+      }
+    },
+    {
+      "name": "UC06",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:18:07.793Z",
+      "durationMs": 206,
+      "evidence": {
+        "couponCode": "000000004006",
+        "finalOrderStatus": "USED"
+      }
+    },
+    {
+      "name": "UC07",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:18:07.999Z",
+      "durationMs": 269,
+      "evidence": {
+        "merchantId": 1,
+        "productId": 3001,
+        "publishStates": [
+          false,
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "name": "UC08",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:18:08.268Z",
+      "durationMs": 444,
+      "evidence": {
+        "userId": 12,
+        "merchantId": 1,
+        "assistant": "remote assistant-service",
+        "senderRoles": [
+          "USER",
+          "MERCHANT_AI",
+          "MERCHANT"
+        ]
+      }
+    },
+    {
+      "name": "UC09",
+      "status": "passed",
+      "startedAt": "2026-09-01T18:18:08.712Z",
+      "durationMs": 247,
+      "evidence": {
+        "overview": {
+          "users": 7,
+          "merchants": 4,
+          "orders": 4,
+          "amountCent": 13950
+        }
+      }
+    }
+  ],
+  "requestCount": 87,
+  "exitCode": 0
+}

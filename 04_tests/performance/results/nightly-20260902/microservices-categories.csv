@@ -1,0 +1,4 @@
+phase,requests,successful,failed,errorRate,elapsedMs,throughputRps,averageMs,p95Ms,maxMs
+repeat-1,10,10,0,0,24.87,402.09,8.72,11.4,11.4
+repeat-2,10,10,0,0,17.39,575.06,5.9,7.83,7.83
+repeat-3,10,10,0,0,14.15,706.6,5.02,8,8

@@ -1,0 +1,13 @@
+NAME                                 READY   STATUS    RESTARTS   AGE    IP            NODE                    NOMINATED NODE   READINESS GATES
+assistant-service-687595d9b5-lhjpr   1/1     Running   0          15m    10.244.0.12   desktop-control-plane   <none>           <none>
+backend-79b5449999-gsmgc             1/1     Running   0          15m    10.244.0.20   desktop-control-plane   <none>           <none>
+frontend-7f7758f7b8-bwzms            1/1     Running   0          15m    10.244.0.22   desktop-control-plane   <none>           <none>
+frontend-7f7758f7b8-gcctl            1/1     Running   0          15m    10.244.0.13   desktop-control-plane   <none>           <none>
+identity-service-866bddf9b9-prkbd    1/1     Running   0          10m    10.244.0.27   desktop-control-plane   <none>           <none>
+merchant-service-d69fc64b7-rk92j     1/1     Running   0          32s    10.244.0.32   desktop-control-plane   <none>           <none>
+mysql-0                              1/1     Running   0          9m4s   10.244.0.29   desktop-control-plane   <none>           <none>
+mysql-identity-0                     1/1     Running   0          15m    10.244.0.23   desktop-control-plane   <none>           <none>
+mysql-merchant-0                     1/1     Running   0          15m    10.244.0.24   desktop-control-plane   <none>           <none>
+mysql-order-0                        1/1     Running   0          15m    10.244.0.26   desktop-control-plane   <none>           <none>
+order-service-76556bf6d9-wxjm2       1/1     Running   0          15m    10.244.0.16   desktop-control-plane   <none>           <none>
+rabbitmq-58c9c4667c-dr5s8            1/1     Running   0          15m    10.244.0.19   desktop-control-plane   <none>           <none>

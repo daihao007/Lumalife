@@ -37,41 +37,21 @@ jobs:
           echo "MYSQL_USER=lifeassist" >> "$GITHUB_ENV"
           echo "MYSQL_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
-      - name: Run microservices configuration
+      - name: Run the same workload in both modes
         shell: bash
         env:
-          PERF_BASE_URL: http://127.0.0.1:8080
-          PERF_LABEL: microservices
+          COMPOSE_PROJECT: lumalife-performance
+          OUTPUT_DIR: 04_tests/performance/results/ci
           PERF_REQUESTS: ${{ inputs.requests }}
           PERF_CONCURRENCY: ${{ inputs.concurrency }}
-          PERF_OUTPUT: 04_tests/performance/results/microservices.json
-          PERF_CSV: 04_tests/performance/results/microservices.csv
+          PERF_REPEATS: "3"
         run: |
           set -Eeuo pipefail
           docker compose -p lumalife-performance down --volumes --remove-orphans || true
           docker compose -p lumalife-performance up --detach --build --wait
           docker compose -p lumalife-performance --profile db-tools run --rm db-seed
           docker compose -p lumalife-performance --profile db-tools run --rm db-backfill-services
-          node 04_tests/performance/load-test.mjs
-
-      - name: Run monolith compatibility configuration
-        shell: bash
-        env:
-          LUMALIFE_IDENTITY_REMOTE_ENABLED: "false"
-          LUMALIFE_MERCHANT_REMOTE_ENABLED: "false"
-          LUMALIFE_ORDER_REMOTE_ENABLED: "false"
-          PERF_BASE_URL: http://127.0.0.1:8080
-          PERF_LABEL: monolith
-          PERF_REQUESTS: ${{ inputs.requests }}
-          PERF_CONCURRENCY: ${{ inputs.concurrency }}
-          PERF_OUTPUT: 04_tests/performance/results/monolith.json
-          PERF_CSV: 04_tests/performance/results/monolith.csv
-        run: |
-          set -Eeuo pipefail
-          docker compose -p lumalife-performance down --volumes --remove-orphans
-          docker compose -p lumalife-performance up --detach --build --wait
-          docker compose -p lumalife-performance --profile db-tools run --rm db-seed
-          node 04_tests/performance/load-test.mjs
+          bash 04_tests/performance/run-comparison.sh
 
       - name: Upload raw performance results
         if: always()

@@ -1,0 +1,64 @@
+{
+  "label": "microservices-merchant-search",
+  "startedAt": "2026-09-01T18:11:03.508Z",
+  "completedAt": "2026-09-01T18:11:03.842Z",
+  "target": "http://127.0.0.1:8080/api/v1/merchants?keyword=%E5%92%96%E5%95%A1",
+  "method": "GET",
+  "workload": {
+    "repeats": 3,
+    "requestsPerRepeat": 10,
+    "concurrency": 4,
+    "warmupRequests": 2,
+    "timeoutMs": 3000
+  },
+  "measurements": [
+    {
+      "phase": "repeat-1",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 85.13,
+      "throughputRps": 117.47,
+      "averageMs": 28.51,
+      "p95Ms": 49.51,
+      "maxMs": 49.51,
+      "errors": []
+    },
+    {
+      "phase": "repeat-2",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 63.34,
+      "throughputRps": 157.88,
+      "averageMs": 22.2,
+      "p95Ms": 31.07,
+      "maxMs": 31.07,
+      "errors": []
+    },
+    {
+      "phase": "repeat-3",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 85.14,
+      "throughputRps": 117.45,
+      "averageMs": 30.87,
+      "p95Ms": 50.26,
+      "maxMs": 50.26,
+      "errors": []
+    }
+  ],
+  "summary": {
+    "requests": 30,
+    "successful": 30,
+    "failed": 0,
+    "errorRate": 0,
+    "averageMs": 27.19,
+    "p95Ms": 50.26,
+    "throughputRps": 130.93
+  }
+}

@@ -622,7 +622,14 @@ function startBackendProcess() {
   const args = ["-q", "spring-boot:run", "-Dspring-boot.run.fork=false"];
   backendProcess = spawn(command, args, {
     cwd: path.join(rootDir, "backend"),
-    env: { ...process.env, SERVER_PORT: String(backendPort), LUMALIFE_STATE_FILE: temporaryStateFile },
+    // E2E intentionally exercises the retained compatibility implementation;
+    // remote microservice E2E is a separate acceptance stage.
+    env: {
+      ...process.env,
+      SERVER_PORT: String(backendPort),
+      SPRING_PROFILES_ACTIVE: "monolith",
+      LUMALIFE_STATE_FILE: temporaryStateFile
+    },
     stdio: ["ignore", "pipe", "pipe"],
     shell: windows,
     windowsHide: true

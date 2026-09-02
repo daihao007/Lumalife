@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node runner.mjs"
+    "test": "node runner.mjs",
+    "test:microservice": "node microservice-runner.mjs"
   }
 }

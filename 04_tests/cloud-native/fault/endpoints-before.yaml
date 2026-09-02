@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  annotations:
+    endpoints.kubernetes.io/last-change-trigger-time: "2026-09-01T18:06:43Z"
+  creationTimestamp: "2026-08-29T09:01:25Z"
+  labels:
+    app: merchant-service
+    app.kubernetes.io/name: merchant-service
+    app.kubernetes.io/part-of: lumalife
+    endpoints.kubernetes.io/managed-by: endpoint-controller
+  name: merchant-service
+  namespace: lumalife
+  resourceVersion: "121158"
+  uid: 8ab968cb-be7b-43cc-a08c-d71431549f63
+subsets:
+- addresses:
+  - ip: 10.244.0.32
+    nodeName: desktop-control-plane
+    targetRef:
+      kind: Pod
+      name: merchant-service-d69fc64b7-rk92j
+      namespace: lumalife
+      uid: 1eabff3a-1cec-437b-b12b-0c3a355f4c50
+  ports:
+  - name: http
+    port: 8082
+    protocol: TCP

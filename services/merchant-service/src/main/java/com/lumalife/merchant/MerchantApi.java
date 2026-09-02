@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -101,7 +102,7 @@ public class MerchantApi {
   @GetMapping("/merchants/{merchantId}/conversations/{userId}")
   List<MerchantStore.ChatMessage> merchantConversation(@PathVariable long merchantId, @PathVariable long userId, @RequestHeader("X-Merchant-Id") long actor) {
     if (merchantId != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能查看其他商家的会话");
-    return store.conversation(userId, merchantId);
+    return readResource(() -> store.merchantConversation(merchantId, userId));
   }
 
   @PostMapping("/merchants/{merchantId}/conversations/{userId}/messages")
@@ -208,6 +209,23 @@ public class MerchantApi {
   @DeleteMapping("/merchants/{id}/deals/{dealId}")
   void deleteDeal(@PathVariable long id, @PathVariable long dealId, @RequestHeader("X-Merchant-Id") long actor) {
     if (id != actor) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能维护其他商家的套餐"); store.deleteDeal(id, dealId);
+  }
+
+  // Keep service-boundary failures typed so the BFF can preserve the public
+  // 403/409 contract instead of turning them into a generic 503.
+  @ExceptionHandler(SecurityException.class)
+  ResponseEntity<String> forbidden(SecurityException error) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error.getMessage());
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  ResponseEntity<String> conflict(IllegalStateException error) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(error.getMessage());
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  ResponseEntity<String> badRequest(IllegalArgumentException error) {
+    return ResponseEntity.badRequest().body(error.getMessage());
   }
 
   record ProfileRequest(String name) {}

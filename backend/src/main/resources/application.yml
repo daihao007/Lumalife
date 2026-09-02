@@ -4,9 +4,13 @@ spring:
   application:
     name: lumalife-backend
   profiles:
-    # The compatibility store is a local demo profile, never an implicit
-    # production fallback. Compose/Kubernetes explicitly activate prod,remote.
-    default: monolith
+    # Ordinary startup is deliberately remote and fail-closed. The legacy
+    # implementation is available only through an explicit compatibility
+    # profile: --spring.profiles.active=monolith (or compatibility).
+    default: prod,remote
+    group:
+      compatibility:
+        - monolith
 management:
   health:
     livenessstate:
@@ -29,17 +33,17 @@ lumalife:
     service-token: ${LUMALIFE_INTERNAL_SERVICE_TOKEN:}
   migration:
     identity:
-      enabled: ${LUMALIFE_IDENTITY_REMOTE_ENABLED:false}
-      backfill-completed: ${LUMALIFE_IDENTITY_BACKFILL_COMPLETED:false}
+      enabled: ${LUMALIFE_IDENTITY_REMOTE_ENABLED:true}
+      backfill-completed: ${LUMALIFE_IDENTITY_BACKFILL_COMPLETED:true}
     merchant:
-      enabled: ${LUMALIFE_MERCHANT_REMOTE_ENABLED:false}
-      backfill-completed: ${LUMALIFE_MERCHANT_BACKFILL_COMPLETED:false}
+      enabled: ${LUMALIFE_MERCHANT_REMOTE_ENABLED:true}
+      backfill-completed: ${LUMALIFE_MERCHANT_BACKFILL_COMPLETED:true}
     order:
-      enabled: ${LUMALIFE_ORDER_REMOTE_ENABLED:false}
-      backfill-completed: ${LUMALIFE_ORDER_BACKFILL_COMPLETED:false}
+      enabled: ${LUMALIFE_ORDER_REMOTE_ENABLED:true}
+      backfill-completed: ${LUMALIFE_ORDER_BACKFILL_COMPLETED:true}
     assistant:
-      enabled: ${LUMALIFE_ASSISTANT_REMOTE_ENABLED:false}
-      backfill-completed: ${LUMALIFE_ASSISTANT_BACKFILL_COMPLETED:false}
+      enabled: ${LUMALIFE_ASSISTANT_REMOTE_ENABLED:true}
+      backfill-completed: ${LUMALIFE_ASSISTANT_BACKFILL_COMPLETED:true}
   services:
     identity:
       base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
@@ -54,10 +58,6 @@ lumalife:
     store:
       enabled: ${LUMALIFE_COMPATIBILITY_STORE_ENABLED:false}
   state-file: ${LUMALIFE_STATE_FILE:./data/lumalife-state.json}
-  mysql:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:life_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: ${MYSQL_USER:lifeassist}
-    password: ${MYSQL_PASSWORD:}
 agnes:
   endpoint: https://apihub.agnes-ai.com/v1/chat/completions
   model: agnes-2.0-flash

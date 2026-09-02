@@ -1,0 +1,64 @@
+{
+  "label": "monolith-categories",
+  "startedAt": "2026-09-01T18:11:26.336Z",
+  "completedAt": "2026-09-01T18:11:26.403Z",
+  "target": "http://127.0.0.1:8080/api/v1/categories",
+  "method": "GET",
+  "workload": {
+    "repeats": 3,
+    "requestsPerRepeat": 10,
+    "concurrency": 4,
+    "warmupRequests": 2,
+    "timeoutMs": 3000
+  },
+  "measurements": [
+    {
+      "phase": "repeat-1",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 13.29,
+      "throughputRps": 752.35,
+      "averageMs": 4.54,
+      "p95Ms": 7.19,
+      "maxMs": 7.19,
+      "errors": []
+    },
+    {
+      "phase": "repeat-2",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 10.42,
+      "throughputRps": 959.27,
+      "averageMs": 3.09,
+      "p95Ms": 4.34,
+      "maxMs": 4.34,
+      "errors": []
+    },
+    {
+      "phase": "repeat-3",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 6.5,
+      "throughputRps": 1538.56,
+      "averageMs": 2.05,
+      "p95Ms": 2.83,
+      "maxMs": 2.83,
+      "errors": []
+    }
+  ],
+  "summary": {
+    "requests": 30,
+    "successful": 30,
+    "failed": 0,
+    "errorRate": 0,
+    "averageMs": 3.23,
+    "p95Ms": 7.19,
+    "throughputRps": 1083.39
+  }
+}

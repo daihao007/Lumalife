@@ -17,10 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderInventoryResultConsumer {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
+  private final OrderSagaEventStore sagaEventStore;
 
-  public OrderInventoryResultConsumer(JdbcTemplate jdbc, ObjectMapper mapper) {
+  public OrderInventoryResultConsumer(JdbcTemplate jdbc, ObjectMapper mapper,
+                                     OrderSagaEventStore sagaEventStore) {
     this.jdbc = jdbc;
     this.mapper = mapper;
+    this.sagaEventStore = sagaEventStore;
   }
 
   @RabbitListener(queues = "${lumalife.events.broker.result-queue:order-inventory-results}")
@@ -39,20 +42,25 @@ public class OrderInventoryResultConsumer {
           event.path("payload").toString(), java.sql.Timestamp.from(Instant.now()));
       if (inserted == 0 && isProcessed(eventId)) return;
 
+      String sourceEventType = event.path("payload").path("sourceEventType").asText("");
       String sagaStatus = switch (eventType) {
         case "inventory.result.reserved" -> "RESERVED";
         case "inventory.result.confirmed" -> "CONFIRMED";
         case "inventory.result.released" -> "RELEASED";
-        case "inventory.result.failed" -> "FAILED";
+        case "inventory.result.failed" -> failureStatus(sourceEventType);
         default -> throw new IllegalArgumentException("不支持的库存结果事件: " + eventType);
       };
+      String errorMessage = event.path("payload").path("error").asText("");
       int updated = jdbc.update("UPDATE order_inventory_saga SET status=?,last_error=? WHERE order_id=?",
-          sagaStatus, "FAILED".equals(sagaStatus) ? event.path("payload").path("error").asText("库存事件失败") : null, orderId);
+          sagaStatus, sagaStatus.endsWith("_FAILED") || "FAILED".equals(sagaStatus)
+              ? (errorMessage.isBlank() ? "库存事件失败" : errorMessage) : null, orderId);
       if (updated != 1) throw new IllegalStateException("订单库存 Saga 不存在: " + orderId);
       if ("RESERVED".equals(sagaStatus)) appendConfirmCommand(orderId);
-      if ("FAILED".equals(sagaStatus)
-          && "inventory.reserve.requested".equals(event.path("payload").path("sourceEventType").asText())) {
+      if ("RESERVE_FAILED".equals(sagaStatus)) {
         failPaidOrder(orderId);
+      }
+      if ("CONFIRM_FAILED".equals(sagaStatus)) {
+        failPaidOrderAndScheduleRelease(orderId, errorMessage);
       }
       jdbc.update("UPDATE order_inbox_event SET status='PROCESSED',processed_at=CURRENT_TIMESTAMP,last_error=NULL WHERE event_id=?", eventId);
     } catch (Exception error) {
@@ -63,6 +71,14 @@ public class OrderInventoryResultConsumer {
   private boolean isProcessed(String eventId) {
     String status = jdbc.queryForObject("SELECT status FROM order_inbox_event WHERE event_id=?", String.class, eventId);
     return "PROCESSED".equals(status);
+  }
+
+  private String failureStatus(String sourceEventType) {
+    return switch (sourceEventType) {
+      case "inventory.reserve.requested" -> "RESERVE_FAILED";
+      case "inventory.confirm.requested" -> "CONFIRM_FAILED";
+      default -> "FAILED";
+    };
   }
 
   private void appendConfirmCommand(long orderId) {
@@ -114,5 +130,14 @@ public class OrderInventoryResultConsumer {
         throw new IllegalStateException("订单失败事件序列化失败", error);
       }
     }
+  }
+
+  private void failPaidOrderAndScheduleRelease(long orderId, String errorMessage) {
+    Map<String, Object> saga = jdbc.queryForMap(
+        "SELECT user_id,client_request_id FROM order_inventory_saga WHERE order_id=?", orderId);
+    long actorId = ((Number) saga.get("user_id")).longValue();
+    String clientRequestId = String.valueOf(saga.get("client_request_id"));
+    failPaidOrder(orderId);
+    sagaEventStore.scheduleRelease(orderId, actorId, clientRequestId, "CONFIRM_FAILED", errorMessage);
   }
 }

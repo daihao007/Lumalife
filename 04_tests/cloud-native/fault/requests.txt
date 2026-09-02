@@ -1,0 +1,8 @@
+request=before-health status=200
+request=before-merchants status=200
+request=before-health status=200
+request=before-merchants status=200
+request=during-health status=200
+request=during-merchants status=503
+request=after-health status=200
+request=after-merchants status=200

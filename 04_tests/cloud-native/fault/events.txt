@@ -1,0 +1,173 @@
+LAST SEEN   TYPE      REASON                         OBJECT                                        MESSAGE
+15m         Normal    Scheduled                      pod/frontend-7f7758f7b8-bwzms                 Successfully assigned lumalife/frontend-7f7758f7b8-bwzms to desktop-control-plane
+15m         Normal    Scheduled                      pod/merchant-service-d69fc64b7-lf7nm          Successfully assigned lumalife/merchant-service-d69fc64b7-lf7nm to desktop-control-plane
+15m         Normal    Scheduled                      pod/mysql-0                                   Successfully assigned lumalife/mysql-0 to desktop-control-plane
+9m13s       Normal    Scheduled                      pod/mysql-0                                   Successfully assigned lumalife/mysql-0 to desktop-control-plane
+15m         Normal    Scheduled                      pod/mysql-identity-0                          Successfully assigned lumalife/mysql-identity-0 to desktop-control-plane
+6s          Normal    Scheduled                      pod/merchant-service-d69fc64b7-hjsvz          Successfully assigned lumalife/merchant-service-d69fc64b7-hjsvz to desktop-control-plane
+15m         Normal    Scheduled                      pod/assistant-service-687595d9b5-lhjpr        Successfully assigned lumalife/assistant-service-687595d9b5-lhjpr to desktop-control-plane
+15m         Normal    Scheduled                      pod/mysql-merchant-0                          Successfully assigned lumalife/mysql-merchant-0 to desktop-control-plane
+15m         Normal    Scheduled                      pod/mysql-order-0                             Successfully assigned lumalife/mysql-order-0 to desktop-control-plane
+11m         Normal    Scheduled                      pod/identity-service-866bddf9b9-prkbd         Successfully assigned lumalife/identity-service-866bddf9b9-prkbd to desktop-control-plane
+15m         Normal    Scheduled                      pod/backend-79b5449999-gsmgc                  Successfully assigned lumalife/backend-79b5449999-gsmgc to desktop-control-plane
+15m         Normal    Scheduled                      pod/order-service-76556bf6d9-wxjm2            Successfully assigned lumalife/order-service-76556bf6d9-wxjm2 to desktop-control-plane
+15m         Normal    Scheduled                      pod/identity-service-699f948c49-h76pg         Successfully assigned lumalife/identity-service-699f948c49-h76pg to desktop-control-plane
+15m         Normal    Scheduled                      pod/rabbitmq-58c9c4667c-dr5s8                 Successfully assigned lumalife/rabbitmq-58c9c4667c-dr5s8 to desktop-control-plane
+3m47s       Normal    Scheduled                      pod/hpa-load-32159                            Successfully assigned lumalife/hpa-load-32159 to desktop-control-plane
+5m36s       Normal    Scheduled                      pod/hpa-load-27228                            Successfully assigned lumalife/hpa-load-27228 to desktop-control-plane
+41s         Normal    Scheduled                      pod/merchant-service-d69fc64b7-rk92j          Successfully assigned lumalife/merchant-service-d69fc64b7-rk92j to desktop-control-plane
+15m         Normal    Scheduled                      pod/frontend-7f7758f7b8-gcctl                 Successfully assigned lumalife/frontend-7f7758f7b8-gcctl to desktop-control-plane
+15m         Normal    ScalingReplicaSet              deployment/frontend                           Scaled up replica set frontend-7f7758f7b8 from 0 to 1
+15m         Normal    Created                        pod/frontend-7f7758f7b8-gcctl                 Created container: frontend
+15m         Normal    SuccessfulCreate               replicaset/rabbitmq-58c9c4667c                Created pod: rabbitmq-58c9c4667c-dr5s8
+15m         Normal    WaitForFirstConsumer           persistentvolumeclaim/data-mysql-identity-0   waiting for first consumer to be created before binding
+15m         Normal    ExternalProvisioning           persistentvolumeclaim/data-mysql-identity-0   Waiting for a volume to be created either by the external provisioner 'rancher.io/local-path' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+15m         Normal    Provisioning                   persistentvolumeclaim/data-mysql-identity-0   External provisioner is provisioning volume for claim "lumalife/data-mysql-identity-0"
+15m         Normal    SuccessfulCreate               statefulset/mysql-order                       create Pod mysql-order-0 in StatefulSet mysql-order successful
+15m         Normal    WaitForFirstConsumer           persistentvolumeclaim/data-mysql-merchant-0   waiting for first consumer to be created before binding
+15m         Normal    Provisioning                   persistentvolumeclaim/data-mysql-merchant-0   External provisioner is provisioning volume for claim "lumalife/data-mysql-merchant-0"
+15m         Normal    ExternalProvisioning           persistentvolumeclaim/data-mysql-merchant-0   Waiting for a volume to be created either by the external provisioner 'rancher.io/local-path' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+15m         Normal    SuccessfulCreate               replicaset/merchant-service-d69fc64b7         Created pod: merchant-service-d69fc64b7-lf7nm
+15m         Normal    WaitForFirstConsumer           persistentvolumeclaim/data-mysql-order-0      waiting for first consumer to be created before binding
+15m         Normal    ExternalProvisioning           persistentvolumeclaim/data-mysql-order-0      Waiting for a volume to be created either by the external provisioner 'rancher.io/local-path' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+15m         Normal    Provisioning                   persistentvolumeclaim/data-mysql-order-0      External provisioner is provisioning volume for claim "lumalife/data-mysql-order-0"
+15m         Normal    Killing                        pod/mysql-0                                   Stopping container mysql
+15m         Normal    SuccessfulCreate               statefulset/mysql-order                       create Claim data-mysql-order-0 Pod mysql-order-0 in StatefulSet mysql-order success
+15m         Normal    SuccessfulCreate               replicaset/order-service-76556bf6d9           Created pod: order-service-76556bf6d9-wxjm2
+15m         Normal    SuccessfulCreate               replicaset/identity-service-699f948c49        Created pod: identity-service-699f948c49-h76pg
+15m         Normal    Pulling                        pod/assistant-service-687595d9b5-lhjpr        Pulling image "ghcr.io/daihao007/lumalife-assistant-service:main"
+15m         Normal    Provisioning                   persistentvolumeclaim/identity-data           External provisioner is provisioning volume for claim "lumalife/identity-data"
+15m         Normal    ScalingReplicaSet              deployment/rabbitmq                           Scaled up replica set rabbitmq-58c9c4667c from 0 to 1
+15m         Normal    SuccessfulCreate               replicaset/assistant-service-687595d9b5       Created pod: assistant-service-687595d9b5-lhjpr
+15m         Normal    SuccessfulCreate               statefulset/mysql-identity                    create Claim data-mysql-identity-0 Pod mysql-identity-0 in StatefulSet mysql-identity success
+15m         Normal    ScalingReplicaSet              deployment/backend                            Scaled down replica set backend-77fcb68587 from 1 to 0
+15m         Normal    Pulled                         pod/frontend-7f7758f7b8-gcctl                 Container image "ghcr.io/daihao007/lumalife-frontend:main" already present on machine
+15m         Normal    Pulling                        pod/order-service-76556bf6d9-wxjm2            Pulling image "ghcr.io/daihao007/lumalife-order-service:main"
+15m         Normal    Started                        pod/frontend-7f7758f7b8-gcctl                 Started container frontend
+15m         Normal    SuccessfulCreate               replicaset/frontend-7f7758f7b8                Created pod: frontend-7f7758f7b8-gcctl
+15m         Normal    ExternalProvisioning           persistentvolumeclaim/identity-data           Waiting for a volume to be created either by the external provisioner 'rancher.io/local-path' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+15m         Normal    WaitForFirstConsumer           persistentvolumeclaim/identity-data           waiting for first consumer to be created before binding
+15m         Normal    ScalingReplicaSet              deployment/order-service                      Scaled up replica set order-service-76556bf6d9 from 0 to 1
+15m         Normal    SuccessfulDelete               replicaset/backend-77fcb68587                 Deleted pod: backend-77fcb68587-q62wq
+15m         Normal    SuccessfulCreate               statefulset/mysql-identity                    create Pod mysql-identity-0 in StatefulSet mysql-identity successful
+15m         Normal    ScalingReplicaSet              deployment/assistant-service                  Scaled up replica set assistant-service-687595d9b5 from 0 to 1
+15m         Normal    ScalingReplicaSet              deployment/identity-service                   Scaled up replica set identity-service-699f948c49 from 0 to 1
+15m         Normal    SuccessfulCreate               statefulset/mysql-merchant                    create Claim data-mysql-merchant-0 Pod mysql-merchant-0 in StatefulSet mysql-merchant success
+15m         Normal    SuccessfulCreate               statefulset/mysql-merchant                    create Pod mysql-merchant-0 in StatefulSet mysql-merchant successful
+15m         Normal    Killing                        pod/backend-77fcb68587-q62wq                  Stopping container backend
+15m         Normal    Pulling                        pod/rabbitmq-58c9c4667c-dr5s8                 Pulling image "rabbitmq:3.13-management"
+15m         Normal    SuccessfulCreate               replicaset/backend-79b5449999                 Created pod: backend-79b5449999-gsmgc
+15m         Normal    ScalingReplicaSet              deployment/backend                            Scaled up replica set backend-79b5449999 from 0 to 1
+15m         Warning   Unhealthy                      pod/mysql-0                                   Readiness probe failed:
+15m         Normal    Pulling                        pod/backend-79b5449999-gsmgc                  Pulling image "ghcr.io/daihao007/lumalife-backend:main"
+15m         Normal    ScalingReplicaSet              deployment/frontend                           Scaled up replica set frontend-7f7758f7b8 from 1 to 2
+15m         Normal    ScalingReplicaSet              deployment/frontend                           Scaled down replica set frontend-7d7d474477 from 2 to 1
+15m         Normal    SuccessfulCreate               replicaset/frontend-7f7758f7b8                Created pod: frontend-7f7758f7b8-bwzms
+15m         Normal    SuccessfulDelete               replicaset/frontend-7d7d474477                Deleted pod: frontend-7d7d474477-h8zc9
+15m         Normal    Killing                        pod/frontend-7d7d474477-h8zc9                 Stopping container frontend
+15m         Normal    ProvisioningSucceeded          persistentvolumeclaim/data-mysql-identity-0   Successfully provisioned volume pvc-67aaad5e-c2ae-422f-9c97-2017b4cbbaca
+15m         Normal    Pulled                         pod/frontend-7f7758f7b8-bwzms                 Container image "ghcr.io/daihao007/lumalife-frontend:main" already present on machine
+15m         Normal    Created                        pod/frontend-7f7758f7b8-bwzms                 Created container: frontend
+15m         Normal    ProvisioningSucceeded          persistentvolumeclaim/data-mysql-merchant-0   Successfully provisioned volume pvc-6b234db4-7a75-4f59-bfad-26b26a431ef3
+15m         Normal    Started                        pod/frontend-7f7758f7b8-bwzms                 Started container frontend
+15m         Normal    ProvisioningSucceeded          persistentvolumeclaim/data-mysql-order-0      Successfully provisioned volume pvc-52d1941b-fb1f-4484-abc5-7e25add720eb
+15m         Normal    ProvisioningSucceeded          persistentvolumeclaim/identity-data           Successfully provisioned volume pvc-93196a08-cc90-4b8d-9f92-31d18b7ad3fb
+15m         Normal    ScalingReplicaSet              deployment/frontend                           Scaled down replica set frontend-7d7d474477 from 1 to 0
+15m         Normal    Killing                        pod/frontend-7d7d474477-tbh4p                 Stopping container frontend
+15m         Normal    SuccessfulDelete               replicaset/frontend-7d7d474477                Deleted pod: frontend-7d7d474477-tbh4p
+15m         Normal    Started                        pod/assistant-service-687595d9b5-lhjpr        Started container assistant-service
+15m         Normal    Created                        pod/assistant-service-687595d9b5-lhjpr        Created container: assistant-service
+15m         Normal    Pulled                         pod/assistant-service-687595d9b5-lhjpr        Successfully pulled image "ghcr.io/daihao007/lumalife-assistant-service:main" in 7.657s (7.657s including waiting). Image size: 127909434 bytes.
+15m         Warning   Unhealthy                      pod/assistant-service-687595d9b5-lhjpr        Startup probe failed: Get "http://10.244.0.12:8084/actuator/health/liveness": dial tcp 10.244.0.12:8084: connect: connection refused
+15m         Normal    Pulled                         pod/order-service-76556bf6d9-wxjm2            Successfully pulled image "ghcr.io/daihao007/lumalife-order-service:main" in 7.194s (14.851s including waiting). Image size: 133164613 bytes.
+15m         Normal    Created                        pod/rabbitmq-58c9c4667c-dr5s8                 Created container: rabbitmq
+15m         Normal    Started                        pod/rabbitmq-58c9c4667c-dr5s8                 Started container rabbitmq
+15m         Normal    Pulled                         pod/rabbitmq-58c9c4667c-dr5s8                 Successfully pulled image "rabbitmq:3.13-management" in 1.414s (16.146s including waiting). Image size: 111104793 bytes.
+15m         Normal    Created                        pod/backend-79b5449999-gsmgc                  Created container: backend
+15m         Normal    Started                        pod/backend-79b5449999-gsmgc                  Started container backend
+15m         Normal    Pulled                         pod/backend-79b5449999-gsmgc                  Successfully pulled image "ghcr.io/daihao007/lumalife-backend:main" in 7.186s (22.799s including waiting). Image size: 138369906 bytes.
+15m         Warning   Unhealthy                      pod/backend-79b5449999-gsmgc                  Startup probe failed: Get "http://10.244.0.20:8080/actuator/health/liveness": dial tcp 10.244.0.20:8080: connect: connection refused
+14m         Warning   Failed                         pod/mysql-identity-0                          Error: couldn't find key identity-database in Secret lumalife/lumalife-mysql
+14m         Warning   Failed                         pod/merchant-service-d69fc64b7-lf7nm          Error: couldn't find key merchant-database in Secret lumalife/lumalife-mysql
+14m         Warning   Failed                         pod/identity-service-699f948c49-h76pg         Error: couldn't find key identity-database in Secret lumalife/lumalife-mysql
+14m         Warning   Failed                         pod/mysql-order-0                             Error: couldn't find key order-database in Secret lumalife/lumalife-mysql
+14m         Warning   Failed                         pod/order-service-76556bf6d9-wxjm2            Error: couldn't find key order-database in Secret lumalife/lumalife-mysql
+14m         Warning   Failed                         pod/mysql-merchant-0                          Error: couldn't find key merchant-database in Secret lumalife/lumalife-mysql
+14m         Normal    Started                        pod/mysql-identity-0                          Started container mysql
+14m         Normal    Created                        pod/mysql-identity-0                          Created container: mysql
+14m         Normal    Pulled                         pod/merchant-service-d69fc64b7-lf7nm          Container image "ghcr.io/daihao007/lumalife-merchant-service:main" already present on machine
+14m         Normal    Started                        pod/merchant-service-d69fc64b7-lf7nm          Started container merchant-service
+14m         Normal    Created                        pod/merchant-service-d69fc64b7-lf7nm          Created container: merchant-service
+14m         Normal    Pulled                         pod/mysql-identity-0                          Container image "mysql:8.4" already present on machine
+14m         Normal    Pulled                         pod/mysql-order-0                             Container image "mysql:8.4" already present on machine
+14m         Normal    Created                        pod/mysql-order-0                             Created container: mysql
+14m         Normal    Started                        pod/mysql-order-0                             Started container mysql
+14m         Warning   Unhealthy                      pod/mysql-identity-0                          Startup probe failed:
+14m         Warning   Unhealthy                      pod/mysql-order-0                             Startup probe failed:
+14m         Normal    ScalingReplicaSet              deployment/merchant-service                   Scaled down replica set merchant-service-774b969775 from 1 to 0
+14m         Normal    Killing                        pod/merchant-service-774b969775-zpfqd         Stopping container merchant-service
+14m         Normal    SuccessfulDelete               replicaset/merchant-service-774b969775        Deleted pod: merchant-service-774b969775-zpfqd
+14m         Normal    Created                        pod/order-service-76556bf6d9-wxjm2            Created container: order-service
+14m         Normal    Pulled                         pod/order-service-76556bf6d9-wxjm2            Container image "ghcr.io/daihao007/lumalife-order-service:main" already present on machine
+14m         Normal    Started                        pod/order-service-76556bf6d9-wxjm2            Started container order-service
+14m         Normal    Created                        pod/mysql-merchant-0                          Created container: mysql
+14m         Normal    Started                        pod/mysql-merchant-0                          Started container mysql
+14m         Normal    Pulled                         pod/mysql-merchant-0                          Container image "mysql:8.4" already present on machine
+14m         Warning   Unhealthy                      pod/order-service-76556bf6d9-wxjm2            Startup probe failed: Get "http://10.244.0.16:8083/actuator/health/liveness": dial tcp 10.244.0.16:8083: connect: connection refused
+14m         Warning   Unhealthy                      pod/mysql-merchant-0                          Startup probe failed:
+13m         Warning   Unhealthy                      pod/order-service-7d5f99cc6d-sf6wg            Readiness probe failed: Get "http://10.244.0.7:8083/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+13m         Normal    Killing                        pod/order-service-7d5f99cc6d-sf6wg            Stopping container order-service
+13m         Warning   Unhealthy                      pod/order-service-7d5f99cc6d-sf6wg            Readiness probe failed: Get "http://10.244.0.7:8083/actuator/health": EOF
+13m         Normal    SuccessfulDelete               replicaset/order-service-7d5f99cc6d           Deleted pod: order-service-7d5f99cc6d-sf6wg
+13m         Normal    ScalingReplicaSet              deployment/order-service                      Scaled down replica set order-service-7d5f99cc6d from 1 to 0
+13m         Warning   Unhealthy                      pod/identity-service-699f948c49-h76pg         Startup probe failed: Get "http://10.244.0.25:8081/actuator/health/liveness": dial tcp 10.244.0.25:8081: connect: connection refused
+12m         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/backend               invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
+11m         Warning   BackOff                        pod/identity-service-699f948c49-h76pg         Back-off restarting failed container identity-service in pod identity-service-699f948c49-h76pg_lumalife(bc17afc8-20a4-4e14-906c-60a282167f44)
+11m         Warning   FailedMount                    pod/mysql-0                                   MountVolume.SetUp failed for volume "migrations" : configmap "lumalife-mysql-migrations" not found
+11m         Normal    Pulled                         pod/identity-service-699f948c49-h76pg         Container image "ghcr.io/daihao007/lumalife-identity-service:main" already present on machine
+11m         Normal    Created                        pod/identity-service-699f948c49-h76pg         Created container: identity-service
+11m         Normal    Started                        pod/identity-service-699f948c49-h76pg         Started container identity-service
+11m         Normal    ScalingReplicaSet              deployment/identity-service                   Scaled down replica set identity-service-699f948c49 from 1 to 0
+11m         Normal    ScalingReplicaSet              deployment/identity-service                   Scaled up replica set identity-service-866bddf9b9 from 0 to 1
+11m         Normal    SuccessfulCreate               replicaset/identity-service-866bddf9b9        Created pod: identity-service-866bddf9b9-prkbd
+11m         Normal    SuccessfulDelete               replicaset/identity-service-699f948c49        Deleted pod: identity-service-699f948c49-h76pg
+11m         Normal    Started                        pod/identity-service-866bddf9b9-prkbd         Started container identity-service
+11m         Normal    Created                        pod/identity-service-866bddf9b9-prkbd         Created container: identity-service
+11m         Normal    Pulled                         pod/identity-service-866bddf9b9-prkbd         Container image "ghcr.io/daihao007/lumalife-identity-service:main" already present on machine
+10m         Normal    SuccessfulDelete               replicaset/identity-service-5955d6c69         Deleted pod: identity-service-5955d6c69-p7k5f
+10m         Normal    ScalingReplicaSet              deployment/identity-service                   Scaled down replica set identity-service-5955d6c69 from 1 to 0
+10m         Normal    Killing                        pod/identity-service-5955d6c69-p7k5f          Stopping container identity-service
+9m23s       Normal    Pulled                         pod/mysql-0                                   Container image "mysql:8.4" already present on machine
+9m23s       Normal    Started                        pod/mysql-0                                   Started container mysql
+9m23s       Normal    Created                        pod/mysql-0                                   Created container: mysql
+9m17s       Normal    SuccessfulDelete               statefulset/mysql                             delete Pod mysql-0 in StatefulSet mysql successful
+9m16s       Normal    Killing                        pod/mysql-0                                   Stopping container mysql
+9m14s       Normal    SuccessfulCreate               statefulset/mysql                             create Pod mysql-0 in StatefulSet mysql successful
+9m13s       Normal    Pulled                         pod/mysql-0                                   Container image "mysql:8.4" already present on machine
+9m13s       Normal    Started                        pod/mysql-0                                   Started container mysql
+9m13s       Normal    Created                        pod/mysql-0                                   Created container: mysql
+5m37s       Normal    Pulled                         pod/hpa-load-27228                            Container image "curlimages/curl:8.12.1" already present on machine
+5m37s       Normal    Created                        pod/hpa-load-27228                            Created container: hpa-load-27228
+5m37s       Normal    Started                        pod/hpa-load-27228                            Started container hpa-load-27228
+3m48s       Normal    Started                        pod/hpa-load-32159                            Started container hpa-load-32159
+3m48s       Normal    Created                        pod/hpa-load-32159                            Created container: hpa-load-32159
+3m48s       Normal    Pulled                         pod/hpa-load-32159                            Container image "curlimages/curl:8.12.1" already present on machine
+3m29s       Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/merchant-service      invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
+3m14s       Warning   FailedGetResourceMetric        horizontalpodautoscaler/merchant-service      failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
+2m12s       Normal    SuccessfulDelete               replicaset/merchant-service-d69fc64b7         Deleted pod: merchant-service-d69fc64b7-lf7nm
+2m12s       Normal    Killing                        pod/merchant-service-d69fc64b7-lf7nm          Stopping container merchant-service
+42s         Normal    SuccessfulCreate               replicaset/merchant-service-d69fc64b7         Created pod: merchant-service-d69fc64b7-rk92j
+41s         Normal    Pulled                         pod/merchant-service-d69fc64b7-rk92j          Container image "ghcr.io/daihao007/lumalife-merchant-service:main" already present on machine
+41s         Normal    Created                        pod/merchant-service-d69fc64b7-rk92j          Created container: merchant-service
+41s         Normal    Started                        pod/merchant-service-d69fc64b7-rk92j          Started container merchant-service
+25s         Warning   FailedGetResourceMetric        horizontalpodautoscaler/backend               failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
+21s         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/merchant-service      invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
+21s         Warning   FailedGetResourceMetric        horizontalpodautoscaler/merchant-service      failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)
+8s          Normal    Killing                        pod/merchant-service-d69fc64b7-rk92j          Stopping container merchant-service
+8s          Normal    ScalingReplicaSet              deployment/merchant-service                   Scaled down replica set merchant-service-d69fc64b7 from 1 to 0
+8s          Normal    SuccessfulDelete               replicaset/merchant-service-d69fc64b7         Deleted pod: merchant-service-d69fc64b7-rk92j
+7s          Normal    SuccessfulCreate               replicaset/merchant-service-d69fc64b7         Created pod: merchant-service-d69fc64b7-hjsvz
+7s          Normal    ScalingReplicaSet              deployment/merchant-service                   Scaled up replica set merchant-service-d69fc64b7 from 0 to 1
+6s          Normal    Created                        pod/merchant-service-d69fc64b7-hjsvz          Created container: merchant-service
+6s          Normal    Started                        pod/merchant-service-d69fc64b7-hjsvz          Started container merchant-service
+6s          Normal    Pulled                         pod/merchant-service-d69fc64b7-hjsvz          Container image "ghcr.io/daihao007/lumalife-merchant-service:main" already present on machine

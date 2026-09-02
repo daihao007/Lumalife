@@ -1,0 +1,64 @@
+{
+  "label": "microservices-categories",
+  "startedAt": "2026-09-01T18:11:06.607Z",
+  "completedAt": "2026-09-01T18:11:06.702Z",
+  "target": "http://127.0.0.1:8080/api/v1/categories",
+  "method": "GET",
+  "workload": {
+    "repeats": 3,
+    "requestsPerRepeat": 10,
+    "concurrency": 4,
+    "warmupRequests": 2,
+    "timeoutMs": 3000
+  },
+  "measurements": [
+    {
+      "phase": "repeat-1",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 24.87,
+      "throughputRps": 402.09,
+      "averageMs": 8.72,
+      "p95Ms": 11.4,
+      "maxMs": 11.4,
+      "errors": []
+    },
+    {
+      "phase": "repeat-2",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 17.39,
+      "throughputRps": 575.06,
+      "averageMs": 5.9,
+      "p95Ms": 7.83,
+      "maxMs": 7.83,
+      "errors": []
+    },
+    {
+      "phase": "repeat-3",
+      "requests": 10,
+      "successful": 10,
+      "failed": 0,
+      "errorRate": 0,
+      "elapsedMs": 14.15,
+      "throughputRps": 706.6,
+      "averageMs": 5.02,
+      "p95Ms": 8,
+      "maxMs": 8,
+      "errors": []
+    }
+  ],
+  "summary": {
+    "requests": 30,
+    "successful": 30,
+    "failed": 0,
+    "errorRate": 0,
+    "averageMs": 6.55,
+    "p95Ms": 11.4,
+    "throughputRps": 561.25
+  }
+}

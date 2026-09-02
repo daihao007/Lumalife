@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -32,9 +33,17 @@ class DatabaseAssetsTest {
     Path.of("..", "database", "migrations", "V013__order_merchant_name_snapshot.sql");
   private static final Path INVENTORY_SAGA_RESULT_MIGRATION =
     Path.of("..", "database", "migrations", "V015__inventory_saga_result_delivery.sql");
+  private static final Path INVENTORY_SAGA_FAILURE_MIGRATION =
+    Path.of("..", "database", "migrations", "V017__inventory_saga_failure_compensation.sql");
   private static final Path SERVICE_BACKFILL = Path.of("..", "database", "backfill-services.sql");
   private static final Path DATABASE_BOOTSTRAP =
     Path.of("..", "database", "init", "10-bootstrap.sh");
+  private static final Path IDENTITY_PROD_CONFIG =
+    Path.of("..", "services", "identity-service", "src", "main", "resources", "application-prod.yml");
+  private static final Path MERCHANT_PROD_CONFIG =
+    Path.of("..", "services", "merchant-service", "src", "main", "resources", "application-prod.yml");
+  private static final Path ORDER_PROD_CONFIG =
+    Path.of("..", "services", "order-service", "src", "main", "resources", "application-prod.yml");
 
   @Test
   void demoSeedPasswordsUseSpringCompatibleBcryptHashes() throws IOException {
@@ -144,6 +153,23 @@ class DatabaseAssetsTest {
     assertThat(migration).contains("CREATE TABLE IF NOT EXISTS order_inbox_event");
     assertThat(migration).contains("CREATE TABLE IF NOT EXISTS order_inventory_saga");
     assertThat(migration).contains("uk_order_inventory_saga_request");
+  }
+
+  @Test
+  void inventorySagaFailureMigrationKeepsConfirmCompensationStatesExplicit() throws IOException {
+    String migration = Files.readString(INVENTORY_SAGA_FAILURE_MIGRATION);
+
+    assertThat(migration).contains("RESERVE_PENDING", "RESERVE_FAILED", "CONFIRM_PENDING",
+      "CONFIRM_FAILED", "RELEASE_PENDING", "RELEASED");
+  }
+
+  @Test
+  void serviceProductionDatabaseNamesFailClosedWithoutLegacyFallback() throws IOException {
+    for (Path configPath : List.of(IDENTITY_PROD_CONFIG, MERCHANT_PROD_CONFIG, ORDER_PROD_CONFIG)) {
+      String config = Files.readString(configPath);
+      assertThat(config).contains("${MYSQL_DATABASE}");
+      assertThat(config).doesNotContain("${MYSQL_DATABASE:life_assistant}");
+    }
   }
 
   private String passwordHash(String sql, String phone) {

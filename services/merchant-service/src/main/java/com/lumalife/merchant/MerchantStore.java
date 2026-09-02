@@ -151,6 +151,12 @@ public class MerchantStore {
     return new ArrayList<>(conversations.getOrDefault(key(userId, merchantId), List.of()));
   }
 
+  public synchronized List<ChatMessage> merchantConversation(long merchantId, long userId) {
+    List<ChatMessage> messages = conversation(userId, merchantId);
+    if (messages.isEmpty()) throw new IllegalArgumentException("商家会话不存在");
+    return messages;
+  }
+
   public synchronized List<ChatMessage> sendUserMessage(long userId, long merchantId, String content,
                                                          Function<List<ChatMessage>, String> aiResponder) {
     Merchant merchant = merchant(merchantId);
@@ -171,10 +177,10 @@ public class MerchantStore {
   public synchronized List<ChatMessage> sendMerchantMessage(long merchantId, long userId, String content, String senderName) {
     merchant(merchantId);
     String text = normalizeMessage(content);
-    if (conversation(userId, merchantId).isEmpty()) throw new IllegalArgumentException("商家会话不存在");
+    if (merchantConversation(merchantId, userId).isEmpty()) throw new IllegalArgumentException("商家会话不存在");
     ChatMessage message = new ChatMessage(nextMessageId(), userId, merchantId, "MERCHANT", senderName, text, LocalDateTime.now());
     saveMessage(message);
-    return conversation(userId, merchantId);
+    return merchantConversation(merchantId, userId);
   }
 
   public synchronized List<Map<String, Object>> conversationSummaries(long userId, Long merchantId, boolean userSide) {

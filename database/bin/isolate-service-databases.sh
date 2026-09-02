@@ -50,8 +50,50 @@ copy_owned_tables() {
     --database="$target_database" --execute='SET FOREIGN_KEY_CHECKS=1'
 }
 
+sync_latest_migration_marker() {
+  target_host=$1
+  target_database=$2
+  migration_file=/database/migrations/V018__chat_sender_role_contract.sql
+  migration_checksum=$(sha256sum "$migration_file" | awk '{print $1}')
+  MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --execute="INSERT INTO schema_migration(version,description,checksum) VALUES ('V018','chat_sender_role_contract','${migration_checksum}') ON DUPLICATE KEY UPDATE description=VALUES(description),checksum=VALUES(checksum)"
+}
+
+upgrade_merchant_chat_constraint() {
+  target_host=$1
+  target_database=$2
+  constraint_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --batch --skip-column-names \
+    --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${target_database}' AND table_name='chat_message' AND constraint_name='ck_chat_sender_role'")
+  if [ "$constraint_count" -gt 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+      --database="$target_database" --execute='ALTER TABLE chat_message DROP CHECK ck_chat_sender_role'
+  fi
+  MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --execute="ALTER TABLE chat_message ADD CONSTRAINT ck_chat_sender_role CHECK (sender_role IN ('USER','MERCHANT','MERCHANT_AI','MERCHANT_ADMIN','PLATFORM_ADMIN','ASSISTANT'))"
+}
+
+upgrade_order_saga_constraint() {
+  target_host=$1
+  target_database=$2
+  order_saga_status_constraint_count=$(MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --batch --skip-column-names \
+    --execute="SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema='${target_database}' AND table_name='order_inventory_saga' AND constraint_name='ck_order_inventory_saga_status'")
+  if [ "$order_saga_status_constraint_count" -gt 0 ]; then
+    MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+      --database="$target_database" --execute='ALTER TABLE order_inventory_saga DROP CHECK ck_order_inventory_saga_status'
+  fi
+  MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host="$target_host" --user="$MYSQL_USER" \
+    --database="$target_database" --execute="ALTER TABLE order_inventory_saga ADD CONSTRAINT ck_order_inventory_saga_status CHECK (status IN ('RESERVE_PENDING','RESERVED','RESERVE_FAILED','CONFIRM_PENDING','CONFIRMED','CONFIRM_FAILED','RELEASE_PENDING','RELEASED','FAILED'))"
+}
+
 wait_for_mysql "$MYSQL_HOST" "$MYSQL_DATABASE"
 copy_owned_tables "$IDENTITY_MYSQL_HOST" "$MYSQL_IDENTITY_DATABASE" schema_migration user_account user_address auth_session
 copy_owned_tables "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE" schema_migration category merchant merchant_catalog group_deal merchant_favorite chat_message inventory_reservation inventory_reservation_item merchant_inbox_event merchant_outbox_event
 copy_owned_tables "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE" schema_migration order_record service_cart_item service_payment service_coupon service_review service_order_event service_order_line service_outbox_event order_inbox_event order_inventory_saga
+upgrade_merchant_chat_constraint "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE"
+sync_latest_migration_marker "$IDENTITY_MYSQL_HOST" "$MYSQL_IDENTITY_DATABASE"
+sync_latest_migration_marker "$MERCHANT_MYSQL_HOST" "$MYSQL_MERCHANT_DATABASE"
+upgrade_order_saga_constraint "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE"
+sync_latest_migration_marker "$ORDER_MYSQL_HOST" "$MYSQL_ORDER_DATABASE"
 echo "Copied owned tables from $MYSQL_HOST into three independent MySQL instances."

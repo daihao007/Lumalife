@@ -5,7 +5,8 @@ on:
     branches: [main]
     paths:
       - "services/**"
-      - "k8s/services/**"
+      - "k8s/services.yaml"
+      - "k8s/kustomization.yaml"
       - "k8s/healthcheck/**"
       - "scripts/detect-changed-services.sh"
       - "scripts/smoke-services-k8s.sh"
@@ -14,7 +15,8 @@ on:
     branches: [main]
     paths:
       - "services/**"
-      - "k8s/services/**"
+      - "k8s/services.yaml"
+      - "k8s/kustomization.yaml"
       - "k8s/healthcheck/**"
       - "scripts/detect-changed-services.sh"
       - "scripts/smoke-services-k8s.sh"
