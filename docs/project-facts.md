@@ -146,7 +146,7 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 - LOCAL-VERIFIED：本次 API 覆盖工作树的 backend 96/96；前序 `dc96528` 的 services 71/71、Vitest 35/35、frontend build、Compose config、Kustomize render、性能矩阵只读校验、5 个静态 Shell 套件；`9f0a755` 的 UI E2E 3/3。
 - SERVER-VERIFIED：0（本轮未连接服务器）。
 - EXISTING-EVIDENCE-VERIFIED：Microservice E2E 9/9、HPA、故障实验、性能原始数据。
-- UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、教师确认、管理/答辩材料。
+- UNVERIFIED / NOT-RUN：当前 HEAD 的远程 Microservice E2E、legacy API E2E 7 项、教师确认、管理原件、个人权重与全员确认。
 
 ## Formal Documents and PDFs
 
@@ -160,3 +160,10 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 - Project 状态为 D01～D08 共 40 `Done`，D09～D10 共 10 `Todo`。计划工时不得表述为已完成实际工时。
 - 仓库只找到 D01/D02 的 4 张每日看板/统计截图；Issue 中已勾选站会记录为 9/50，覆盖 D01、D02、D04、D05。十日全员站会和每日截图状态为 `PARTIAL/UNVERIFIED`。
 - 详细证据和缺口见 `docs/05_management/ten-day-evidence-matrix.md`。
+
+## Defense Materials
+
+- `docs/06_defense/LumaLife-最终答辩.pptx` 为当前可编辑答辩稿，共 13 页；PPTX 包结构完整，13 页均含 `[Sources]` 演讲者备注。2026-09-03 已渲染 13/13 页并逐页视觉检查，导出布局检查为 13 页、0 个越界元素。
+- `docs/06_defense/technical-summary.md` 已按本文件口径生成；答辩数字、测试提交边界和性能结论均保留限定条件。
+- `docs/06_defense/contribution-signoff.md` 仅为待填模板。个人权重、签字/电子确认和最终演示分工仍为 `UNVERIFIED`，不得由审计者代填或代签。
+- 答辩交付状态为 `⚠️ PARTIAL`：可编辑 PPT 与技术总结已完成，成员确认和管理原件仍未闭环。

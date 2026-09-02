@@ -2,9 +2,9 @@
 
 ## 1. Overall Result
 
-**基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、52/52 公开 API 直接测试、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成，UI E2E 已修复并在 `9f0a755` 3/3 通过；需求、概要、详细设计及其三份正式 PDF 已校准。GitHub Project 的 50 项计划与 40 项既有 Done 已核验，但十日站会/截图原件不完整。当前阻断项是同一当前提交必要测试尚未全量重跑、管理原件缺口，以及答辩交付材料缺失。
+**基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、52/52 公开 API 直接测试、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成，UI E2E 已修复并在 `9f0a755` 3/3 通过；需求、概要、详细设计及其三份正式 PDF 已校准。GitHub Project 的 50 项计划与 40 项既有 Done 已核验，但十日站会/截图原件不完整。13 页可编辑答辩 PPT 与当前技术总结已形成；当前阻断项是同一当前提交必要测试尚未全量重跑、管理原件缺口，以及个人权重与全员确认未签署。
 
-课程项统计：✅ 16；⚠️ 10；❌ 1；❓ 0。
+课程项统计：✅ 16；⚠️ 11；❌ 0；❓ 0。
 
 ## 2. Requirement Audit
 
@@ -66,7 +66,7 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 ### P0
 
 1. 在当前 UI 修复提交上重跑必要测试，优先完成隔离 Microservice E2E 9 项并保留 commit-bound artifact。
-2. 补齐 `05_management` 的 D03～D10 站会/看板原件并完成 D09/D10；补 `06_defense` 的 PPT、技术总结、个人权重、全员确认。
+2. 补齐 `05_management` 的 D03～D10 站会/看板原件并完成 D09/D10；`06_defense` 的 PPT 与技术总结已完成，仍需五名成员本人填写个人权重并完成全员确认。
 
 ### P1
 
@@ -105,3 +105,4 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 - Microservice E2E summary JSON（说明 commit）。
 - fault 目录的 before/during/after status 与 body。
 - 性能 6 份 JSON/CSV、metadata、validator 输出，以及“单体更快”的诚实解释。
+- `06_defense/LumaLife-最终答辩.pptx`、技术总结，以及成员本人填写并签署后的权重确认表。

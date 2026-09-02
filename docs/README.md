@@ -13,6 +13,9 @@
 - [`testing/public-api-coverage-matrix.md`](testing/public-api-coverage-matrix.md)：52 个公开 API 的逐接口直接测试证据
 - [`05_management/README.md`](05_management/README.md)：项目管理材料入口、五人分工与真实证据边界
 - [`05_management/ten-day-evidence-matrix.md`](05_management/ten-day-evidence-matrix.md)：D01～D10 任务、站会和截图逐日缺口矩阵
+- [`06_defense/README.md`](06_defense/README.md)：最终答辩交付包入口、演示顺序与提交前清单
+- [`06_defense/technical-summary.md`](06_defense/technical-summary.md)：当前架构、测试、云原生与证据边界技术总结
+- [`06_defense/contribution-signoff.md`](06_defense/contribution-signoff.md)：个人权重与全员确认模板（待成员本人填写和签署）
 - [`architecture/microservices-inventory.md`](architecture/microservices-inventory.md)、[`architecture/data-ownership.md`](architecture/data-ownership.md)、[`architecture/service-communication.md`](architecture/service-communication.md)：当前架构三表
 - [`diagrams/final/current-architecture.mmd`](diagrams/final/current-architecture.mmd)：当前微服务总图
 
