@@ -418,7 +418,7 @@ export default function App() {
       <section className="workspace">
         <header>
           <div>
-            <p className="eyebrow">local service demo · ci/cd delivery check</p>
+            <p className="eyebrow">local service demo · ci/cd delivery check · v2</p>
             <h1>生活服务，从发现到履约</h1>
           </div>
         </header>
