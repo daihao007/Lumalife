@@ -9,7 +9,7 @@
 本报告对应的实际运行证据：
 
 - Run ID：`20260902T101500Z-review-fixes`
-- Git HEAD：`c8e45db5a7d33064966a2b3488fd0b66b404255c`
+- Git HEAD：`148440ed1c4a9f7514aa0b74c887a8a05a7772b2`
 - 开始时间：`2026-09-02T02:11:42.280Z`
 - 结束时间：`2026-09-02T02:12:22.692Z`
 - 证据目录：`04_tests/e2e/microservices/latest/`
