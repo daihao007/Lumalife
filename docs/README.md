@@ -11,6 +11,8 @@
 - [`final-audit/documentation-conflicts.md`](final-audit/documentation-conflicts.md)：第二轮冲突扫描与处理状态
 - [`testing/test-inventory.md`](testing/test-inventory.md)：测试唯一口径
 - [`testing/public-api-coverage-matrix.md`](testing/public-api-coverage-matrix.md)：52 个公开 API 的逐接口直接测试证据
+- [`05_management/README.md`](05_management/README.md)：项目管理材料入口、五人分工与真实证据边界
+- [`05_management/ten-day-evidence-matrix.md`](05_management/ten-day-evidence-matrix.md)：D01～D10 任务、站会和截图逐日缺口矩阵
 - [`architecture/microservices-inventory.md`](architecture/microservices-inventory.md)、[`architecture/data-ownership.md`](architecture/data-ownership.md)、[`architecture/service-communication.md`](architecture/service-communication.md)：当前架构三表
 - [`diagrams/final/current-architecture.mmd`](diagrams/final/current-architecture.mmd)：当前微服务总图
 
