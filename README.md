@@ -144,7 +144,7 @@ LumaLife/
 [![Deploy ECS K3s](https://github.com/daihao007/Lumalife/actions/workflows/deploy-ecs-k3s.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/deploy-ecs-k3s.yml)
 [![Performance comparison](https://github.com/daihao007/Lumalife/actions/workflows/performance.yml/badge.svg)](https://github.com/daihao007/Lumalife/actions/workflows/performance.yml)
 
-向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的六个应用镜像（backend、frontend、identity、merchant、order、assistant），并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查；该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。CI 全部成功后，ECS 自托管 Runner 会把同一版本自动部署到阿里云 ECS 的 k3s 集群，并执行集群内健康检查。Kubernetes 的内部服务令牌和 RabbitMQ 凭据由部署脚本创建的 `lumalife-runtime` Secret 注入，不写入清单。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_%E5%8E%9F%E7%B3%BB%E7%BB%9FCI%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AF%B4%E6%98%8E.md)、[Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5.md) 和 [ECS 自动部署配置](docs/26_ECS自动部署配置.md)。
+向 `main` 提交 PR 时会自动执行后端测试、前端构建、MySQL 数据生命周期验证、Compose 冒烟测试、API E2E、Kubernetes 清单渲染、镜像构建和临时 Kind 集群部署。代码进入 `main` 且全部检查通过后，流水线会发布带 `sha-<短提交号>` 标签的六个应用镜像（backend、frontend、identity、merchant、order、assistant），并在 GitHub 托管 Runner 的一次性 Kind 集群完成最终验收部署与健康检查；该验收部署不依赖校园电脑或 `KUBE_CONFIG_BASE64`，作业结束后集群会销毁。CI 全部成功后，ECS 自托管 Runner 会把同一版本自动部署到阿里云 ECS 的 k3s 集群，并执行集群内健康检查。Kubernetes 的内部服务令牌和 RabbitMQ 凭据由部署脚本创建的 `lumalife-runtime` Secret 注入，不写入清单。详细说明见 [原系统 CI 构建、测试和镜像流水线](docs/15_原系统CI流水线说明.md)、[Kubernetes 自动部署与健康检查](docs/19_D05_Kubernetes自动部署与健康检查.md) 和 [ECS 自动部署配置](docs/26_ECS自动部署配置.md)。
 
 ## 当前工程状态
 
