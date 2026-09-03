@@ -66,7 +66,7 @@ UC03 实测库存 Saga 为 `CONFIRMED`、payment 为 `SUCCESS`；UC08 实测 sen
 | Scale Up | PASS；merchant-service Ready `1 → 2 → 3`，HPA current/desired 同步达到 `2/2`、`3/3` |
 | Scale Down | PASS；180 秒冷却后 Ready 与 HPA current/desired 均回到 `1/1` |
 | CPU / memory | PASS；每轮有 `kubectl top` CPU/Memory 原始采样 |
-| 原始数据 | `04_tests/cloud-native/hpa-observation-20260902*`；统一索引见 `04_tests/evidence/second-stage-20260902/hpa/` |
+| 原始数据 | `04_tests/cloud-native/hpa-observation-20260902-8c335eb*`；统一索引见 [`04_tests/evidence/README.md`](../04_tests/evidence/README.md) |
 
 当前提交 `8c335eb7d79400c1f56630bd5c6530ac86e25cf2` 的远端实验已保存原始 kubectl、事件、merchant-service 日志、请求日志和 CSV；共 14,467 请求、0 错误，目标镜像为 `sha-8c335eb`。此前本地无 context 的 BLOCKED preflight 和旧镜像观测仍保留为历史，但不覆盖本次 PASS。报告：`docs/HPA_EXPERIMENT_REPORT.md`。
 

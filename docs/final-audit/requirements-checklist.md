@@ -22,7 +22,7 @@
 | R16 | 跨服务接口/事件及失败处理说明 | 数据归属 5 | ✅ 已完成并验证 | HTTP + RabbitMQ Outbox/Inbox/Saga | 故障/服务测试证据 | service communication | 否 |
 | R17 | 所有后端公开接口均有 API 测试 | 用例回归 4 | ✅ 已完成并验证 | public API 52 | 52/52 直接 MockMvc API 证据；ApiSecurity 28/28 | `testing/public-api-coverage-matrix.md` | 否 |
 | R18 | 微服务自动构建、测试、镜像、K8s 部署/探针/版本 | 微服务流水线 5 | ✅ 已完成并验证 | CI、7 Deployment、探针、sha tag | Kustomize PASS；历史 CI 证据 | project facts | 否 |
-| R19 | HPA 压力扩容、冷却缩容及完整指标 | 自动扩缩容 3 | ✅ 已完成并验证 | 2 HPA；merchant 为实验目标 | 旧提交 raw CSV 1->2->3->1、14,467/0 | HPA report/raw | 是：修正断链 |
+| R19 | HPA 压力扩容、冷却缩容及完整指标 | 自动扩缩容 3 | ✅ 已完成并验证 | 2 HPA；merchant 为实验目标 | 旧提交 raw CSV 1->2->3->1、14,467/0 | HPA report 已直接链接实际 raw 文件 | 否（联合场景仍是未覆盖范围） |
 | R20 | 停止依赖后设计结果且其他服务不崩 | 故障处理 2 | ✅ 已完成并验证 | timeout/503/readiness isolation | raw 200->503->200，backend ready 200 | fault summary | 是：强化脚本 gate |
 | R21 | 2~3 API，同机同数据同脚本，两模式各 3 次 | 性能对比 4 | ⚠️ 基本完成但证据/文档存在问题 | 3 API/2 模式/18 runs | validator PASS；180/0 | commit/workflow/full-stack resources 缺失 | 是 |
 | R22 | README 环境、端口、启动、健康、账号、初始数据准确 | 交付 6 | ✅ 已完成并验证 | 根 README 已校准 8 服务、端口、显式 seed 和健康入口 | Compose/Kustomize 本轮验证 | 当前部署文档与用户手册已同步 | 否 |

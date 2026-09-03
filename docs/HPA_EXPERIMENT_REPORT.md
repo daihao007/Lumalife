@@ -44,14 +44,15 @@
 
 ## 5. 原始证据
 
-`8c335eb` 最终验收批次的权威证据目录为 [`04_tests/cloud-native/`](../04_tests/cloud-native/)；`04_tests/evidence/second-stage-20260902/hpa/` 只保存未带 commit hash 的另一批镜像，不包含下列 `-8c335eb` 文件，不能作为这些文件的链接目标：
+`8c335eb` 最终验收批次的权威证据目录为 [`04_tests/cloud-native/`](../04_tests/cloud-native/)；统一索引为 [`04_tests/evidence/README.md`](../04_tests/evidence/README.md)。下列是本次实际存在的、可直接点击的原始证据：
 
-- `hpa-observation-20260902-8c335eb.csv`、`hpa-observation-20260902-8c335eb-summary.md`；
-- `hpa-observation-20260902-8c335eb-load.log`、`hpa-observation-20260902-8c335eb-load-create.log`；
-- `hpa-observation-20260902-8c335eb-kubectl.log`、`hpa-observation-20260902-8c335eb-top.log`；
-- `hpa-observation-20260902-8c335eb-events.log`、`hpa-observation-20260902-8c335eb-service.log`；
-- `hpa-observation-20260902-8c335eb-metrics-server.yaml`、`-metrics-server-pods.txt`、`-metrics-api.yaml`；
-- `hpa-observation-20260902-8c335eb-hpa.yaml`、`-deployment.yaml` 以及实验结束后的 `-final-*` 快照。
+- [CSV 观测](../04_tests/cloud-native/hpa-observation-20260902-8c335eb.csv)、[执行摘要](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-summary.md)；
+- [负载日志](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-load.log)、[负载启动日志](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-load-create.log)；
+- [kubectl 记录](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-kubectl.log)、[资源指标](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-top.log)、[事件](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-events.log)、[服务日志](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-service.log)；
+- [metrics API 证据](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-metrics-api.yaml)、[HPA 快照](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-hpa.yaml)、[Deployment 快照](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-deployment.yaml)；
+- 实验结束后的 [HPA](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-final-hpa.yaml)、[Deployment](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-final-deployment.yaml)、[Pod 列表](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-final-pods.txt) 和[脱敏 Secret 键名](../04_tests/cloud-native/hpa-observation-20260902-8c335eb-runtime-secret-keys.txt)。
+
+`04_tests/evidence/second-stage-20260902/hpa/` 仅保存未带 commit hash 的另一批镜像，不是本次 `8c335eb` 最终验收原始文件的目录。
 
 此前本地无 context 的 `hpa-observation-20260902-blocked*` 文件继续保留为真实 BLOCKED preflight 历史，不覆盖本次远端 PASS，也不作为扩缩容数据。
 
