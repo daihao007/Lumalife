@@ -2,7 +2,7 @@
 
 LumaLife 是一个面向课程验收场景的本地生活服务平台演示项目，覆盖用户消费闭环、商家履约闭环和平台观测闭环。
 
-> 最终答辩事实口径（2026-09-03，接力基线 `main@71d74a6`）：关键数字、验证来源与未完成项统一见 [`docs/project-facts.md`](docs/project-facts.md) 和 [`docs/final-audit/final-project-audit.md`](docs/final-audit/final-project-audit.md)。带日期的阶段报告与旧 PDF 是历史证据，不代表当前 HEAD。
+> 最终答辩事实口径（2026-09-03，当前审计基线 `main@f282fc9`）：关键数字、验证来源与未完成项统一见 [`docs/project-facts.md`](docs/project-facts.md) 和 [`docs/final-audit/final-project-audit.md`](docs/final-audit/final-project-audit.md)。带日期的阶段报告与旧 PDF 是历史证据，不代表当前 HEAD。
 
 ## 技术栈
 
