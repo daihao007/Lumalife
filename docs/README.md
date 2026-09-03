@@ -21,6 +21,8 @@
 - [`diagrams/final/use-cases/README.md`](diagrams/final/use-cases/README.md)：UC01~UC09 当前微服务逐用例三层图（27 个 Mermaid 源 + 27 个 SVG）
 - [`10_AI使用说明.md`](10_AI使用说明.md)：AI 辅助范围、运行时 AI、开源与敏感信息边界
 - [`security/secret-scan-2026-09-03.md`](security/secret-scan-2026-09-03.md)：当前树与 Git 历史的静态 Secret 审计结果及限制
+- [`security/gitleaks-sbom-license-audit-2026-09-03.md`](security/gitleaks-sbom-license-audit-2026-09-03.md)：专用 Gitleaks 扫描、SPDX SBOM 与许可证缺口
+- [`security/lumalife-3696741.spdx.json`](security/lumalife-3696741.spdx.json)：绑定 `3696741` 的 Syft SPDX 2.3 SBOM
 
 ## 历史文档的使用规则
 

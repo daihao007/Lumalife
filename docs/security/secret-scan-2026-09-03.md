@@ -1,5 +1,7 @@
 # Secret Static Scan Report (2026-09-03)
 
+> 后续专用工具审计已在 `main@3696741` 完成：Gitleaks 8.30.1 对受跟踪快照和全部 233 个 Git 提交均为 0 finding，并已生成 SPDX SBOM。当前结论见 [`gitleaks-sbom-license-audit-2026-09-03.md`](gitleaks-sbom-license-audit-2026-09-03.md)；本文保留为前序正则扫描记录。
+
 ## Scope and status
 
 - Scope: tracked text files in the current Git tree plus high-confidence pattern search across textual Git history.

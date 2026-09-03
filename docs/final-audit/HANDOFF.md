@@ -1,6 +1,6 @@
 # Final Audit Handoff
 
-> 更新时间：2026-09-03；本轮接力起始基线：`main@01de84a`；当前审计内容基线：`main@bd66765`，其后为文档一致性校准提交。接力时以 `git log -1` 和远端同步结果为准；这是最终答辩审计的续做入口。
+> 更新时间：2026-09-03；本轮接力同步基线：`main@3696741`；R26 工具审计绑定该提交。接力时以 `git log -1` 和远端同步结果为准；这是最终答辩审计的续做入口。
 
 ## 同步与提交状态
 
@@ -10,7 +10,7 @@
 - 合并提交：`1a99a78`，使用普通 merge 合入 `origin/main`，无冲突、未覆盖远端历史。
 - 最新已推送的文档交付提交：`01de84a`（当前软件开发计划与 PDF）、`2cf1f83`（当前用户手册与 PDF）。R26 提交以本文所在的当前 Git 历史为准。
 - 最新交接提交：本文件所在提交；推送完成后以 `git rev-list --left-right --count origin/main...HEAD` 返回 `0 0` 为同步完成标准。
-- 工作区要求：除现有未跟踪 `docs/defense/` 和 `tmp/` 外，已跟踪文件应保持干净；这两个目录不删除、不覆盖、不提交。
+- 工作区要求：现有未跟踪 `tmp/` 不删除、不覆盖、不提交；已跟踪文件应保持干净。
 
 ## 已完成
 
@@ -38,11 +38,12 @@
 14. 将 `docs/08_部署文档.md` 从单体/Redis 历史说明重写为当前 8 服务 Compose、3 个服务数据库、27 个静态 Kubernetes 对象、不可变镜像和 CI/ECS 证据边界；重新生成 6 页 A4 正式 PDF。PDF 文本提取 6/6 非空，Poppler 全页渲染并完成视觉 QA，首轮孤页已修正，未见裁切、溢出、乱码或空白页。本项没有启动容器、集群、服务器或测试。
 15. 将 `docs/09_用户手册.md` 校准为当前角色路由、业务操作、6 个演示账号及默认 `prod,remote` 持久化口径；扩展 `scripts/export-final-docs.py` 支持用户手册、Markdown 本地图片和跨平台中文字体，重新生成 12 页 A4 正式 PDF。PDF 12/12 页文本非空、嵌入 8/8 张截图，Poppler 全页渲染并完成视觉 QA，未见裁切、重叠、越界、乱码或图注分离。本项没有启动容器、服务或测试。
 16. 从 17 页历史 PDF 重建 `docs/10组-软件开发计划书.md`，校准为 9 用例、BFF + 4 微服务、三服务数据库、52/65 API、221 测试资产、27 个 K8s 对象和 350 计划工时口径；明确 D09/D10、管理原件、当前 CI/E2E 和签字的未验证边界。重新生成 10 页 A4 正式 PDF，10/10 页文本非空并完成 Poppler 全页视觉 QA，未见裁切、重叠、表格越界、乱码或异常孤页。
-17. 校准 `.env.example` 为当前 MySQL 三服务库、RabbitMQ、内部 Token、微服务开关与 Agnes 变量，移除已退出当前架构的 Redis/JWT 样例；重写 AI/开源说明并新增 Secret 静态审计报告。当前受跟踪文本与 Git 文本历史高置信特征 0 命中；宽泛候选为变量名、占位符或演示/测试值。本机无专用 scanner，未做 SBOM/license 全量审计，因此 R26 保持 `⚠️ TOOL-LIMITED`。
+17. 校准 `.env.example` 为当前 MySQL 三服务库、RabbitMQ、内部 Token、微服务开关与 Agnes 变量，移除已退出当前架构的 Redis/JWT 样例；重写 AI/开源说明并新增前序正则 Secret 静态审计报告。当时受跟踪文本与 Git 文本历史高置信特征 0 命中，专用工具缺口已由第 22 项继续处理。
 18. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
 19. 将 27 个历史 Mermaid 图源、27 个历史 SVG 和 3 份 D03 分层说明从 CR/UC 混合文件名迁移为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，同步修正 D03/D04/需求矩阵/统一追溯表的链接与标识；历史 CR 映射文字仍保留。迁移没有把 `DemoStore` 单体图冒充为当前微服务图；当前微服务逐用例图另见第 21 项。同时修正最终追溯矩阵中过期的“UC08 UI 当前失败”为 `9f0a755` 3/3，但当前 remote E2E 仍未重跑。
 20. 修正 `docs/HPA_EXPERIMENT_REPORT.md` 的原始证据断链：现在逐项直接链接实际存在的 `04_tests/cloud-native/hpa-observation-20260902-8c335eb*` 文件，并将 `NIGHTLY_SECOND_STAGE_EXECUTION_REPORT.md` 的统一索引改为 `04_tests/evidence/README.md`。未修改原始实验产物、未连接集群、未重跑压力实验。
 21. 按当前 BFF + 4 业务微服务边界补齐 UC01~UC09 的 27 个当前三层 Mermaid 源和 27 个 SVG，入口为 `docs/diagrams/final/use-cases/README.md`；同步更新逐项追溯链接，R03/R04 已由“待补当前图”调整为已完成。
+22. 在 `main@3696741` 使用校验过发布包 SHA-256 的 Gitleaks 8.30.1 与 Syft 1.51.0 完成 R26 工具审计：当前 616 个受跟踪文件快照与全部 233 个 Git 提交均为 0 finding；生成 SPDX 2.3 SBOM，识别 287 个包条目。249 项有许可证声明，38 项为 `NOASSERTION`；仓库无根 LICENSE，漏洞扫描未运行，因此只闭环 Secret scanner 与基础 SBOM，不虚构全许可证/漏洞合规。
 
 ## 唯一关键数字
 
@@ -103,7 +104,7 @@ bash scripts/test-service-data-ownership.sh
 
 ## 当前工作树注意事项
 
-- 现有未跟踪目录：`docs/defense/`、`tmp/`；不要删除、覆盖或提交。
+- 现有未跟踪目录：`tmp/`；不要删除、覆盖或提交。
 - 同步前本地 11 个已跟踪改动和 1 个未跟踪文件已安全保存在 `stash@{0}`，名称 `pre-final-audit-sync-2026-09-03`，未删除。
 - 服务器 `/opt/Lumalife` 为 `main@a698c8e` 且有 5 项未跟踪实验材料；本轮仅只读查看 status/branch/log，未修改服务器。
 - 本项新增 3 个 backend API 测试、52 项矩阵并更新事实/审计文档；没有修改业务代码或原始实验数据。
@@ -114,8 +115,9 @@ bash scripts/test-service-data-ownership.sh
 - 本项校准 `docs/08_部署文档.md` 并重生成 `docs/08_部署文档.pdf`；正式 PDF 6 页、A4、无文本空页，已全页视觉检查。`tmp/` 仅存 QA 中间产物，未提交。
 - 本项校准 `docs/09_用户手册.md` 并重生成 `docs/09_用户手册.pdf`；正式 PDF 12 页、A4、12/12 页文本非空、8/8 张截图已嵌入并完成全页视觉检查。导出脚本已支持 macOS/Windows/Linux 中文字体。未启动容器或测试。
 - 本项新增 `docs/10组-软件开发计划书.md` 并覆盖历史同名 PDF；正式 PDF 10 页、A4、10/10 页文本非空并完成全页视觉检查。350 小时仅标为计划工时，D09/D10 与实际投入未被提前闭环。
+- 本项新增 `docs/security/gitleaks-sbom-license-audit-2026-09-03.md` 与绑定 `3696741` 的 SPDX SBOM；Gitleaks 原始空报告和工具二进制仅存 `tmp/`，不提交。服务器只读复核仍为 `main@a698c8e` 且有 5 项未跟踪 HPA/视频材料，本轮未修改服务器。
 - 推送前已获取并合并 `origin/main@e75b3ed`，保留远端 3 个并行提交；未使用 rebase、reset、checkout 覆盖或 force push。合并后未重新执行测试，当前 HEAD 验证状态保持 NOT-RUN/UNVERIFIED 边界。
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E。当前微服务逐用例三层图已补齐；可独立推进的下一步是在可安装专用工具的环境补做 gitleaks 与 SBOM/license 审计，或对现有图做答辩版排版复核。需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。Gitleaks 与基础 SPDX SBOM 已完成；下一项可独立推进的是解析 38 个 `NOASSERTION` 并补 Maven/容器许可证或执行 commit-bound 漏洞扫描。需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。

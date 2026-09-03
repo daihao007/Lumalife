@@ -61,6 +61,8 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 
 已完成 27 张历史 Mermaid 与 27 张历史 SVG 的编号/引用迁移，并新增当前微服务逐用例 27 个 Mermaid 源和 27 个 SVG；仍未逐份清除所有历史 Markdown 内的旧数字。为避免篡改历史实验记录，本轮通过文档地图进行权威性分层，而非删除旧结果。
 
+R26 已使用 Gitleaks 8.30.1 对 `3696741` 当前受跟踪快照与全部 233 个 Git 提交扫描，均为 0 finding；Syft 1.51.0 生成 SPDX 2.3 SBOM，共 287 个包条目。仍有 38 个 `NOASSERTION`，仓库无根 LICENSE，Maven 传递依赖、容器镜像和漏洞扫描未闭环，因此不能宣称全部许可证/漏洞已验证。
+
 ## 14. Remaining Problems
 
 ### P0
@@ -75,6 +77,7 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 3. 重新跑性能 workflow，采集全部容器 CPU/内存，记录 commit 和 workflow run。
 4. HPA 证据目录断链和 NIGHTLY 120/180 秒混写已校准；答辩前再做链接检查。
 5. 为 RabbitMQ publisher 增加 confirm/return，为毒消息增加 DLQ；这属于实现增强，未在本轮审计擅自改代码。
+6. 解析 SBOM 中 38 个 `NOASSERTION`，补 Maven 传递依赖、容器镜像许可证和 commit-bound 漏洞扫描。
 
 ### P2
 
