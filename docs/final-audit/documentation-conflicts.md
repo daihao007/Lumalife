@@ -14,8 +14,8 @@
 | E2E 状态 | UI 3/3 历史记录、前序审计 UI 2/3 | 本次 UI 修复工作树完整运行 3/3；Microservice 9/9 仍为旧提交证据 | Inventory/README/审计已校准，当前提交全量 E2E 仍待复验 |
 | Public API 测试 | 52 个公开接口缺一对一证明 | 52/52 均有直接 MockMvc API 测试 | 已建立 `testing/public-api-coverage-matrix.md` 并补 3 个缺口 case |
 | 性能结论 | PASS/闭环 | 原始矩阵有效但 commit、workflow、全栈资源不足，状态 ⚠️ | Project Facts/审计已校准 |
-| 图编号 | 历史 CR/UC/SEQ 混用 | `REQ/UC/SYS-SEQ/COMP-SEQ/OBJ-SEQ` | 已于 2026-09-03 迁移 27 mmd + 27 SVG 文件名与引用；图内容仍明确为单体基线 |
-| PDF | 旧导出可用于当前 | 测试/部署/需求/概要/详细五份 PDF 已于 2026-09-03 重生成；其余两份仍为历史导出 | 状态 ⚠️；五份已完成 5/6/8/7/8 页视觉 QA，其余待校准 |
+| 图编号 | 历史 CR/UC/SEQ 混用 | `REQ/UC/SYS-SEQ/COMP-SEQ/OBJ-SEQ` | 历史 27 mmd + 27 SVG 已于 2026-09-03 迁移文件名与引用；另有当前微服务逐用例 27 mmd + 27 SVG，内容边界已分层 |
+| PDF | 旧导出可用于当前 | 测试/部署/用户手册/开发计划/需求/概要/详细七份 PDF 已于 2026-09-03 重生成 | 状态 ✅；页数 5/6/12/10/8/7/8，均完成视觉 QA |
 
 ## 仍允许出现旧数字的位置
 
