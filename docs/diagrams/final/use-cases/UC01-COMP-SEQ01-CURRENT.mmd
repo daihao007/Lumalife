@@ -1,0 +1,15 @@
+%% CURRENT prod,remote diagram; UC01 账号、资料与地址; services: identity-service
+sequenceDiagram
+    actor U as 用户
+    participant UI as frontend
+    participant B as backend BFF
+    participant I as identity-service
+    participant D as identity DB
+    U->>UI: 注册、登录或维护资料/地址
+    UI->>B: /api/v1/auth、/user、/user/addresses
+    B->>I: internal HTTP + service token
+    I->>D: 校验唯一性/身份并读写自有表
+    D-->>I: 事务结果
+    I-->>B: token 与用户摘要或受控错误
+    B-->>UI: {code,message,data}
+    UI-->>U: 展示成功或 4xx 错误

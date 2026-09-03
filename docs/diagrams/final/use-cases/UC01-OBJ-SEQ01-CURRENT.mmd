@@ -1,0 +1,19 @@
+%% CURRENT prod,remote diagram; UC01 账号、资料与地址; services: identity-service
+classDiagram
+    class UserAccount {
+      +id
+      +loginIdentifier
+      +role
+      +status
+    }
+    class AuthSession {
+      +tokenId
+      +expiresAt
+    }
+    class UserAddress {
+      +id
+      +userId
+      +isDefault
+    }
+    UserAccount "1" --> "0..*" AuthSession : identity-service owns
+    UserAccount "1" --> "0..*" UserAddress : identity-service owns

@@ -1,0 +1,23 @@
+%% CURRENT prod,remote diagram; UC09 平台运营指标与健康聚合; services: identity-service + merchant-service + order-service
+sequenceDiagram
+    actor A as 平台管理员
+    participant UI as AdminDashboard
+    participant B as backend BFF
+    participant I as identity-service
+    participant M as merchant-service
+    participant O as order-service
+    A->>UI: 查看运营指标与系统状态
+    UI->>B: GET /api/v1/admin/metrics
+    B->>B: 校验 PLATFORM_ADMIN
+    par 聚合用户
+        B->>I: metrics/health internal HTTP
+        I-->>B: 用户与健康摘要
+    and 聚合商家
+        B->>M: metrics/health internal HTTP
+        M-->>B: 商家与健康摘要
+    and 聚合订单
+        B->>O: metrics/health internal HTTP
+        O-->>B: 订单与健康摘要
+    end
+    B-->>UI: 聚合结果或受控依赖错误
+    UI-->>A: 看板展示

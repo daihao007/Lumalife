@@ -1,0 +1,13 @@
+%% CURRENT prod,remote diagram; UC05 团购购买与券码; services: order-service + merchant-service + RabbitMQ
+classDiagram
+    class GroupDeal { +id +merchantId +validUntil +status }
+    class OrderRecord { +id +userId +groupDealId +status }
+    class Payment { +orderId +clientRequestId +status }
+    class CouponCode { +orderId +code12 +status +usedAt }
+    class OrderSaga { +orderId +step +status }
+    class InventoryReservation { +groupDealId +quantity +status }
+    GroupDeal "1" --> "0..*" OrderRecord : merchant rule snapshot
+    OrderRecord "1" --> "1" Payment : order-service
+    OrderRecord "1" --> "0..1" CouponCode : generated after payment
+    OrderRecord "1" --> "1" OrderSaga : coordinates inventory
+    GroupDeal "1" --> "0..*" InventoryReservation : merchant owns stock

@@ -1,0 +1,14 @@
+%% CURRENT prod,remote diagram; UC03 购物车、外卖下单、支付与取消; services: order-service + merchant-service + RabbitMQ
+classDiagram
+    class Cart { +userId +status }
+    class CartItem { +cartId +catalogId +quantity }
+    class OrderRecord { +id +userId +status +amountSnapshot }
+    class Payment { +orderId +clientRequestId +status }
+    class OrderSaga { +orderId +step +status }
+    class InventoryReservation { +orderId +catalogId +quantity +status }
+    class OutboxEvent { +eventId +type +status }
+    Cart "1" --> "1..*" CartItem : order-service
+    OrderRecord "1" --> "0..*" Payment : owns
+    OrderRecord "1" --> "1" OrderSaga : coordinates
+    OrderRecord "1" --> "0..*" InventoryReservation : requests merchant
+    OrderRecord "1" --> "0..*" OutboxEvent : publishes

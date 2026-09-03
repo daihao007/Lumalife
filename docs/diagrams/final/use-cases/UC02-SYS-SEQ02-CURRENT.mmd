@@ -1,0 +1,12 @@
+%% CURRENT prod,remote diagram; UC02 商家发现、详情与收藏; services: merchant-service
+flowchart LR
+    U[用户]
+    BFF[backend BFF\nCatalog/Favorite ports]
+    MER[merchant-service\n30 internal APIs]
+    DB[(merchant DB\n10 tables)]
+    U -->|搜索 / 详情 / 收藏| BFF
+    BFF -->|internal HTTP + service token| MER
+    MER -->|目录、库存与收藏查询| DB
+    DB -->|评价只读投影| MER
+    MER --> BFF
+    BFF --> U

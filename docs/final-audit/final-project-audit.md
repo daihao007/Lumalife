@@ -4,7 +4,7 @@
 
 **基本满足，但尚未完全满足课程最终验收要求。** 核心微服务、数据归属、52/52 公开 API 直接测试、CI 质量门、Kubernetes、HPA、故障和性能原始证据已形成，UI E2E 已修复并在 `9f0a755` 3/3 通过；需求、概要、详细设计及其三份正式 PDF 已校准。GitHub Project 的 50 项计划与 40 项既有 Done 已核验，但十日站会/截图原件不完整。13 页可编辑答辩 PPT 与当前技术总结已形成；当前阻断项是同一当前提交必要测试尚未全量重跑、管理原件缺口，以及个人权重与全员确认未签署。
 
-课程项统计：✅ 18；⚠️ 9；❌ 0；❓ 0。
+课程项统计：✅ 20；⚠️ 7；❌ 0；❓ 0。
 
 ## 2. Requirement Audit
 
@@ -70,7 +70,7 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 
 ### P1
 
-1. 27 张历史图的文件名、链接和图内标识已迁移到 `UCxx-{SYS|COMP|OBJ}-SEQxx`；仍需补当前微服务版逐用例三层图。
+1. 27 张历史图已迁移编号；当前微服务版逐用例三层图已补齐 27 个 Mermaid 源和 27 个 SVG，入口见 `docs/diagrams/final/use-cases/`。
 2. 当前 HEAD 的隔离 Microservice E2E 已提升为 P0，完成后再触发完整 GitHub Actions。
 3. 重新跑性能 workflow，采集全部容器 CPU/内存，记录 commit 和 workflow run。
 4. HPA 证据目录断链和 NIGHTLY 120/180 秒混写已校准；答辩前再做链接检查。

@@ -1,0 +1,29 @@
+%% CURRENT prod,remote diagram; UC08 用户、商家与 AI 客服; services: merchant-service + assistant-service
+sequenceDiagram
+    actor U as 用户
+    actor M as 商家
+    participant UI as frontend
+    participant B as backend BFF
+    participant R as merchant-service
+    participant D as merchant DB
+    participant A as assistant-service
+    participant P as Agnes provider
+    U->>UI: 向指定商家提问
+    UI->>B: conversation/message request
+    B->>R: 校验会话归属并保存用户消息
+    R->>D: 写 chat_message
+    B->>A: assistant request
+    A->>P: HTTPS provider call
+    alt provider 可用
+        P-->>A: 生成回复
+    else 密钥缺失/超时/空响应
+        A-->>A: 选择确定性 fallback
+    end
+    A-->>B: 回复或 fallback
+    B->>R: 保存 AI 消息
+    R->>D: 写入会话历史
+    B-->>UI: 返回完整往返
+    M->>B: 读取所属会话并人工回复
+    B->>R: 归属校验后写入商家消息
+    R-->>B: 会话历史
+    B-->>M: 展示历史与人工回复结果

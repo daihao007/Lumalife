@@ -1,0 +1,13 @@
+%% CURRENT prod,remote diagram; UC02 商家发现、详情与收藏; services: merchant-service
+classDiagram
+    class Category { +id +name }
+    class Merchant { +id +name +status }
+    class MerchantCatalog { +id +merchantId +price +status }
+    class GroupDeal { +id +merchantId +validUntil +status }
+    class MerchantFavorite { +userId +merchantId }
+    class ReviewProjection { +merchantId +score +count }
+    Category "1" --> "0..*" Merchant : merchant-service
+    Merchant "1" --> "0..*" MerchantCatalog : owns
+    Merchant "1" --> "0..*" GroupDeal : owns
+    Merchant "1" --> "0..*" MerchantFavorite : referenced
+    Merchant "1" --> "0..1" ReviewProjection : read-only projection

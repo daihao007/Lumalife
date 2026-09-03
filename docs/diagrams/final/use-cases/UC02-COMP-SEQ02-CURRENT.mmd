@@ -1,0 +1,15 @@
+%% CURRENT prod,remote diagram; UC02 商家发现、详情与收藏; services: merchant-service
+sequenceDiagram
+    actor U as 用户
+    participant UI as frontend
+    participant B as backend BFF
+    participant M as merchant-service
+    participant D as merchant DB
+    U->>UI: 搜索、查看详情或收藏
+    UI->>B: /api/v1/categories、/merchants、/user/favorites
+    B->>M: internal HTTP + service token
+    M->>D: 查询目录/详情/收藏及评价投影
+    D-->>M: 自有数据与只读投影
+    M-->>B: 结果或受控错误
+    B-->>UI: 稳定公开响应信封
+    UI-->>U: 列表、详情或收藏状态

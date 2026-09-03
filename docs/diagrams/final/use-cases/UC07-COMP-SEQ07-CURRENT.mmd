@@ -1,0 +1,15 @@
+%% CURRENT prod,remote diagram; UC07 商家经营内容发布; services: merchant-service
+sequenceDiagram
+    actor M as 商家管理员
+    participant UI as MerchantProducts
+    participant B as backend BFF
+    participant S as merchant-service
+    participant D as merchant DB
+    M->>UI: 新增/编辑/上架/下架商品或团购
+    UI->>B: /merchant-admin/products、group-deals
+    B->>S: internal HTTP + merchant identity
+    S->>D: 校验归属并写入目录/团购状态
+    D-->>S: 保存结果
+    S-->>B: 当前资源或业务冲突
+    B-->>UI: 管理结果
+    Note over S,D: 普通用户不能通过前端隐藏绕过服务层权限

@@ -1,0 +1,11 @@
+%% CURRENT prod,remote diagram; UC01 账号、资料与地址; services: identity-service
+flowchart LR
+    U[用户]
+    BFF[backend BFF\n52 public APIs]
+    ID[identity-service\n13 internal APIs]
+    DB[(identity DB\n3 tables)]
+    U -->|注册 / 登录 / 资料 / 地址| BFF
+    BFF -->|internal HTTP + service token| ID
+    ID -->|事务读写| DB
+    ID -->|token + user summary| BFF
+    BFF --> U

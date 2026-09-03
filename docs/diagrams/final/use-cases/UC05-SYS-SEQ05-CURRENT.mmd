@@ -1,0 +1,20 @@
+%% CURRENT prod,remote diagram; UC05 团购购买与券码; services: order-service + merchant-service + RabbitMQ
+flowchart LR
+    U[用户]
+    BFF[backend BFF\nOrder workflow]
+    MER[merchant-service\n团购与库存]
+    MDB[(merchant DB)]
+    ORD[order-service\n支付与券码]
+    ODB[(order DB)]
+    MQ[(RabbitMQ\n库存 Saga)]
+    U -->|查看/购买有效团购| BFF
+    BFF --> MER
+    MER --> MDB
+    BFF --> ORD
+    ORD --> ODB
+    ORD --> MQ
+    MQ --> MER
+    MER --> MQ
+    MQ --> ORD
+    ORD -->|支付成功生成唯一券码| BFF
+    BFF --> U

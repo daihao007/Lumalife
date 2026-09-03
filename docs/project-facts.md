@@ -162,7 +162,7 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 - `08_部署文档.md` 已重写为当前 8 服务 Compose、27 对象 Kubernetes、CI/CD 与证据边界口径；对应正式 PDF 已于 2026-09-03 重新生成，共 6 页，文本提取无空页，Poppler 全页渲染后完成视觉检查。
 - `09_用户手册.md` 已校准为当前角色路由、业务操作、演示账号和默认微服务持久化口径；对应正式 PDF 已于 2026-09-03 重新生成，共 12 页、A4、12/12 页文本非空并嵌入 8/8 张截图，Poppler 全页渲染后完成视觉检查。
 - `10组-软件开发计划书.md` 已从历史 PDF 重建为当前可编辑计划，区分 350 计划工时、快照状态和未验证实际投入；对应正式 PDF 已于 2026-09-03 重新生成，共 10 页、A4、10/10 页文本非空，Poppler 全页渲染后完成视觉检查。
-- 27 个历史 Mermaid 三层图源与 27 个 SVG 已统一为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，引用无旧文件名残留。它们的内容仍是 `monolith-start`/兼容基线；当前微服务只有总图，不将编号迁移夸大为逐用例重绘已完成。
+- 27 个历史 Mermaid 三层图源与 27 个 SVG 已统一为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，引用无旧文件名残留；其内容仍是 `monolith-start`/兼容基线。当前微服务逐用例三层图另有 27 个 Mermaid 源和 27 个 SVG，入口为 [`diagrams/final/use-cases/`](diagrams/final/use-cases/)，不与历史基线混称。
 - 七份正式 PDF 均已有当前可编辑源并完成逐页视觉 QA；PDF 交付状态为 `✅ CURRENT`。
 
 ## Project Management Evidence

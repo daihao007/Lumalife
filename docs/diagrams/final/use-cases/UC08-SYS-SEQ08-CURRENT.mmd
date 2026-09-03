@@ -1,0 +1,20 @@
+%% CURRENT prod,remote diagram; UC08 用户、商家与 AI 客服; services: merchant-service + assistant-service
+flowchart LR
+    U[用户]
+    M[商家管理员]
+    BFF[backend BFF\nAssistant port]
+    MER[merchant-service\n会话所有者]
+    MDB[(merchant DB\nchat_message)]
+    AI[assistant-service\n无业务数据库]
+    AGNES[Agnes provider]
+    U -->|提问 / 读历史| BFF
+    M -->|读会话 / 人工回复| BFF
+    BFF --> MER
+    MER --> MDB
+    BFF --> AI
+    AI -->|HTTPS / timeout| AGNES
+    AGNES --> AI
+    AI -->|回答或确定性 fallback| BFF
+    BFF --> MER
+    BFF --> U
+    BFF --> M

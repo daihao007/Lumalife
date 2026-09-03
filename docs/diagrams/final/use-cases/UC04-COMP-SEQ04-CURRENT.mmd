@@ -1,0 +1,26 @@
+%% CURRENT prod,remote diagram; UC04 履约、收货与评价; services: order-service + merchant-service
+sequenceDiagram
+    actor M as 商家管理员
+    actor U as 用户
+    participant UI as frontend
+    participant B as backend BFF
+    participant O as order-service
+    participant D as order DB
+    participant R as merchant-service
+    M->>UI: 查看本店订单并推进履约
+    UI->>B: merchant-admin/orders 与 transition
+    B->>O: internal HTTP + role/ownership context
+    O->>D: 校验商家归属和相邻状态
+    D-->>O: PAID -> ACCEPTED -> DELIVERING -> COMPLETED
+    O-->>B: 当前订单时间线
+    B-->>UI: 更新商家工作台
+    U->>UI: 确认收货并提交评价
+    UI->>B: orders/{id}/receive、reviews
+    B->>O: 校验用户归属、完成状态和重复评价
+    O->>D: 写 RECEIVED 与 Review 真值
+    O->>R: 发布/更新评价只读投影
+    O-->>B: 收货和评价结果
+    B-->>UI: 稳定公开响应
+    alt 越权、非法状态或重复评价
+        O-->>B: 403/409，状态不变
+    end

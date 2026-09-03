@@ -1,0 +1,13 @@
+%% CURRENT prod,remote diagram; UC07 商家经营内容发布; services: merchant-service
+flowchart LR
+    M[商家管理员]
+    BFF[backend BFF\nMerchant admin]
+    MER[merchant-service\n目录/团购/库存]
+    DB[(merchant DB\n10 tables)]
+    USER[用户端查询]
+    M -->|新增、编辑、上下架、删除| BFF
+    BFF -->|角色与归属校验| MER
+    MER -->|事务读写| DB
+    DB -->|发布状态即时可见| USER
+    MER --> BFF
+    BFF --> M

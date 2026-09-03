@@ -1,0 +1,21 @@
+%% CURRENT prod,remote diagram; UC09 平台运营指标与健康聚合; services: identity-service + merchant-service + order-service
+flowchart LR
+    A[平台管理员]
+    BFF[backend BFF\nMetrics aggregation]
+    ID[identity-service]
+    MER[merchant-service]
+    ORD[order-service]
+    IDDB[(identity DB)]
+    MDB[(merchant DB)]
+    ODB[(order DB)]
+    A -->|/api/v1/admin/metrics| BFF
+    BFF --> ID
+    BFF --> MER
+    BFF --> ORD
+    ID --> IDDB
+    MER --> MDB
+    ORD --> ODB
+    ID --> BFF
+    MER --> BFF
+    ORD --> BFF
+    BFF -->|聚合结果 / 健康状态| A

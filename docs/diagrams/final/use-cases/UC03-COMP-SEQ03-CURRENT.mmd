@@ -1,0 +1,26 @@
+%% CURRENT prod,remote diagram; UC03 购物车、外卖下单、支付与取消; services: order-service + merchant-service + RabbitMQ
+sequenceDiagram
+    actor U as 用户
+    participant UI as frontend
+    participant B as backend BFF
+    participant M as merchant-service
+    participant O as order-service
+    participant OD as order DB
+    participant Q as RabbitMQ
+    U->>UI: 加购并提交外卖订单/支付
+    UI->>B: cart、orders/delivery、payments
+    B->>M: 获取商品/优惠快照
+    M-->>B: 当前可售数据
+    B->>O: 创建订单与支付命令
+    O->>OD: 写订单、支付、Saga、Outbox
+    O->>Q: inventory.reserve.requested
+    Q->>M: 幂等预留库存
+    M-->>Q: inventory.reserve.result
+    Q->>O: 推进 Saga 与订单状态
+    O->>OD: 保存确认/拒绝或补偿状态
+    O-->>B: 当前订单状态或冲突
+    B-->>UI: 支付、取消或处理中结果
+    alt 待支付取消
+        B->>O: 取消命令
+        O->>OD: 校验状态并幂等取消
+    end

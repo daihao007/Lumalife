@@ -1,0 +1,19 @@
+%% CURRENT prod,remote diagram; UC06 券码核销; services: order-service
+sequenceDiagram
+    actor M as 商家管理员
+    participant UI as MerchantDesk
+    participant B as backend BFF
+    participant O as order-service
+    participant D as order DB
+    M->>UI: 输入本店券码并核销
+    UI->>B: POST /merchant-admin/coupons/verify
+    B->>O: internal HTTP + merchant identity
+    O->>D: 查找券码、绑定商家和当前状态
+    alt 可核销
+        O->>D: 幂等更新为已使用
+        D-->>O: 已核销
+        O-->>B: 成功
+    else 未知/他店/重复
+        O-->>B: 404/403/409，保持原状态
+    end
+    B-->>UI: 统一响应信封

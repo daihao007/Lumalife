@@ -1,0 +1,10 @@
+%% CURRENT prod,remote diagram; UC07 商家经营内容发布; services: merchant-service
+classDiagram
+    class Merchant { +id +ownerUserId +status }
+    class MerchantCatalog { +id +merchantId +name +price +status }
+    class GroupDeal { +id +merchantId +rules +status }
+    class Inventory { +catalogId +availableQuantity +version }
+    Merchant "1" --> "0..*" MerchantCatalog : owns
+    Merchant "1" --> "0..*" GroupDeal : owns
+    MerchantCatalog "1" --> "0..1" Inventory : merchant-owned stock
+    Merchant "1" --> "0..*" Inventory : bounded by ownership

@@ -1,0 +1,12 @@
+%% CURRENT prod,remote diagram; UC04 履约、收货与评价; services: order-service + merchant-service
+classDiagram
+    class OrderRecord { +id +merchantId +userId +status }
+    class Delivery { +orderId +status +updatedAt }
+    class Review { +orderId +userId +score +content }
+    class Merchant { +id +ownerUserId }
+    class ReviewProjection { +merchantId +score +count }
+    Merchant "1" --> "0..*" OrderRecord : merchant ownership check
+    OrderRecord "1" --> "0..1" Delivery : order-service
+    OrderRecord "1" --> "0..1" Review : one review after completion
+    Merchant "1" --> "0..1" ReviewProjection : merchant read model
+    Review --> ReviewProjection : projected after truth write

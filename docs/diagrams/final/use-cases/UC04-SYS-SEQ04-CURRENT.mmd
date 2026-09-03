@@ -1,0 +1,18 @@
+%% CURRENT prod,remote diagram; UC04 履约、收货与评价; services: order-service + merchant-service
+flowchart LR
+    M[商家管理员]
+    U[用户]
+    BFF[backend BFF\nOrder admin/workflow ports]
+    ORD[order-service\n履约、收货、评价真值]
+    ODB[(order DB)]
+    MER[merchant-service\n评价只读投影]
+    MDB[(merchant DB)]
+    M -->|本店订单 / 状态推进| BFF
+    U -->|确认收货 / 一次评价| BFF
+    BFF --> ORD
+    ORD -->|归属与状态校验| ODB
+    ORD -->|评价投影| MER
+    MER --> MDB
+    ORD --> BFF
+    BFF --> M
+    BFF --> U

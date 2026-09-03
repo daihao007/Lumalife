@@ -1,0 +1,12 @@
+%% CURRENT prod,remote diagram; UC06 券码核销; services: order-service
+flowchart LR
+    M[商家管理员]
+    BFF[backend BFF\nMerchant admin]
+    ORD[order-service\nCoupon verification]
+    DB[(order DB\nCouponCode)]
+    M -->|提交券码| BFF
+    BFF -->|角色与调用身份| ORD
+    ORD -->|存在/未使用/绑定商家校验| DB
+    DB -->|幂等标记已使用| ORD
+    ORD --> BFF
+    BFF --> M

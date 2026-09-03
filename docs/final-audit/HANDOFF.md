@@ -42,6 +42,7 @@
 18. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
 19. 将 27 个 Mermaid 图源、27 个 SVG 和 3 份 D03 分层说明从 CR/UC 混合文件名迁移为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，同步修正 D03/D04/需求矩阵/统一追溯表的链接与标识；历史 CR 映射文字仍保留。迁移没有把 `DemoStore` 单体图冒充为当前微服务图；R03/R04 仍需补当前微服务逐用例三层图。同时修正最终追溯矩阵中过期的“UC08 UI 当前失败”为 `9f0a755` 3/3，但当前 remote E2E 仍未重跑。
 20. 修正 `docs/HPA_EXPERIMENT_REPORT.md` 的原始证据断链：现在逐项直接链接实际存在的 `04_tests/cloud-native/hpa-observation-20260902-8c335eb*` 文件，并将 `NIGHTLY_SECOND_STAGE_EXECUTION_REPORT.md` 的统一索引改为 `04_tests/evidence/README.md`。未修改原始实验产物、未连接集群、未重跑压力实验。
+21. 按当前 BFF + 4 业务微服务边界补齐 UC01~UC09 的 27 个当前三层 Mermaid 源和 27 个 SVG，入口为 `docs/diagrams/final/use-cases/README.md`；同步更新逐项追溯链接，R03/R04 已由“待补当前图”调整为已完成。
 
 ## 唯一关键数字
 
@@ -71,7 +72,7 @@
 1. 当前 HEAD 触发完整 GitHub Actions；确认修复后的 UI 3/3 并取得成功 quality gate run。
 2. 重跑性能 workflow，记录 commit/workflow，采全部容器而非只采 backend 资源。
 3. HPA 报告断链已修正；NIGHTLY 中 120 秒负载/180 秒冷却现已标明为同一最终验收批次的两个参数。仍需保留联合场景为未覆盖。
-4. 27 张历史三层图编号已迁移；仍需生成当前微服务版的逐用例可编辑图和导出图。
+4. 27 张历史三层图编号已迁移；当前微服务版逐用例三层图已生成并完成 Mermaid CLI 导出、SVG XML 校验和抽样视觉检查，后续只需答辩前复核链接和内容。
 
 ## 不得做
 
@@ -117,4 +118,4 @@ bash scripts/test-service-data-ownership.sh
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是补当前微服务的逐用例三层图，或在可安装专用工具的环境补做 gitleaks 与 SBOM/license 审计；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。当前微服务逐用例三层图已补齐；可独立推进的下一步是在可安装专用工具的环境补做 gitleaks 与 SBOM/license 审计，或对现有图做答辩版排版复核。需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。

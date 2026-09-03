@@ -1,0 +1,11 @@
+%% CURRENT prod,remote diagram; UC09 平台运营指标与健康聚合; services: identity-service + merchant-service + order-service
+classDiagram
+    class MetricsSnapshot { +capturedAt +users +merchants +orders +amount }
+    class HealthSnapshot { +service +status +details }
+    class UserAccount { +id +role +status }
+    class Merchant { +id +status }
+    class OrderRecord { +id +status +amount }
+    MetricsSnapshot o-- UserAccount : identity aggregate
+    MetricsSnapshot o-- Merchant : merchant aggregate
+    MetricsSnapshot o-- OrderRecord : order aggregate
+    MetricsSnapshot --> HealthSnapshot : BFF response model

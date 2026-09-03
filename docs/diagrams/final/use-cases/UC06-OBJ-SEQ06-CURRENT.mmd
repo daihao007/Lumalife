@@ -1,0 +1,10 @@
+%% CURRENT prod,remote diagram; UC06 券码核销; services: order-service
+classDiagram
+    class CouponCode { +code12 +orderId +merchantId +status +usedAt }
+    class OrderRecord { +id +merchantId +status }
+    class Merchant { +id +ownerUserId }
+    class RedemptionAttempt { +code12 +actorId +result +createdAt }
+    OrderRecord "1" --> "0..1" CouponCode : order-service owns
+    Merchant "1" --> "0..*" CouponCode : bound merchant
+    Merchant "1" --> "0..*" RedemptionAttempt : authorization context
+    CouponCode "1" --> "0..*" RedemptionAttempt : idempotent attempts

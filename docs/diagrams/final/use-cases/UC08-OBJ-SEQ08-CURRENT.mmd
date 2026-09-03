@@ -1,0 +1,11 @@
+%% CURRENT prod,remote diagram; UC08 用户、商家与 AI 客服; services: merchant-service + assistant-service
+classDiagram
+    class Conversation { +id +userId +merchantId +status }
+    class ChatMessage { +conversationId +senderType +content +createdAt }
+    class UserAccount { +id +role }
+    class Merchant { +id +ownerUserId }
+    class AssistantRequest { +conversationId +provider +fallbackUsed }
+    UserAccount "1" --> "0..*" Conversation : user ownership
+    Merchant "1" --> "0..*" Conversation : merchant ownership
+    Conversation "1" --> "1..*" ChatMessage : merchant-service owns
+    Conversation "1" --> "0..*" AssistantRequest : assistant-service stateless

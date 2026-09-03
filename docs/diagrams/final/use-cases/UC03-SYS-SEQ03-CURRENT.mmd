@@ -1,0 +1,20 @@
+%% CURRENT prod,remote diagram; UC03 购物车、外卖下单、支付与取消; services: order-service + merchant-service + RabbitMQ
+flowchart LR
+    U[用户]
+    BFF[backend BFF\nCart/Order workflow ports]
+    ORD[order-service\n订单、支付、Saga]
+    ODB[(order DB\n10 tables)]
+    MQ[(RabbitMQ\nOutbox / Inbox)]
+    MER[merchant-service\n库存所有者]
+    MDB[(merchant DB)]
+    U -->|购物车 / 下单 / 支付 / 取消| BFF
+    BFF -->|命令与商品快照| ORD
+    BFF -->|商品与优惠查询| MER
+    ORD --> ODB
+    ORD -->|reserve request| MQ
+    MQ --> MER
+    MER --> MDB
+    MER -->|reserve result| MQ
+    MQ --> ORD
+    ORD -->|状态 / 幂等结果| BFF
+    BFF --> U

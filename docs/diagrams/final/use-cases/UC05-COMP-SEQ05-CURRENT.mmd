@@ -1,0 +1,23 @@
+%% CURRENT prod,remote diagram; UC05 团购购买与券码; services: order-service + merchant-service + RabbitMQ
+sequenceDiagram
+    actor U as 用户
+    participant UI as frontend
+    participant B as backend BFF
+    participant M as merchant-service
+    participant O as order-service
+    participant D as order DB
+    participant Q as RabbitMQ
+    U->>UI: 选择有效团购并支付
+    UI->>B: group-buy order request
+    B->>M: 获取团购规则与库存快照
+    M-->>B: 有效套餐或业务冲突
+    B->>O: 提交团购订单与幂等支付命令
+    O->>D: 写订单、支付、Saga、Outbox
+    O->>Q: inventory.reserve.requested
+    Q->>M: 幂等预留团购库存
+    M-->>Q: reserve result
+    Q->>O: 更新 Saga
+    O->>D: 支付成功后生成唯一 12 位券码
+    O-->>B: 订单与券码结果
+    B-->>UI: 展示券码或受控错误
+    Note over O,D: 相同 clientRequestId 复用原结果
