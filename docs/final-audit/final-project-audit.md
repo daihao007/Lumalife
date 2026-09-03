@@ -59,7 +59,7 @@ Kustomize PASS；Deployment 7、StatefulSet 4、Service 11、HPA 2、PVC 2、Nam
 
 本轮创建唯一事实源、测试 Inventory、课程 Checklist、当前架构/数据归属/通信三表、追溯矩阵、文档地图和当前微服务 Mermaid；修正根 README 的 Compose 服务口径、API/测试/Kubernetes关键数字。07 测试报告、08 部署文档、09 用户手册、软件开发计划书及 12/13/14 三份设计文档已有当前可编辑源，对应七份 PDF 已重生成并完成 5/6/12/10/8/7/8 页视觉 QA；用户手册 PDF 嵌入 8/8 张操作截图。
 
-仍未完成：迁移 27 张图的编号、逐份清除历史 Markdown 内的旧数字。为避免篡改历史实验记录，本轮通过文档地图进行权威性分层，而非删除旧结果。
+已完成 27 张 Mermaid 与 27 张 SVG 的编号/引用迁移；仍未完成当前微服务的逐用例三层重绘，也未逐份清除所有历史 Markdown 内的旧数字。为避免篡改历史实验记录，本轮通过文档地图进行权威性分层，而非删除旧结果。
 
 ## 14. Remaining Problems
 

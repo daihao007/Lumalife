@@ -40,6 +40,7 @@
 16. 从 17 页历史 PDF 重建 `docs/10组-软件开发计划书.md`，校准为 9 用例、BFF + 4 微服务、三服务数据库、52/65 API、221 测试资产、27 个 K8s 对象和 350 计划工时口径；明确 D09/D10、管理原件、当前 CI/E2E 和签字的未验证边界。重新生成 10 页 A4 正式 PDF，10/10 页文本非空并完成 Poppler 全页视觉 QA，未见裁切、重叠、表格越界、乱码或异常孤页。
 17. 校准 `.env.example` 为当前 MySQL 三服务库、RabbitMQ、内部 Token、微服务开关与 Agnes 变量，移除已退出当前架构的 Redis/JWT 样例；重写 AI/开源说明并新增 Secret 静态审计报告。当前受跟踪文本与 Git 文本历史高置信特征 0 命中；宽泛候选为变量名、占位符或演示/测试值。本机无专用 scanner，未做 SBOM/license 全量审计，因此 R26 保持 `⚠️ TOOL-LIMITED`。
 18. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
+19. 将 27 个 Mermaid 图源、27 个 SVG 和 3 份 D03 分层说明从 CR/UC 混合文件名迁移为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，同步修正 D03/D04/需求矩阵/统一追溯表的链接与标识；历史 CR 映射文字仍保留。迁移没有把 `DemoStore` 单体图冒充为当前微服务图；R03/R04 仍需补当前微服务逐用例三层图。同时修正最终追溯矩阵中过期的“UC08 UI 当前失败”为 `9f0a755` 3/3，但当前 remote E2E 仍未重跑。
 
 ## 唯一关键数字
 
@@ -69,7 +70,7 @@
 1. 当前 HEAD 触发完整 GitHub Actions；确认修复后的 UI 3/3 并取得成功 quality gate run。
 2. 重跑性能 workflow，记录 commit/workflow，采全部容器而非只采 backend 资源。
 3. 修正 `docs/HPA_EXPERIMENT_REPORT.md` 统一证据目录断链，以及 NIGHTLY 中 120 秒负载/180 秒冷却混写。
-4. 将 27 张历史三层图从 CR/UC 混合编号迁到统一 `SYS-SEQ/COMP-SEQ/OBJ-SEQ`，并生成当前微服务版可编辑图和导出图。
+4. 27 张历史三层图编号已迁移；仍需生成当前微服务版的逐用例可编辑图和导出图。
 
 ## 不得做
 
@@ -115,4 +116,4 @@ bash scripts/test-service-data-ownership.sh
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是统一 27 张历史三层图编号，或在可安装专用工具的环境补做 gitleaks 与 SBOM/license 审计；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。可独立推进的下一步是补当前微服务的逐用例三层图，或在可安装专用工具的环境补做 gitleaks 与 SBOM/license 审计；需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
