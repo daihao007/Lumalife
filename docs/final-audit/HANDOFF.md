@@ -40,7 +40,7 @@
 16. 从 17 页历史 PDF 重建 `docs/10组-软件开发计划书.md`，校准为 9 用例、BFF + 4 微服务、三服务数据库、52/65 API、221 测试资产、27 个 K8s 对象和 350 计划工时口径；明确 D09/D10、管理原件、当前 CI/E2E 和签字的未验证边界。重新生成 10 页 A4 正式 PDF，10/10 页文本非空并完成 Poppler 全页视觉 QA，未见裁切、重叠、表格越界、乱码或异常孤页。
 17. 校准 `.env.example` 为当前 MySQL 三服务库、RabbitMQ、内部 Token、微服务开关与 Agnes 变量，移除已退出当前架构的 Redis/JWT 样例；重写 AI/开源说明并新增 Secret 静态审计报告。当前受跟踪文本与 Git 文本历史高置信特征 0 命中；宽泛候选为变量名、占位符或演示/测试值。本机无专用 scanner，未做 SBOM/license 全量审计，因此 R26 保持 `⚠️ TOOL-LIMITED`。
 18. 推送前发现远端 `main` 比本地多 3 个提交，本地比远端多 7 个交付提交；先只读检查差异，再以普通 merge 合入远端，生成 `1a99a78`。远端改动涉及 `.github/workflows/ci.yml`、`.github/workflows/services-cd.yml`、frontend 与四个服务 Dockerfile；合并无冲突，没有 force push 或覆盖同学提交。
-19. 将 27 个 Mermaid 图源、27 个 SVG 和 3 份 D03 分层说明从 CR/UC 混合文件名迁移为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，同步修正 D03/D04/需求矩阵/统一追溯表的链接与标识；历史 CR 映射文字仍保留。迁移没有把 `DemoStore` 单体图冒充为当前微服务图；R03/R04 仍需补当前微服务逐用例三层图。同时修正最终追溯矩阵中过期的“UC08 UI 当前失败”为 `9f0a755` 3/3，但当前 remote E2E 仍未重跑。
+19. 将 27 个历史 Mermaid 图源、27 个历史 SVG 和 3 份 D03 分层说明从 CR/UC 混合文件名迁移为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，同步修正 D03/D04/需求矩阵/统一追溯表的链接与标识；历史 CR 映射文字仍保留。迁移没有把 `DemoStore` 单体图冒充为当前微服务图；当前微服务逐用例图另见第 21 项。同时修正最终追溯矩阵中过期的“UC08 UI 当前失败”为 `9f0a755` 3/3，但当前 remote E2E 仍未重跑。
 20. 修正 `docs/HPA_EXPERIMENT_REPORT.md` 的原始证据断链：现在逐项直接链接实际存在的 `04_tests/cloud-native/hpa-observation-20260902-8c335eb*` 文件，并将 `NIGHTLY_SECOND_STAGE_EXECUTION_REPORT.md` 的统一索引改为 `04_tests/evidence/README.md`。未修改原始实验产物、未连接集群、未重跑压力实验。
 21. 按当前 BFF + 4 业务微服务边界补齐 UC01~UC09 的 27 个当前三层 Mermaid 源和 27 个 SVG，入口为 `docs/diagrams/final/use-cases/README.md`；同步更新逐项追溯链接，R03/R04 已由“待补当前图”调整为已完成。
 
