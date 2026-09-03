@@ -23,6 +23,7 @@
 - [`security/secret-scan-2026-09-03.md`](security/secret-scan-2026-09-03.md)：当前树与 Git 历史的静态 Secret 审计结果及限制
 - [`security/gitleaks-sbom-license-audit-2026-09-03.md`](security/gitleaks-sbom-license-audit-2026-09-03.md)：专用 Gitleaks 扫描、SPDX SBOM 与许可证缺口
 - [`security/lumalife-3696741.spdx.json`](security/lumalife-3696741.spdx.json)：绑定 `3696741` 的 Syft SPDX 2.3 SBOM
+- [`security/vulnerability-scan-2026-09-03.md`](security/vulnerability-scan-2026-09-03.md)：绑定同一 SBOM 的 Grype 扫描结果、11 个开放发现与覆盖边界
 
 ## 历史文档的使用规则
 

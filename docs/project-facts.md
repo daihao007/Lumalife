@@ -153,8 +153,9 @@ UI E2E 当前结果：客服测试改为注册唯一用户、等待 `#/profile` 
 - 开发过程使用 Codex 辅助代码、测试、文档和审计；人工仍负责复核、验收和本人签署。该用途与 `assistant-service` 的 Agnes 运行时 AI 能力分开说明。
 - 2026-09-03 对当前受跟踪文本与 Git 文本历史进行高置信静态特征扫描，真实凭据命中为 0；宽泛候选经复核为变量名、占位符或测试/演示值。
 - Gitleaks 8.30.1 对 `3696741` 的 616 个受跟踪文件快照和全部 233 个 Git 提交均为 0 finding；Syft 1.51.0 已生成 SPDX 2.3 SBOM，共 287 个包条目。
-- 许可证声明为 MIT 224、ISC 18、BSD-3-Clause 3、Apache-2.0 2、MIT AND ISC 1、CC-BY-4.0 1、NOASSERTION 38。已声明项未出现 GPL/AGPL/LGPL/EPL/MPL，但仓库无根 LICENSE，Maven 传递依赖、容器镜像和漏洞扫描未闭环。
-- R26 状态为 `⚠️ SECRET-SCAN-PASS / SBOM-GENERATED / LICENSE-PARTIAL / VULNERABILITY-NOT-RUN`。详见 `docs/security/gitleaks-sbom-license-audit-2026-09-03.md`。
+- 许可证声明为 MIT 224、ISC 18、BSD-3-Clause 3、Apache-2.0 2、MIT AND ISC 1、CC-BY-4.0 1、NOASSERTION 38。已声明项未出现 GPL/AGPL/LGPL/EPL/MPL，但仓库无根 LICENSE，Maven 传递依赖和容器镜像许可证未闭环。
+- Grype 0.118.0 使用 2026-09-02 构建的有效数据库扫描上述源码 SBOM，得到 11 个唯一 npm match：0 Critical、6 High、4 Medium、1 Low，11 项均标记有修复版本。该结果不覆盖 Maven 完整传递依赖、实际容器镜像或可达性分析。
+- R26 状态为 `⚠️ SECRET-SCAN-PASS / SBOM-GENERATED / LICENSE-PARTIAL / SOURCE-SBOM-VULNERABILITY-SCANNED / FINDINGS-OPEN / COVERAGE-PARTIAL`。详见 `docs/security/gitleaks-sbom-license-audit-2026-09-03.md` 与 `docs/security/vulnerability-scan-2026-09-03.md`。
 
 ## Formal Documents and PDFs
 

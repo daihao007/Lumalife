@@ -43,7 +43,8 @@
 19. 将 27 个历史 Mermaid 图源、27 个历史 SVG 和 3 份 D03 分层说明从 CR/UC 混合文件名迁移为 `UCxx-{SYS|COMP|OBJ}-SEQxx`，同步修正 D03/D04/需求矩阵/统一追溯表的链接与标识；历史 CR 映射文字仍保留。迁移没有把 `DemoStore` 单体图冒充为当前微服务图；当前微服务逐用例图另见第 21 项。同时修正最终追溯矩阵中过期的“UC08 UI 当前失败”为 `9f0a755` 3/3，但当前 remote E2E 仍未重跑。
 20. 修正 `docs/HPA_EXPERIMENT_REPORT.md` 的原始证据断链：现在逐项直接链接实际存在的 `04_tests/cloud-native/hpa-observation-20260902-8c335eb*` 文件，并将 `NIGHTLY_SECOND_STAGE_EXECUTION_REPORT.md` 的统一索引改为 `04_tests/evidence/README.md`。未修改原始实验产物、未连接集群、未重跑压力实验。
 21. 按当前 BFF + 4 业务微服务边界补齐 UC01~UC09 的 27 个当前三层 Mermaid 源和 27 个 SVG，入口为 `docs/diagrams/final/use-cases/README.md`；同步更新逐项追溯链接，R03/R04 已由“待补当前图”调整为已完成。
-22. 在 `main@3696741` 使用校验过发布包 SHA-256 的 Gitleaks 8.30.1 与 Syft 1.51.0 完成 R26 工具审计：当前 616 个受跟踪文件快照与全部 233 个 Git 提交均为 0 finding；生成 SPDX 2.3 SBOM，识别 287 个包条目。249 项有许可证声明，38 项为 `NOASSERTION`；仓库无根 LICENSE，漏洞扫描未运行，因此只闭环 Secret scanner 与基础 SBOM，不虚构全许可证/漏洞合规。
+22. 在 `main@3696741` 使用校验过发布包 SHA-256 的 Gitleaks 8.30.1 与 Syft 1.51.0 完成 R26 工具审计：当前 616 个受跟踪文件快照与全部 233 个 Git 提交均为 0 finding；生成 SPDX 2.3 SBOM，识别 287 个包条目。249 项有许可证声明，38 项为 `NOASSERTION`；仓库无根 LICENSE，因此只闭环 Secret scanner 与基础 SBOM，不虚构全许可证合规。
+23. 使用经官方 checksums 校验的 Grype 0.118.0 和 2026-09-02 构建的有效数据库扫描同一 `3696741` SPDX SBOM：发现 11 个唯一 npm match，0 Critical、6 High、4 Medium、1 Low，11 项均标记有修复版本。原始 JSON、数据库和工具只留在未跟踪 `tmp/`；没有启动服务或测试。该扫描不覆盖 Maven 完整传递依赖、实际容器镜像或漏洞可达性，R26 保持 PARTIAL。
 
 ## 唯一关键数字
 
@@ -61,6 +62,8 @@
 
 当前没有已执行测试失败。backend 本次工作树 96/96，UI E2E 在 `9f0a755` 3/3。Microservice E2E 因 Docker 引擎未就绪且用户要求停止，尚未启动任何容器或场景，无新 artifact；services/Vitest 仍沿用 `dc96528` 前序证据。合并远端 CI 修复后的当前 HEAD 没有重跑测试或取得完整 GitHub Actions 成功证据，不得写成当前 HEAD 全部通过。
 
+非测试审计存在 11 个开放 npm 漏洞 match：6 High、4 Medium、1 Low。它们尚未升级或完成可达性/VEX 判断，不得标记为已修复、误报或风险接受。
+
 ## 后续必须做（优先级顺序）
 
 ### P0
@@ -70,10 +73,11 @@
 
 ### P1
 
-1. 当前 HEAD 触发完整 GitHub Actions；确认修复后的 UI 3/3 并取得成功 quality gate run。
-2. 重跑性能 workflow，记录 commit/workflow，采全部容器而非只采 backend 资源。
-3. HPA 报告断链已修正；NIGHTLY 中 120 秒负载/180 秒冷却现已标明为同一最终验收批次的两个参数。仍需保留联合场景为未覆盖。
-4. 27 张历史三层图编号已迁移；当前微服务版逐用例三层图已生成并完成 Mermaid CLI 导出、SVG XML 校验和抽样视觉检查，后续只需答辩前复核链接和内容。
+1. 单独升级前端依赖以消除 11 个 Grype npm match，至少优先关闭 6 个 High；更新 lockfile 后必须恢复并执行前端单测、build、UI E2E，再重建 SBOM 和复扫。
+2. 当前 HEAD 触发完整 GitHub Actions；确认修复后的 UI 3/3 并取得成功 quality gate run。
+3. 重跑性能 workflow，记录 commit/workflow，采全部容器而非只采 backend 资源。
+4. HPA 报告断链已修正；NIGHTLY 中 120 秒负载/180 秒冷却现已标明为同一最终验收批次的两个参数。仍需保留联合场景为未覆盖。
+5. 27 张历史三层图编号已迁移；当前微服务版逐用例三层图已生成并完成 Mermaid CLI 导出、SVG XML 校验和抽样视觉检查，后续只需答辩前复核链接和内容。
 
 ## 不得做
 
@@ -116,8 +120,9 @@ bash scripts/test-service-data-ownership.sh
 - 本项校准 `docs/09_用户手册.md` 并重生成 `docs/09_用户手册.pdf`；正式 PDF 12 页、A4、12/12 页文本非空、8/8 张截图已嵌入并完成全页视觉检查。导出脚本已支持 macOS/Windows/Linux 中文字体。未启动容器或测试。
 - 本项新增 `docs/10组-软件开发计划书.md` 并覆盖历史同名 PDF；正式 PDF 10 页、A4、10/10 页文本非空并完成全页视觉检查。350 小时仅标为计划工时，D09/D10 与实际投入未被提前闭环。
 - 本项新增 `docs/security/gitleaks-sbom-license-audit-2026-09-03.md` 与绑定 `3696741` 的 SPDX SBOM；Gitleaks 原始空报告和工具二进制仅存 `tmp/`，不提交。服务器只读复核仍为 `main@a698c8e` 且有 5 项未跟踪 HPA/视频材料，本轮未修改服务器。
+- 本项新增 `docs/security/vulnerability-scan-2026-09-03.md`；Grype 扫描原始 JSON、数据库和工具仅存 `tmp/`，不提交。结果为 11 个开放 npm match（6 High、4 Medium、1 Low），未运行测试、未修改依赖。
 - 推送前已获取并合并 `origin/main@e75b3ed`，保留远端 3 个并行提交；未使用 rebase、reset、checkout 覆盖或 force push。合并后未重新执行测试，当前 HEAD 验证状态保持 NOT-RUN/UNVERIFIED 边界。
 
 ## 下一位接力者的第一步
 
-按用户“停止测试”的指示，不继续启动 Docker 或 E2E。Gitleaks 与基础 SPDX SBOM 已完成；下一项可独立推进的是解析 38 个 `NOASSERTION` 并补 Maven/容器许可证或执行 commit-bound 漏洞扫描。需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。
+按用户“停止测试”的指示，不继续启动 Docker 或 E2E。Gitleaks、基础 SPDX SBOM 和源码 SBOM 漏洞扫描已完成；下一项可独立推进的是单独升级并复核 11 个 npm match，或解析 38 个 `NOASSERTION` 并补 Maven/容器许可证与漏洞扫描。需要成员参与的 P0 仍是填写 `docs/06_defense/contribution-signoff.md`、提供 D03～D10 站会/截图原件并真实完成 D09/D10。若恢复 Microservice E2E，必须使用本地隔离、可销毁环境并保存绑定提交的原始 artifact，不得使用服务器旧提交 `a698c8e` 冒充当前结果。

@@ -5,7 +5,7 @@
 - 绑定提交：`main@3696741`
 - Secret 范围：该提交的 616 个受跟踪文件快照，以及仓库全部 233 个 Git 提交
 - SBOM 范围：同一受跟踪文件快照；不包含未跟踪 `tmp/`、本机 `.env`、外部 CI Secret、容器运行时文件系统或云端制品
-- 结论：Gitleaks 两层扫描均为 **0 finding**；已生成 SPDX 2.3 SBOM；许可证清单仍有 38 个条目为 `NOASSERTION`，漏洞扫描未执行，因此状态为 `SECRET-SCAN-PASS / SBOM-GENERATED / LICENSE-PARTIAL / VULNERABILITY-NOT-RUN`。
+- 结论：Gitleaks 两层扫描均为 **0 finding**；已生成 SPDX 2.3 SBOM；许可证清单仍有 38 个条目为 `NOASSERTION`。后续 Grype 源码 SBOM 扫描发现 11 个可修复 npm match（6 High、4 Medium、1 Low），详见 [`vulnerability-scan-2026-09-03.md`](vulnerability-scan-2026-09-03.md)。当前状态为 `SECRET-SCAN-PASS / SBOM-GENERATED / LICENSE-PARTIAL / SOURCE-SBOM-VULNERABILITY-SCANNED / FINDINGS-OPEN / COVERAGE-PARTIAL`。
 
 本项没有启动 Docker、应用、E2E、服务器实验或共享环境。
 
@@ -107,7 +107,7 @@ syft scan dir:head-tree --source-name Lumalife --source-version 3696741 `
 - 对 38 个 `NOASSERTION` 条目逐项补充来源和许可证判断；
 - 由项目成员决定并添加适用的项目 LICENSE，课程内部交付与公开发布应区分；
 - 对 Maven 传递依赖、容器镜像和前端生产制品生成补充 SBOM；
-- 使用 Grype、Trivy 或等效工具执行 commit-bound 漏洞扫描；
+- 已使用 Grype 0.118.0 对 commit-bound 源码 SBOM 执行扫描；仍需修复 11 个 npm match，并补 Maven 完整传递依赖、容器镜像和前端生产制品扫描；
 - 如任何后续扫描发现真实凭据，先撤销/轮换，再处理 Git 历史和已发布制品。
 
-因此 R26 的 Secret scanner 与基础 SBOM 缺口已闭环，许可证和漏洞审计仍保持 `PARTIAL/NOT-RUN`。
+因此 R26 的 Secret scanner 与基础 SBOM 缺口已闭环，源码 SBOM 漏洞扫描已运行但有未关闭发现且覆盖不完整；许可证与整体漏洞审计仍保持 `PARTIAL`。
